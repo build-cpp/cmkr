@@ -1,0 +1,13 @@
+[cmake]
+minimum_required = "3.0"
+
+[project]
+name = "cmk"
+version = "0.1.0"
+authors = ["MoAlyousef <mohammed.alyousef@neurosrg.com>"]
+
+[[executable]]
+name = "cmk"
+sources = ["src/main.cpp"]
+include_directories = ["vendor"]
+compile_features = ["cxx_std_17"]
