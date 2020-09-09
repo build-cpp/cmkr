@@ -1,15 +1,15 @@
 [cmake] # required
 minimum_required = "3.0" # required
-cpp_flags = [""] # optional
-c_flags = [""] # optional
-linker_flags = [""] # optional
+# cpp_flags = [""] # optional
+# c_flags = [""] # optional
+# linker_flags = [""] # optional
 
 [project] # required
 name = "cmkr" # required
 version = "0.1.0" # required
 
-[dependencies] # optional, runs find_package
-# boost = "*"
+# [dependencies] # optional, runs find_package
+# boost = "1.74.0"
 
 [[app]] # optional
 name = "cmkr" # required
