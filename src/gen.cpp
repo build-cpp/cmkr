@@ -80,8 +80,7 @@ void generate_cmake(const char *path) {
     if (toml.contains("cmake")) {
         const auto &cmake = toml::find(toml, "cmake");
         const std::string cmake_min = toml::find(cmake, "minimum_required").as_string();
-        ss << "cmake_minimum_required(VERSION " << cmake_min << ")\n\n"
-           << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n";
+        ss << "cmake_minimum_required(VERSION " << cmake_min << ")\n\n";
 
         if (cmake.contains("cpp_flags")) {
             ss << "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}";
@@ -141,7 +140,7 @@ void generate_cmake(const char *path) {
         }
     }
 
-    ss << "\n";
+    ss << "\nset(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n";
 
     if (toml.contains("bin")) {
         const auto &bins = toml::find(toml, "bin").as_array();
