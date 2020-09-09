@@ -5,7 +5,7 @@
 #include <stdexcept>
 
 namespace cmkr::args {
-std::string handle_args(std::vector<std::string> args) {
+std::string handle_args(std::vector<std::string> &args) {
     if (args.size() < 2)
         throw std::runtime_error("Please provide command line arguments!");
     std::string main_arg = args[1];
@@ -21,7 +21,7 @@ std::string handle_args(std::vector<std::string> args) {
             throw std::runtime_error("Please provide a project type!");
         cmkr::gen::generate_project(args[2]);
         return "Directory initialized!";
-    } else if (main_arg == "run") {
+    } else if (main_arg == "build") {
         std::string command = "cmake -S. -Bbin ";
         if (args.size() > 2) {
             for (int i = 2; i < args.size(); ++i) {
@@ -29,7 +29,7 @@ std::string handle_args(std::vector<std::string> args) {
             }
         }
         command += "&& cmake --build bin";
-        system(command.c_str());
+        auto _ = system(command.c_str());
         return "Run completed!";
     } else {
         return "Unknown argument!";

@@ -1,1 +1,71 @@
 # cmkr
+
+A CMakeLists.txt generator from TOML. Still WIP.
+
+## Building
+```
+git clone https://github.com/moalyousef/cmkr
+cd cmkr
+cmake -S. -Bbin
+cmake --build bin
+```
+
+## Usage
+cmkr parses cmake.toml files at the project directory. A basic hello world format with the minimum required fields:
+```toml
+[cmake]
+minimum_required = "3.0"
+
+[project]
+name = "cmkr"
+version = "0.1.0"
+
+[[bin]]
+name = "cmkr"
+type = "exe"
+sources = ["src/main.cpp"]
+```
+
+Currently supported fields:
+```toml
+[cmake] # required
+minimum_required = "3.0" # required
+# cpp_flags = [] # optional
+# c_flags = [] # optional
+# linker_flags = [] # optional
+# subdirs = [] # optional
+
+[project] # required
+name = "cmkr" # required
+version = "0.1.0" # required
+
+[dependencies] # optional, runs find_package, use "*" to ignore version
+boost = "1.74.0" # optional
+
+[[bin]] # required
+name = "cmkr" # required
+type = "exe" # required (exe || shared || static)
+sources = ["src/main.cpp", "src/args.cpp", "src/gen.cpp"] # required
+include_directories = ["vendor"] # optional
+compile_features = ["cxx_std_17"] # optional
+# link_libraries = [] # optional 
+```
+
+The cmkr executable can be run from the command-line:
+```
+Usage: cmkr [arguments]
+arguments:
+    init     [exe|shared|static]    Starts a new project in the same directory.
+    gen                             Generates CMakeLists.txt file.
+    build    [cmake args...]        Run cmake and build.
+    help                            Show help.
+    version                         Current cmkr version.
+```
+The build command invokes cmake and the default build-system on your platform, it also accepts extra cmake arguments:
+```
+cmkr build -DCMAKE_TOOLCHAIN_FILE=/path/to/toolchain -DCMAKE_BUILD_TYPE=Release 
+```
+
+## Roadmap
+- Support more fields.
+- Support conditional cmake args somehow!

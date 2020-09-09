@@ -18,12 +18,14 @@ inline std::string to_upper(const std::string &str) {
     }
     return temp;
 }
+void handle_bins(std::stringstream &s, const std::string &bin_type) {
+}
 } // namespace detail
 
 void generate_project(const std::string &str) {
     fs::create_directory("src");
     auto dir_name = fs::current_path().stem();
-    if (str == "app") {
+    if (str == "exe") {
         std::ofstream ofs("src/main.cpp");
         if (ofs.is_open()) {
             ofs << "#include <iostream>\n\nint main() {\n\tstd::cout << \"Hello world!\" << "
@@ -37,35 +39,31 @@ void generate_project(const std::string &str) {
             ofs2 << "[cmake]\nminimum_required = \"3.0\"\n\n[project]\nname = \""
                  << dir_name.string()
                  << "\"\nversion = "
-                    "\"0.1.0\"\n\n[[app]]\nname = \""
+                    "\"0.1.0\"\n\n[[exe]]\nname = \""
                  << dir_name.string() << "\"\nsources = [\"src/main.cpp\"]\n";
         }
         ofs2.flush();
         ofs2.close();
-    } else if (str == "static") {
-        std::ofstream ofs2("cmake.toml");
-        if (ofs2.is_open()) {
-            ofs2 << "[cmake]\nminimum_required = \"3.0\"\n\n[project]\nname = \""
-                 << dir_name.string()
-                 << "\"\nversion = "
-                    "\"0.1.0\"\n\n[[lib]]\nname = \""
-                 << dir_name.string() << "\"\nsources = [\"src/main.cpp\"]\ntype = \"static\"\n";
+    } else if (str == "static" || str == "shared") {
+        std::ofstream ofs("src/lib.cpp");
+        if (ofs.is_open()) {
+            ofs << "int dll_main() {\n\treturn 0;\n}";
         }
-        ofs2.flush();
-        ofs2.close();
-    } else if (str == "shared") {
+        ofs.flush();
+        ofs.close();
+
         std::ofstream ofs2("cmake.toml");
         if (ofs2.is_open()) {
             ofs2 << "[cmake]\nminimum_required = \"3.0\"\n\n[project]\nname = \""
                  << dir_name.string()
                  << "\"\nversion = "
                     "\"0.1.0\"\n\n[[lib]]\nname = \""
-                 << dir_name.string() << "\"\nsources = [\"src/main.cpp\"]\ntype = \"shared\"\n";
+                 << dir_name.string() << "\"\nsources = [\"src/lib.cpp\"]\ntype = \"" << str << "\"\n";
         }
         ofs2.flush();
         ofs2.close();
     } else {
-        throw std::runtime_error("Unknown project type. Types are app, shared, static!");
+        throw std::runtime_error("Unknown project type. Types are exe, shared, static!");
     }
 }
 
@@ -110,6 +108,14 @@ void generate_cmake() {
         ss << ")\n\n";
     }
 
+    if (cmake.contains("subdirs")) {
+        const auto dirs = toml::find(cmake, "subdirs").as_array();
+        for (const auto &dir : dirs) {
+            ss << "add_subdirectory(" << dir << ")\n";
+        }
+        ss << "\n\n";
+    }
+
     if (toml.contains("dependencies")) {
         std::map<std::string, std::string> deps =
             toml::find<std::map<std::string, std::string>>(toml, "dependencies");
@@ -125,11 +131,24 @@ void generate_cmake() {
 
     ss << "\n";
 
-    if (toml.contains("app")) {
-        const auto &bins = toml::find(toml, "app").as_array();
+    if (toml.contains("bin")) {
+        const auto &bins = toml::find(toml, "bin").as_array();
 
         for (const auto &bin : bins) {
             const std::string bin_name = toml::find(bin, "name").as_string();
+            const std::string type = toml::find(bin, "type").as_string();
+            std::string bin_type;
+            std::string add_command;
+            if (type == "exe") {
+                bin_type = "";
+                add_command = "add_executable";
+            } else if (type == "shared" || type == "static") {
+                bin_type = detail::to_upper(type);
+                add_command = "add_library";
+            } else {
+                throw std::runtime_error(
+                    "Unknown binary type! Supported types are exe, shared and static");
+            }
 
             const auto srcs = toml::find(bin, "sources").as_array();
             ss << "set(" << detail::to_upper(bin_name) << "_SOURCES\n";
@@ -137,8 +156,8 @@ void generate_cmake() {
                 ss << "\t" << src << "\n";
             }
             ss << "\t)\n\n"
-               << "add_executable(" << bin_name << " ${" << detail::to_upper(bin_name)
-               << "_SOURCES})\n\n";
+               << add_command << "(" << bin_name << " " << bin_type << " ${"
+               << detail::to_upper(bin_name) << "_SOURCES})\n\n";
 
             if (bin.contains("include_directories")) {
                 const auto includes = toml::find(bin, "include_directories").as_array();
@@ -167,50 +186,7 @@ void generate_cmake() {
         }
     }
 
-    if (toml.contains("lib")) {
-        const auto &libs = toml::find(toml, "lib").as_array();
-
-        for (const auto &lib : libs) {
-            const std::string lib_name = toml::find(lib, "name").as_string();
-            const std::string type = toml::find(lib, "type").as_string();
-
-            const auto srcs = toml::find(lib, "sources").as_array();
-            ss << "set(" << detail::to_upper(lib_name) << "_SOURCES\n";
-            for (const auto &src : srcs) {
-                ss << "\t" << src << "\n";
-            }
-            ss << "\t)\n\n"
-               << "add_library(" << lib_name << " " << detail::to_upper(type) << " ${"
-               << detail::to_upper(lib_name) << "_SOURCES})\n\n";
-
-            if (lib.contains("include_directories")) {
-                const auto includes = toml::find(lib, "include_directories").as_array();
-                ss << "target_include_directories(" << lib_name << " PUBLIC\n\t";
-                for (const auto &inc : includes) {
-                    ss << inc << "\n\t";
-                }
-                ss << ")\n\n";
-            }
-
-            if (lib.contains("link_libraries")) {
-                const auto ls = toml::find(lib, "link_libraries").as_array();
-                ss << "target_link_libraries(" << lib_name << " PUBLIC\n\t";
-                for (const auto &l : ls) {
-                    ss << l << "\n\t";
-                }
-                ss << ")\n\n";
-            }
-
-            if (lib.contains("compile_features")) {
-                const auto feats = toml::find(lib, "compile_features").as_array();
-                ss << "target_compile_features(" << lib_name << " PUBLIC\n\t";
-                for (const auto &feat : feats) {
-                    ss << feat << "\n\t";
-                }
-                ss << ")\n\n";
-            }
-        }
-    }
+    ss << "\n\n";
 
     std::ofstream ofs("CMakeLists.txt");
     if (ofs.is_open()) {

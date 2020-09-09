@@ -4,5 +4,5 @@
 #include <vector>
 
 namespace cmkr::args {
-std::string handle_args(std::vector<std::string> args);
+std::string handle_args(std::vector<std::string> &args);
 }
