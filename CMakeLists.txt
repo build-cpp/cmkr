@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(cmkr)
 
-project(cmkr VERSION 0.1.0 LANGUAGES CXX)
+project(cmkr VERSION 0.1.0)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
