@@ -5,6 +5,7 @@
 #include <map>
 #include <sstream>
 #include <stdexcept>
+#include <string.h>
 #include <toml.hpp>
 
 namespace fs = std::filesystem;
@@ -41,8 +42,9 @@ void generate_project(const char *str) {
             ofs2 << "[cmake]\nminimum_required = \"3.0\"\n\n[project]\nname = \""
                  << dir_name.string()
                  << "\"\nversion = "
-                    "\"0.1.0\"\n\n[[exe]]\nname = \""
-                 << dir_name.string() << "\"\nsources = [\"src/main.cpp\"]\n";
+                    "\"0.1.0\"\n\n[[bin]]\nname = \""
+                 << dir_name.string() << "\"\nsources = [\"src/main.cpp\"]\ntype = \"" << str
+                 << "\"\n";
         }
         ofs2.flush();
         ofs2.close();
@@ -59,7 +61,7 @@ void generate_project(const char *str) {
             ofs2 << "[cmake]\nminimum_required = \"3.0\"\n\n[project]\nname = \""
                  << dir_name.string()
                  << "\"\nversion = "
-                    "\"0.1.0\"\n\n[[lib]]\nname = \""
+                    "\"0.1.0\"\n\n[[bin]]\nname = \""
                  << dir_name.string() << "\"\nsources = [\"src/lib.cpp\"]\ntype = \"" << str
                  << "\"\n";
         }
