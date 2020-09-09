@@ -39,7 +39,7 @@ void generate_project(const char *str) {
 
         std::ofstream ofs2("cmake.toml");
         if (ofs2.is_open()) {
-            ofs2 << "[cmake]\nminimum_required = \"3.0\"\n\n[project]\nname = \""
+            ofs2 << "[cmake]\nminimum = \"3.14\"\n\n[project]\nname = \""
                  << dir_name.string()
                  << "\"\nversion = "
                     "\"0.1.0\"\n\n[[bin]]\nname = \""
@@ -58,7 +58,7 @@ void generate_project(const char *str) {
 
         std::ofstream ofs2("cmake.toml");
         if (ofs2.is_open()) {
-            ofs2 << "[cmake]\nminimum_required = \"3.0\"\n\n[project]\nname = \""
+            ofs2 << "[cmake]\nminimum = \"3.14\"\n\n[project]\nname = \""
                  << dir_name.string()
                  << "\"\nversion = "
                     "\"0.1.0\"\n\n[[bin]]\nname = \""
@@ -79,30 +79,30 @@ void generate_cmake(const char *path) {
     const auto toml = toml::parse((fs::path(path) / "cmake.toml").string());
     if (toml.contains("cmake")) {
         const auto &cmake = toml::find(toml, "cmake");
-        const std::string cmake_min = toml::find(cmake, "minimum_required").as_string();
+        const std::string cmake_min = toml::find(cmake, "minimum").as_string();
         ss << "cmake_minimum_required(VERSION " << cmake_min << ")\n\n";
 
-        if (cmake.contains("cpp_flags")) {
+        if (cmake.contains("cpp-flags")) {
             ss << "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}";
-            const auto flags = toml::find(cmake, "cpp_flags").as_array();
+            const auto flags = toml::find(cmake, "cpp-flags").as_array();
             for (const auto &flag : flags) {
                 ss << " " << flag;
             }
             ss << ")\n\n";
         }
 
-        if (cmake.contains("c_flags")) {
+        if (cmake.contains("c-flags")) {
             ss << "set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS}";
-            const auto flags = toml::find(cmake, "c_flags").as_array();
+            const auto flags = toml::find(cmake, "c-flags").as_array();
             for (const auto &flag : flags) {
                 ss << " " << flag;
             }
             ss << ")\n\n";
         }
 
-        if (cmake.contains("link_flags")) {
+        if (cmake.contains("link-flags")) {
             ss << "set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS}";
-            const auto flags = toml::find(cmake, "link_flags").as_array();
+            const auto flags = toml::find(cmake, "link-flags").as_array();
             for (const auto &flag : flags) {
                 ss << " " << flag;
             }
@@ -127,9 +127,9 @@ void generate_cmake(const char *path) {
         ss << "project(" << proj_name << " VERSION " << proj_version << ")\n\n";
     }
 
-    if (toml.contains("dependencies")) {
+    if (toml.contains("find")) {
         std::map<std::string, std::string> deps =
-            toml::find<std::map<std::string, std::string>>(toml, "dependencies");
+            toml::find<std::map<std::string, std::string>>(toml, "find");
         for (const auto &dep : deps) {
             ss << "find_package(" << dep.first;
             if (dep.second != "*") {
@@ -137,6 +137,20 @@ void generate_cmake(const char *path) {
             } else {
                 ss << " CONFIG REQUIRED)\n";
             }
+        }
+    }
+
+    if (toml.contains("fetch")) {
+        std::map<std::string, std::map<std::string, std::string>> deps =
+            toml::find<std::map<std::string, std::map<std::string, std::string>>>(toml, "fetch");
+        ss << "include(FetchContent)\n\n";
+        for (const auto &dep : deps) {
+            ss << "FetchContent_Declare(\n\t" << dep.first << "\n";
+            for (const auto &arg: dep.second) {
+                ss << "\t" << arg.first << " " << arg.second << "\n";
+            }
+            ss << "\t)\n\n"
+               << "FetchContent_MakeAvailable("<< dep.first << ")\n\n";
         }
     }
 
@@ -170,8 +184,8 @@ void generate_cmake(const char *path) {
                << add_command << "(" << bin_name << " " << bin_type << " ${"
                << detail::to_upper(bin_name) << "_SOURCES})\n\n";
 
-            if (bin.contains("include_dirs")) {
-                const auto includes = toml::find(bin, "include_dirs").as_array();
+            if (bin.contains("include-dirs")) {
+                const auto includes = toml::find(bin, "include-dirs").as_array();
                 ss << "target_include_directories(" << bin_name << " PUBLIC\n\t";
                 for (const auto &inc : includes) {
                     ss << inc << "\n\t";
@@ -179,8 +193,8 @@ void generate_cmake(const char *path) {
                 ss << ")\n\n";
             }
 
-            if (bin.contains("link_libs")) {
-                const auto libraries = toml::find(bin, "link_libs").as_array();
+            if (bin.contains("link-libs")) {
+                const auto libraries = toml::find(bin, "link-libs").as_array();
                 ss << "target_link_libraries(" << bin_name << " PUBLIC\n\t";
                 for (const auto &l : libraries) {
                     ss << l << "\n\t";

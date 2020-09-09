@@ -1,5 +1,5 @@
 [cmake]
-minimum_required = "3.0"
+minimum = "3.14"
 
 [project]
 name = "cmkr"
@@ -9,12 +9,12 @@ version = "0.1.0"
 name = "cmkrlib"
 type = "static"
 sources = ["src/args.cpp", "src/gen.cpp", "src/help.cpp"]
-include_dirs = ["vendor"]
+include-dirs = ["vendor"]
 features = ["cxx_std_17"]
 
 [[bin]]
 name = "cmkr"
 type = "exe"
 sources = ["src/main.cpp"]
-link_libs = ["cmkrlib"]
+link-libs = ["cmkrlib"]
 
