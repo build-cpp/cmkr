@@ -12,17 +12,22 @@ name = "cmkr" # required
 version = "0.1.0" # required
 languages = [""] # optional (C, CXX, OBJC, OBJCXX)
 
+[dependencies] # optional, runs find_package
+# boost = "1.74.0"
+
 [[app]] # optional
 name = "cmkr" # required
 sources = ["src/main.cpp", "src/args.cpp", "src/gen.cpp", "src/help.cpp"] # required
 headers = [""] # optional
 include_directories = ["vendor"] # optional
 compile_features = ["cxx_std_17"] # optional
+link_libraries = [""] # optional 
 
 # [[lib]] # optional
 # name = "cmkr" # required
 # sources = ["src/args.cpp", "src/gen.cpp", "src/help.cpp"] # required
-# type = "shared" # required
+# type = "shared" # required (shared, static)
 # headers = [""] # optional
 # include_directories = ["vendor"] # optional
 # compile_features = ["cxx_std_17"] # optional
+# link_libraries = [""] # optional 
