@@ -1,16 +1,12 @@
-#include "args.hpp"
-#include <iostream>
-#include <string>
-#include <vector>
+#include "args.h"
+
+#include <stdexcept>
+#include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char **argv) try {
-    std::vector<std::string> args;
-    for (int i = 0; i < argc; ++i)
-        args.push_back(argv[i]);
-
-    auto output = cmkr::args::handle_args(args);
-    std::cout << output << std::endl;
-    return 0;
+    auto output = cmkr::args::handle_args(argc, argv);
+    return fprintf(stdout, "%s\n", output) < 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 } catch (const std::exception &e) {
-    std::cerr << e.what() << std::endl;
+    fprintf(stderr, "%s\n", e.what());
 }

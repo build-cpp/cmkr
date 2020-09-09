@@ -1,4 +1,5 @@
-#include "gen.hpp"
+#include "gen.h"
+
 #include <filesystem>
 #include <fstream>
 #include <map>
@@ -9,7 +10,9 @@
 namespace fs = std::filesystem;
 
 namespace cmkr::gen {
+
 namespace detail {
+
 inline std::string to_upper(const std::string &str) {
     std::string temp;
     temp.reserve(str.size());
@@ -18,14 +21,13 @@ inline std::string to_upper(const std::string &str) {
     }
     return temp;
 }
-void handle_bins(std::stringstream &s, const std::string &bin_type) {
-}
+
 } // namespace detail
 
-void generate_project(const std::string &str) {
+void generate_project(const char *str) {
     fs::create_directory("src");
     auto dir_name = fs::current_path().stem();
-    if (str == "exe") {
+    if (!strcmp(str, "exe")) {
         std::ofstream ofs("src/main.cpp");
         if (ofs.is_open()) {
             ofs << "#include <iostream>\n\nint main() {\n\tstd::cout << \"Hello world!\" << "
@@ -44,7 +46,7 @@ void generate_project(const std::string &str) {
         }
         ofs2.flush();
         ofs2.close();
-    } else if (str == "static" || str == "shared") {
+    } else if (!strcmp(str, "static") || !strcmp(str, "shared")) {
         std::ofstream ofs("src/lib.cpp");
         if (ofs.is_open()) {
             ofs << "int dll_main() {\n\treturn 0;\n}";
@@ -58,7 +60,8 @@ void generate_project(const std::string &str) {
                  << dir_name.string()
                  << "\"\nversion = "
                     "\"0.1.0\"\n\n[[lib]]\nname = \""
-                 << dir_name.string() << "\"\nsources = [\"src/lib.cpp\"]\ntype = \"" << str << "\"\n";
+                 << dir_name.string() << "\"\nsources = [\"src/lib.cpp\"]\ntype = \"" << str
+                 << "\"\n";
         }
         ofs2.flush();
         ofs2.close();
@@ -67,53 +70,60 @@ void generate_project(const std::string &str) {
     }
 }
 
-void generate_cmake() {
+void generate_cmake(const char *path) {
     std::stringstream ss;
+    std::vector<std::string> subdirs;
 
-    const auto toml = toml::parse("cmake.toml");
-    const auto &cmake = toml::find(toml, "cmake");
-    const std::string cmake_min = toml::find(cmake, "minimum_required").as_string();
-    const auto &project = toml::find(toml, "project");
-    const std::string proj_name = toml::find(project, "name").as_string();
-    const std::string proj_version = toml::find(project, "version").as_string();
+    const auto toml = toml::parse(fs::path(path) / "cmake.toml");
+    if (toml.contains("cmake")) {
+        const auto &cmake = toml::find(toml, "cmake");
+        const std::string cmake_min = toml::find(cmake, "minimum_required").as_string();
+        ss << "cmake_minimum_required(VERSION " << cmake_min << ")\n\n"
+           << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n";
 
-    ss << "cmake_minimum_required(VERSION " << cmake_min << ")\n\n"
-       << "project(" << proj_name << " VERSION " << proj_version << ")\n\n"
-       << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n";
-
-    if (cmake.contains("cpp_flags")) {
-        ss << "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}";
-        const auto flags = toml::find(cmake, "cpp_flags").as_array();
-        for (const auto &flag : flags) {
-            ss << " " << flag;
+        if (cmake.contains("cpp_flags")) {
+            ss << "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}";
+            const auto flags = toml::find(cmake, "cpp_flags").as_array();
+            for (const auto &flag : flags) {
+                ss << " " << flag;
+            }
+            ss << ")\n\n";
         }
-        ss << ")\n\n";
+
+        if (cmake.contains("c_flags")) {
+            ss << "set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS}";
+            const auto flags = toml::find(cmake, "c_flags").as_array();
+            for (const auto &flag : flags) {
+                ss << " " << flag;
+            }
+            ss << ")\n\n";
+        }
+
+        if (cmake.contains("link_flags")) {
+            ss << "set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS}";
+            const auto flags = toml::find(cmake, "link_flags").as_array();
+            for (const auto &flag : flags) {
+                ss << " " << flag;
+            }
+            ss << ")\n\n";
+        }
+
+        if (cmake.contains("subdirs")) {
+            const auto dirs = toml::find(cmake, "subdirs").as_array();
+            for (const auto &dir : dirs) {
+                ss << "add_subdirectory(" << dir << ")\n";
+                subdirs.push_back(dir.as_string());
+            }
+            ss << "\n\n";
+        }
     }
 
-    if (cmake.contains("c_flags")) {
-        ss << "set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS}";
-        const auto flags = toml::find(cmake, "c_flags").as_array();
-        for (const auto &flag : flags) {
-            ss << " " << flag;
-        }
-        ss << ")\n\n";
-    }
+    if (toml.contains("project")) {
+        const auto &project = toml::find(toml, "project");
+        const std::string proj_name = toml::find(project, "name").as_string();
+        const std::string proj_version = toml::find(project, "version").as_string();
 
-    if (cmake.contains("linker_flags")) {
-        ss << "set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS}";
-        const auto flags = toml::find(cmake, "linker_flags").as_array();
-        for (const auto &flag : flags) {
-            ss << " " << flag;
-        }
-        ss << ")\n\n";
-    }
-
-    if (cmake.contains("subdirs")) {
-        const auto dirs = toml::find(cmake, "subdirs").as_array();
-        for (const auto &dir : dirs) {
-            ss << "add_subdirectory(" << dir << ")\n";
-        }
-        ss << "\n\n";
+        ss << "project(" << proj_name << " VERSION " << proj_version << ")\n\n";
     }
 
     if (toml.contains("dependencies")) {
@@ -159,8 +169,8 @@ void generate_cmake() {
                << add_command << "(" << bin_name << " " << bin_type << " ${"
                << detail::to_upper(bin_name) << "_SOURCES})\n\n";
 
-            if (bin.contains("include_directories")) {
-                const auto includes = toml::find(bin, "include_directories").as_array();
+            if (bin.contains("include_dirs")) {
+                const auto includes = toml::find(bin, "include_dirs").as_array();
                 ss << "target_include_directories(" << bin_name << " PUBLIC\n\t";
                 for (const auto &inc : includes) {
                     ss << inc << "\n\t";
@@ -168,8 +178,8 @@ void generate_cmake() {
                 ss << ")\n\n";
             }
 
-            if (bin.contains("link_libraries")) {
-                const auto libraries = toml::find(bin, "link_libraries").as_array();
+            if (bin.contains("link_libs")) {
+                const auto libraries = toml::find(bin, "link_libs").as_array();
                 ss << "target_link_libraries(" << bin_name << " PUBLIC\n\t";
                 for (const auto &l : libraries) {
                     ss << l << "\n\t";
@@ -177,8 +187,8 @@ void generate_cmake() {
                 ss << ")\n\n";
             }
 
-            if (bin.contains("compile_features")) {
-                const auto feats = toml::find(bin, "compile_features").as_array();
+            if (bin.contains("features")) {
+                const auto feats = toml::find(bin, "features").as_array();
                 ss << "target_compile_features(" << bin_name << " PUBLIC\n\t";
                 for (const auto &feat : feats) {
                     ss << feat << "\n\t";
@@ -186,8 +196,8 @@ void generate_cmake() {
                 ss << ")\n\n";
             }
 
-            if (bin.contains("definitions")) {
-                const auto defs = toml::find(bin, "definitions").as_array();
+            if (bin.contains("defines")) {
+                const auto defs = toml::find(bin, "defines").as_array();
                 ss << "target_add_definitions(" << bin_name << " PUBLIC\n\t";
                 for (const auto &def : defs) {
                     ss << def << "\n\t";
@@ -198,12 +208,23 @@ void generate_cmake() {
     }
 
     ss << "\n\n";
-
-    std::ofstream ofs("CMakeLists.txt");
+    // printf("%s\n", ss.str().c_str());
+    std::ofstream ofs(fs::path(path) / "CMakeLists.txt");
     if (ofs.is_open()) {
         ofs << ss.rdbuf();
     }
     ofs.flush();
     ofs.close();
+    for (const auto &sub : subdirs) {
+        generate_cmake(sub.c_str());
+    }
 }
 } // namespace cmkr::gen
+
+void cmkr_gen_generate_project(const char *typ) {
+    cmkr::gen::generate_project(typ);
+}
+
+void cmkr_gen_generate_cmake(const char *path) {
+    cmkr::gen::generate_cmake(path);
+}
