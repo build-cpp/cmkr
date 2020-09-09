@@ -1,6 +1,7 @@
 #include "args.hpp"
 #include "gen.hpp"
 #include "help.hpp"
+#include <cstddef>
 #include <cstdlib>
 #include <stdexcept>
 
@@ -24,12 +25,14 @@ std::string handle_args(std::vector<std::string> &args) {
     } else if (main_arg == "build") {
         std::string command = "cmake -S. -Bbin ";
         if (args.size() > 2) {
-            for (int i = 2; i < args.size(); ++i) {
+            for (size_t i = 2; i < args.size(); ++i) {
                 command += args[i] + " ";
             }
         }
         command += "&& cmake --build bin";
-        auto _ = system(command.c_str());
+        auto ret = system(command.c_str());
+        if (ret)
+            return "Run faced an error!";
         return "Run completed!";
     } else {
         return "Unknown argument!";
