@@ -1,13 +1,28 @@
-[cmake]
-minimum_required = "3.0"
+[cmake] # required
+minimum_required = "3.0" # required
+arguments = [""] # optional
+cpp_flags = [""] # optional
+c_flags = [""] # optional
+link_flags = [""] # optional
+prefix_path = [""] # optional
+export_compile_commands = true # optional
 
-[project]
-name = "cmk"
-version = "0.1.0"
-authors = ["MoAlyousef <mohammed.alyousef@neurosrg.com>"]
+[project] # required
+name = "cmkr" # required
+version = "0.1.0" # required
+languages = [""] # optional (C, CXX, OBJC, OBJCXX)
 
-[[executable]]
-name = "cmk"
-sources = ["src/main.cpp"]
-include_directories = ["vendor"]
-compile_features = ["cxx_std_17"]
+[[app]] # optional
+name = "cmkr" # required
+sources = ["src/main.cpp", "src/args.cpp", "src/gen.cpp", "src/help.cpp"] # required
+headers = [""] # optional
+include_directories = ["vendor"] # optional
+compile_features = ["cxx_std_17"] # optional
+
+# [[lib]] # optional
+# name = "cmkr" # required
+# sources = ["src/args.cpp", "src/gen.cpp", "src/help.cpp"] # required
+# type = "shared" # required
+# headers = [""] # optional
+# include_directories = ["vendor"] # optional
+# compile_features = ["cxx_std_17"] # optional
