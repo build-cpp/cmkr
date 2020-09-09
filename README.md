@@ -71,8 +71,8 @@ boost = "1.74.0" # optional
 name = "app" # required
 type = "exe" # required (exe || shared || static)
 sources = ["src/main.cpp"] # required
-include_dirs = ["vendor"] # optional
-features = ["cxx_std_17"] # optional
+include_dirs = [] # optional
+features = [] # optional
 defines = [] # optional
 link_libs = [] # optional 
 ```
