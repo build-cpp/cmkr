@@ -167,6 +167,7 @@ void generate_cmake() {
                 }
                 ss << ")\n\n";
             }
+
             if (bin.contains("link_libraries")) {
                 const auto libraries = toml::find(bin, "link_libraries").as_array();
                 ss << "target_link_libraries(" << bin_name << " PUBLIC\n\t";
@@ -175,11 +176,21 @@ void generate_cmake() {
                 }
                 ss << ")\n\n";
             }
+
             if (bin.contains("compile_features")) {
                 const auto feats = toml::find(bin, "compile_features").as_array();
                 ss << "target_compile_features(" << bin_name << " PUBLIC\n\t";
                 for (const auto &feat : feats) {
                     ss << feat << "\n\t";
+                }
+                ss << ")\n\n";
+            }
+
+            if (bin.contains("definitions")) {
+                const auto defs = toml::find(bin, "definitions").as_array();
+                ss << "target_add_definitions(" << bin_name << " PUBLIC\n\t";
+                for (const auto &def : defs) {
+                    ss << def << "\n\t";
                 }
                 ss << ")\n\n";
             }

@@ -50,6 +50,7 @@ type = "exe" # required (exe || shared || static)
 sources = ["src/main.cpp", "src/args.cpp", "src/gen.cpp"] # required
 include_directories = ["vendor"] # optional
 compile_features = ["cxx_std_17"] # optional
+# definitions = [] # optional
 # link_libraries = [] # optional 
 ```
 
@@ -59,13 +60,13 @@ Usage: cmkr [arguments]
 arguments:
     init     [exe|shared|static]    Starts a new project in the same directory.
     gen                             Generates CMakeLists.txt file.
-    build    [cmake args...]        Run cmake and build.
+    build    [extra cmake args]     Run cmake and build.
     help                            Show help.
     version                         Current cmkr version.
 ```
 The build command invokes cmake and the default build-system on your platform, it also accepts extra cmake arguments:
 ```
-cmkr build -DCMAKE_TOOLCHAIN_FILE=/path/to/toolchain -DCMAKE_BUILD_TYPE=Release 
+cmkr build -GNinja -DCMAKE_TOOLCHAIN_FILE=/path/to/toolchain -DCMAKE_BUILD_TYPE=Release 
 ```
 
 ## Roadmap

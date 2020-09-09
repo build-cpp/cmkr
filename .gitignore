@@ -2,3 +2,4 @@ bin
 compile_commands.json
 .clangd
 temp.*
+.vs

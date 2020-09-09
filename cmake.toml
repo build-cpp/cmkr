@@ -18,5 +18,6 @@ type = "exe" # required (exe || shared || static)
 sources = ["src/main.cpp", "src/args.cpp", "src/gen.cpp"] # required
 include_directories = ["vendor"] # optional
 compile_features = ["cxx_std_17"] # optional
+# definitions = [] # optional
 # link_libraries = [] # optional 
 
