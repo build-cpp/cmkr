@@ -74,7 +74,7 @@ void generate_cmake(const char *path) {
     std::stringstream ss;
     std::vector<std::string> subdirs;
 
-    const auto toml = toml::parse(fs::path(path) / "cmake.toml");
+    const auto toml = toml::parse((fs::path(path) / "cmake.toml").string());
     if (toml.contains("cmake")) {
         const auto &cmake = toml::find(toml, "cmake");
         const std::string cmake_min = toml::find(cmake, "minimum_required").as_string();
