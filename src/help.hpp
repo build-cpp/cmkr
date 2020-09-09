@@ -9,7 +9,7 @@ Usage: cmk [argument]
 arguments:
     init     [app|shared|static]    Starts a new project in the same directory.
     gen                             Generates CMakeLists.txt file.
-    run                             Run cmake.
+    run      [cmake args...]        Run cmake.
     help                            Show help.
     version                         Current cmkr version.
     )lit";
