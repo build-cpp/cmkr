@@ -1,7 +1,6 @@
 #include "gen.hpp"
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <map>
 #include <sstream>
 #include <stdexcept>
@@ -84,10 +83,37 @@ void generate_cmake() {
        << "project(" << proj_name << " VERSION " << proj_version << ")\n\n"
        << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n";
 
+    if (cmake.contains("cpp_flags")) {
+        ss << "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}";
+        const auto flags = toml::find(cmake, "cpp_flags").as_array();
+        for (const auto &flag: flags) {
+            ss << " " << flag;
+        }
+        ss << ")\n\n";
+    }
+
+    if (cmake.contains("c_flags")) {
+        ss << "set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS}";
+        const auto flags = toml::find(cmake, "c_flags").as_array();
+        for (const auto &flag: flags) {
+            ss << " " << flag;
+        }
+        ss << ")\n\n";
+    }
+
+    if (cmake.contains("linker_flags")) {
+        ss << "set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS}";
+        const auto flags = toml::find(cmake, "linker_flags").as_array();
+        for (const auto &flag: flags) {
+            ss << " " << flag;
+        }
+        ss << ")\n\n";
+    }
+
     if (toml.contains("dependencies")) {
         std::map<std::string, std::string> deps =
             toml::find<std::map<std::string, std::string>>(toml, "dependencies");
-        for (const auto& dep : deps) {
+        for (const auto &dep : deps) {
             ss << "find_package(" << dep.first;
             if (dep.second != "*") {
                 ss << " " << dep.second << " CONFIG REQUIRED)\n";
@@ -100,105 +126,97 @@ void generate_cmake() {
     ss << "\n";
 
     if (toml.contains("app")) {
-        const auto &bins = toml::find(toml, "app");
+        const auto &bins = toml::find(toml, "app").as_array();
 
-        for (auto i = 0; i < bins.size(); ++i) {
-            const auto bin = toml::find(bins, i);
+        for (const auto &bin: bins) {
             const std::string bin_name = toml::find(bin, "name").as_string();
 
-            const auto srcs = toml::find(bin, "sources");
+            const auto srcs = toml::find(bin, "sources").as_array();
             ss << "set(" << detail::to_upper(bin_name) << "_SOURCES\n";
-            for (auto j = 0; j < srcs.size(); ++j) {
-                const std::string source = toml::find(srcs, i).as_string();
-                ss << "\t" << source << "\n";
+            for (const auto &src: srcs) {
+                ss << "\t" << src << "\n";
             }
             ss << "\t)\n\n"
                << "add_executable(" << bin_name << " ${" << detail::to_upper(bin_name)
                << "_SOURCES})\n\n";
 
             if (bin.contains("include_directories")) {
-                ss << "target_include_directories(" << bin_name << " PUBLIC\n\t";
-                const auto includes = toml::find(bin, "link_libraries");
-                for (auto k = 0; k < includes.size(); ++k) {
-                    const std::string inc = toml::find(includes, i).as_string();
-                    ss << inc << "\n\t";
-                }
-                ss << ")";
+                const auto includes = toml::find(bin, "include_directories").as_array();
+                    ss << "target_include_directories(" << bin_name << " PUBLIC\n\t";
+                    for (const auto &inc: includes) {
+                        ss << inc << "\n\t";
+                    }
+                    ss << ")\n\n";
             }
             if (bin.contains("link_libraries")) {
-                ss << "target_link_libraries(" << bin_name << " PUBLIC\n\t";
-                const auto includes = toml::find(bin, "link_libraries");
-                for (auto k = 0; k < includes.size(); ++k) {
-                    const std::string inc = toml::find(includes, i).as_string();
-                    ss << inc << "\n\t";
-                }
-                ss << ")";
+                const auto libraries = toml::find(bin, "link_libraries").as_array();
+                    ss << "target_link_libraries(" << bin_name << " PUBLIC\n\t";
+                    for (const auto &l: libraries) {
+                        ss << l << "\n\t";
+                    }
+                    ss << ")\n\n";
             }
             if (bin.contains("compile_features")) {
-                ss << "target_compile_features(" << bin_name << " PUBLIC\n\t";
-                const auto includes = toml::find(bin, "compile_features");
-                for (auto k = 0; k < includes.size(); ++k) {
-                    const std::string inc = toml::find(includes, i).as_string();
-                    ss << inc << "\n\t";
-                }
-                ss << ")";
+                const auto feats = toml::find(bin, "compile_features").as_array();
+                    ss << "target_compile_features(" << bin_name << " PUBLIC\n\t";
+                    for (const auto &feat: feats) {
+                        ss << feat << "\n\t";
+                    }
+                    ss << ")\n\n";
             }
         }
     }
 
     if (toml.contains("lib")) {
-        const auto &libs = toml::find(toml, "lib");
+        const auto &libs = toml::find(toml, "lib").as_array();
 
-        for (auto i = 0; i < libs.size(); ++i) {
-            const auto lib = toml::find(libs, i);
+        for (const auto &lib: libs) {
             const std::string lib_name = toml::find(lib, "name").as_string();
             const std::string type = toml::find(lib, "type").as_string();
 
-            const auto srcs = toml::find(lib, "sources");
+            const auto srcs = toml::find(lib, "sources").as_array();
             ss << "set(" << detail::to_upper(lib_name) << "_SOURCES\n";
-            for (auto j = 0; j < srcs.size(); ++j) {
-                const std::string source = toml::find(srcs, i).as_string();
-                ss << "\t" << source << "\n";
+            for (const auto &src: srcs) {
+                ss << "\t" << src << "\n";
             }
             ss << "\t)\n\n"
                << "add_library(" << lib_name << " " << detail::to_upper(type) << " ${"
                << detail::to_upper(lib_name) << "_SOURCES})\n\n";
 
             if (lib.contains("include_directories")) {
-                ss << "target_include_directories(" << lib_name << " PUBLIC\n\t";
-                const auto includes = toml::find(lib, "include_directories");
-                for (auto k = 0; k < includes.size(); ++k) {
-                    const std::string inc = toml::find(includes, i).as_string();
-                    ss << inc << "\n\t";
-                }
-                ss << ")";
+                const auto includes = toml::find(lib, "include_directories").as_array();
+                    ss << "target_include_directories(" << lib_name << " PUBLIC\n\t";
+                    for (const auto &inc: includes) {
+                        ss << inc << "\n\t";
+                    }
+                    ss << ")\n\n";
             }
-            if (lib.contains("link_libraries")) {
-                ss << "target_link_libraries(" << lib_name << " PUBLIC\n\t";
-                const auto includes = toml::find(lib, "link_libraries");
-                for (auto k = 0; k < includes.size(); ++k) {
-                    const std::string inc = toml::find(includes, i).as_string();
-                    ss << inc << "\n\t";
-                }
-                ss << ")";
-            }
-            if (lib.contains("compile_features")) {
-                ss << "target_compile_features(" << lib_name << " PUBLIC\n\t";
-                const auto includes = toml::find(lib, "compile_features");
-                for (auto k = 0; k < includes.size(); ++k) {
-                    const std::string inc = toml::find(includes, i).as_string();
-                    ss << inc << "\n\t";
-                }
-                ss << ")";
-            }
-        }
 
-        std::ofstream ofs("CMakeLists.txt");
-        if (ofs.is_open()) {
-            ofs << ss.rdbuf();
+            if (lib.contains("link_libraries")) {
+                const auto ls = toml::find(lib, "link_libraries").as_array();
+                    ss << "target_link_libraries(" << lib_name << " PUBLIC\n\t";
+                    for (const auto& l: ls) {
+                        ss << l << "\n\t";
+                    }
+                    ss << ")\n\n";
+            }
+
+            if (lib.contains("compile_features")) {
+                const auto feats = toml::find(lib, "compile_features").as_array();
+                    ss << "target_compile_features(" << lib_name << " PUBLIC\n\t";
+                    for (const auto &feat: feats) {
+                        ss << feat << "\n\t";
+                    }
+                    ss << ")\n\n";
+            }
         }
-        ofs.flush();
-        ofs.close();
     }
+    
+    std::ofstream ofs("CMakeLists.txt");
+    if (ofs.is_open()) {
+        ofs << ss.rdbuf();
+    }
+    ofs.flush();
+    ofs.close();
 }
 } // namespace cmkr::gen

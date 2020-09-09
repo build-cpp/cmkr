@@ -2,26 +2,26 @@
 minimum_required = "3.0" # required
 cpp_flags = [""] # optional
 c_flags = [""] # optional
-link_flags = [""] # optional
+linker_flags = [""] # optional
 
 [project] # required
 name = "cmkr" # required
 version = "0.1.0" # required
 
 [dependencies] # optional, runs find_package
-# boost = "1.74.0"
+# boost = "*"
 
 [[app]] # optional
 name = "cmkr" # required
-sources = ["src/main.cpp", "src/args.cpp", "src/gen.cpp", "src/help.cpp"] # required
+sources = ["src/main.cpp", "src/args.cpp", "src/gen.cpp"] # required
 include_directories = ["vendor"] # optional
 compile_features = ["cxx_std_17"] # optional
-link_libraries = [""] # optional 
+# link_libraries = [""] # optional 
 
 # [[lib]] # optional
 # name = "cmkr" # required
-# sources = ["src/args.cpp", "src/gen.cpp", "src/help.cpp"] # required
 # type = "shared" # required (shared, static)
+# sources = ["src/args.cpp", "src/gen.cpp"] # required
 # include_directories = ["vendor"] # optional
 # compile_features = ["cxx_std_17"] # optional
 # link_libraries = [""] # optional 
