@@ -3,15 +3,17 @@
 A CMakeLists.txt generator from TOML. Still WIP.
 
 ## Building
+cmkr requires a C++17 compiler and git. It depends on toml11 by ToruNiina, which is added as a git submodule.
 ```
 git clone https://github.com/moalyousef/cmkr
 cd cmkr
+git submodule update --init --recursive
 cmake -S. -Bbin
 cmake --build bin
 ```
 
 ## Usage
-cmkr parses cmake.toml files at the project directory. A basic hello world format with the minimum required fields:
+cmkr parses cmake.toml files (using toml11) at the project directory. A basic hello world format with the minimum required fields:
 ```toml
 [cmake]
 minimum_required = "3.0"
