@@ -44,7 +44,7 @@ version = "0.1.0" # required
 [dependencies] # optional, runs find_package, use "*" to ignore version
 boost = "1.74.0" # optional
 
-[[bin]] # required
+[[bin]] # required, can define several binaries
 name = "cmkr" # required
 type = "exe" # required (exe || shared || static)
 sources = ["src/main.cpp", "src/args.cpp", "src/gen.cpp"] # required
