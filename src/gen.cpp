@@ -51,7 +51,7 @@ void generate_project(const char *str) {
     } else if (!strcmp(str, "static") || !strcmp(str, "shared")) {
         std::ofstream ofs("src/lib.cpp");
         if (ofs.is_open()) {
-            ofs << "int dll_main() {\n\treturn 0;\n}";
+            ofs << "int test() {\n\treturn 0;\n}";
         }
         ofs.flush();
         ofs.close();
