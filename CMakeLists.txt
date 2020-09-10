@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 
 project(cmkr VERSION 0.1.0)
 
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMKRLIB_SOURCES
@@ -10,6 +9,7 @@ set(CMKRLIB_SOURCES
 	"src/gen.cpp"
 	"src/help.cpp"
 	"src/build.cpp"
+	"src/error.cpp"
 	)
 
 add_library(cmkrlib STATIC ${CMKRLIB_SOURCES})

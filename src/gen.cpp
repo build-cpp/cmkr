@@ -1,4 +1,5 @@
 #include "gen.h"
+#include "error.h"
 
 #include <filesystem>
 #include <fstream>
@@ -25,7 +26,7 @@ inline std::string to_upper(const std::string &str) {
 
 } // namespace detail
 
-void generate_project(const char *str) {
+int generate_project(const char *str) {
     fs::create_directory("src");
     auto dir_name = fs::current_path().stem();
     if (!strcmp(str, "exe")) {
@@ -39,8 +40,7 @@ void generate_project(const char *str) {
 
         std::ofstream ofs2("cmake.toml");
         if (ofs2.is_open()) {
-            ofs2 << "[cmake]\nminimum = \"3.14\"\n\n[project]\nname = \""
-                 << dir_name.string()
+            ofs2 << "[cmake]\nminimum = \"3.14\"\n\n[project]\nname = \"" << dir_name.string()
                  << "\"\nversion = "
                     "\"0.1.0\"\n\n[[bin]]\nname = \""
                  << dir_name.string() << "\"\nsources = [\"src/main.cpp\"]\ntype = \"" << str
@@ -58,8 +58,7 @@ void generate_project(const char *str) {
 
         std::ofstream ofs2("cmake.toml");
         if (ofs2.is_open()) {
-            ofs2 << "[cmake]\nminimum = \"3.14\"\n\n[project]\nname = \""
-                 << dir_name.string()
+            ofs2 << "[cmake]\nminimum = \"3.14\"\n\n[project]\nname = \"" << dir_name.string()
                  << "\"\nversion = "
                     "\"0.1.0\"\n\n[[bin]]\nname = \""
                  << dir_name.string() << "\"\nsources = [\"src/lib.cpp\"]\ntype = \"" << str
@@ -70,9 +69,10 @@ void generate_project(const char *str) {
     } else {
         throw std::runtime_error("Unknown project type. Types are exe, shared, static!");
     }
+    return 0;
 }
 
-void generate_cmake(const char *path) {
+int generate_cmake(const char *path) {
     std::stringstream ss;
     std::vector<std::string> subdirs;
 
@@ -83,30 +83,30 @@ void generate_cmake(const char *path) {
         ss << "cmake_minimum_required(VERSION " << cmake_min << ")\n\n";
 
         if (cmake.contains("cpp-flags")) {
-            ss << "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}";
+            ss << "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}\"";
             const auto flags = toml::find(cmake, "cpp-flags").as_array();
             for (const auto &flag : flags) {
-                ss << " " << flag;
+                ss << " " << std::string(flag.as_string());
             }
-            ss << ")\n\n";
+            ss << "\")\n\n";
         }
 
         if (cmake.contains("c-flags")) {
-            ss << "set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS}";
+            ss << "set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS}\"";
             const auto flags = toml::find(cmake, "c-flags").as_array();
             for (const auto &flag : flags) {
-                ss << " " << flag;
+                ss << " " << std::string(flag.as_string());
             }
-            ss << ")\n\n";
+            ss << "\")\n\n";
         }
 
         if (cmake.contains("link-flags")) {
-            ss << "set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS}";
+            ss << "set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS}\"";
             const auto flags = toml::find(cmake, "link-flags").as_array();
             for (const auto &flag : flags) {
-                ss << " " << flag;
+                ss << " " << std::string(flag.as_string());
             }
-            ss << ")\n\n";
+            ss << "\")\n\n";
         }
 
         if (cmake.contains("subdirs")) {
@@ -142,19 +142,20 @@ void generate_cmake(const char *path) {
 
     if (toml.contains("fetch-content")) {
         std::map<std::string, std::map<std::string, std::string>> deps =
-            toml::find<std::map<std::string, std::map<std::string, std::string>>>(toml, "fetch-content");
+            toml::find<std::map<std::string, std::map<std::string, std::string>>>(toml,
+                                                                                  "fetch-content");
         ss << "include(FetchContent)\n\n";
         for (const auto &dep : deps) {
             ss << "FetchContent_Declare(\n\t" << dep.first << "\n";
-            for (const auto &arg: dep.second) {
+            for (const auto &arg : dep.second) {
                 ss << "\t" << arg.first << " " << arg.second << "\n";
             }
             ss << "\t)\n\n"
-               << "FetchContent_MakeAvailable("<< dep.first << ")\n\n";
+               << "FetchContent_MakeAvailable(" << dep.first << ")\n\n";
         }
     }
 
-    ss << "\nset(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n";
+    ss << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n";
 
     if (toml.contains("bin")) {
         const auto &bins = toml::find(toml, "bin").as_array();
@@ -233,13 +234,22 @@ void generate_cmake(const char *path) {
     for (const auto &sub : subdirs) {
         generate_cmake(sub.c_str());
     }
+    return 0;
 }
 } // namespace cmkr::gen
 
-void cmkr_gen_generate_project(const char *typ) {
-    cmkr::gen::generate_project(typ);
+int cmkr_gen_generate_project(const char *typ) {
+    try {
+        return cmkr::gen::generate_project(typ);
+    } catch (...) {
+        return cmkr::error::Status(cmkr::error::Status::Code::InitError);
+    }
 }
 
-void cmkr_gen_generate_cmake(const char *path) {
-    cmkr::gen::generate_cmake(path);
+int cmkr_gen_generate_cmake(const char *path) {
+    try {
+        return cmkr::gen::generate_cmake(path);
+    } catch (...) {
+        return cmkr::error::Status(cmkr::error::Status::Code::GenerationError);
+    }
 }

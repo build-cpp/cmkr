@@ -3,9 +3,9 @@
 #ifdef __cplusplus
 namespace cmkr::help {
 
-const char *version();
+const char *version() noexcept;
 
-const char *message();
+const char *message() noexcept;
 
 } // namespace cmkr::help
 

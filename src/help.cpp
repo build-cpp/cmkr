@@ -2,11 +2,9 @@
 
 namespace cmkr::help {
 
-const char *version() {
-    return "cmkr version 0.1.0";
-}
+const char *version() noexcept { return "cmkr version 0.1.0"; }
 
-const char *message() {
+const char *message() noexcept {
     return R"lit(
 Usage: cmkr [arguments]
 arguments:
@@ -19,10 +17,6 @@ arguments:
 }
 } // namespace cmkr::help
 
-const char *cmkr_help_version(void) {
-    return cmkr::help::version();
-}
+const char *cmkr_help_version(void) { return cmkr::help::version(); }
 
-const char *cmkr_help_message(void) {
-    return cmkr::help::message();
-}
+const char *cmkr_help_message(void) { return cmkr::help::message(); }

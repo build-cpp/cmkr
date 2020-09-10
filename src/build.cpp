@@ -1,4 +1,5 @@
 #include "build.h"
+#include "error.h"
 
 #include <filesystem>
 #include <sstream>
@@ -47,5 +48,9 @@ int run(int argc, char **argv) {
 } // namespace cmkr::build
 
 int cmkr_build_run(int argc, char **argv) {
-    return cmkr::build::run(argc, argv);
+    try {
+        return cmkr::build::run(argc, argv);
+    } catch (...) {
+        return cmkr::error::Status(cmkr::error::Status::Code::BuildError);
+    }
 }

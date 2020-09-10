@@ -40,7 +40,7 @@ version = "0.1.0"
 [[bin]]
 name = "cmkrlib"
 type = "static"
-sources = ["src/args.cpp", "src/gen.cpp", "src/help.cpp", "src/build.cpp"]
+sources = ["src/args.cpp", "src/gen.cpp", "src/help.cpp", "src/build.cpp", "error.cpp"]
 include-dirs = ["vendor"]
 features = ["cxx_std_17"]
 
