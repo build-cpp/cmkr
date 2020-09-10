@@ -127,9 +127,9 @@ void generate_cmake(const char *path) {
         ss << "project(" << proj_name << " VERSION " << proj_version << ")\n\n";
     }
 
-    if (toml.contains("find")) {
+    if (toml.contains("find-package")) {
         std::map<std::string, std::string> deps =
-            toml::find<std::map<std::string, std::string>>(toml, "find");
+            toml::find<std::map<std::string, std::string>>(toml, "find-package");
         for (const auto &dep : deps) {
             ss << "find_package(" << dep.first;
             if (dep.second != "*") {
@@ -140,9 +140,9 @@ void generate_cmake(const char *path) {
         }
     }
 
-    if (toml.contains("fetch")) {
+    if (toml.contains("fetch-content")) {
         std::map<std::string, std::map<std::string, std::string>> deps =
-            toml::find<std::map<std::string, std::map<std::string, std::string>>>(toml, "fetch");
+            toml::find<std::map<std::string, std::map<std::string, std::string>>>(toml, "fetch-content");
         ss << "include(FetchContent)\n\n";
         for (const auto &dep : deps) {
             ss << "FetchContent_Declare(\n\t" << dep.first << "\n";

@@ -9,6 +9,7 @@ set(CMKRLIB_SOURCES
 	"src/args.cpp"
 	"src/gen.cpp"
 	"src/help.cpp"
+	"src/build.cpp"
 	)
 
 add_library(cmkrlib STATIC ${CMKRLIB_SOURCES})

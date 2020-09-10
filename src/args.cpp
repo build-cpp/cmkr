@@ -1,11 +1,10 @@
 #include "args.h"
+#include "build.h"
 #include "gen.h"
 #include "help.h"
 
 #include <filesystem>
-#include <stddef.h>
 #include <stdexcept>
-#include <stdlib.h>
 #include <string>
 #include <vector>
 
@@ -31,14 +30,7 @@ const char *handle_args(int argc, char **argv) {
         cmkr::gen::generate_project(args[2].c_str());
         return "Directory initialized!";
     } else if (main_arg == "build") {
-        std::string command = "cmake -S. -Bbin ";
-        if (args.size() > 2) {
-            for (size_t i = 2; i < args.size(); ++i) {
-                command += args[i] + " ";
-            }
-        }
-        command += "&& cmake --build bin";
-        auto ret = system(command.c_str());
+        auto ret = build::run(argc, argv);
         if (ret)
             return "Run faced an error!";
         return "Run completed!";

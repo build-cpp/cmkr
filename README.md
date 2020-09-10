@@ -40,7 +40,7 @@ version = "0.1.0"
 [[bin]]
 name = "cmkrlib"
 type = "static"
-sources = ["src/args.cpp", "src/gen.cpp", "src/help.cpp"]
+sources = ["src/args.cpp", "src/gen.cpp", "src/help.cpp", "src/build.cpp"]
 include-dirs = ["vendor"]
 features = ["cxx_std_17"]
 
@@ -59,15 +59,18 @@ cpp-flags = [] # optional
 c-flags = [] # optional
 link-flags = [] # optional
 subdirs = [] # optional
+bin-dir = "bin" # optional
+generator = "Ninja" # optional
+arguments = ["CMAKE_TOOLCHAIN_FILE=/path/to/toolchain"] # optional
 
 [project] # required per project
 name = "app" # required
 version = "0.1.0" # required
 
-[find] # optional, runs find_package, use "*" to ignore version
+[find-package] # optional, runs find_package, use "*" to ignore version
 boost = "1.74.0" # optional
 
-[fetch] # optional, runs fetchContent
+[fetch-content] # optional, runs fetchContent
 toml11 = { git = "https://github.com/ToruNiina/toml11", git-tag = "v3.5.0" } # optional
 
 [[bin]] # required, can define several binaries
@@ -92,7 +95,7 @@ arguments:
 ```
 The build command invokes cmake and the default build-system on your platform, it also accepts extra cmake arguments:
 ```
-cmkr build -GNinja -DCMAKE_TOOLCHAIN_FILE=/path/to/toolchain -DCMAKE_BUILD_TYPE=Release 
+cmkr build --config Release 
 ```
 
 ## Roadmap
