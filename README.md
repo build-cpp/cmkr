@@ -71,7 +71,7 @@ version = "0.1.0" # required
 boost = "1.74.0" # optional
 
 [fetch-content] # optional, runs fetchContent
-toml11 = { git = "https://github.com/ToruNiina/toml11", git-tag = "v3.5.0" } # optional
+toml11 = { GIT_REPOSITORY = "https://github.com/ToruNiina/toml11", GIT_TAG = "v3.5.0" } # optional
 
 [[bin]] # required, can define several binaries
 name = "app" # required
