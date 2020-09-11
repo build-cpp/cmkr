@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <new>
 #include <sstream>
 #include <stdexcept>
 #include <stdio.h>
@@ -28,20 +29,30 @@ inline std::string to_upper(const std::string &str) {
     return temp;
 }
 
+template <typename... Args>
+std::string format(const char *fmt, Args... args) {
+    auto sz = snprintf(nullptr, 0, fmt, args...) + 1;
+    char *buf = new char[sz];
+    int ret = snprintf(buf, sz, fmt, args...);
+    if (ret != sz - 1)
+        throw std::runtime_error("Error formatting string!");
+    std::string temp(buf, buf + sz - 1);
+    delete[] buf;
+    return temp;
+}
+
 } // namespace detail
 
 int generate_project(const char *str) {
     fs::create_directory("src");
-    auto dir_name = fs::current_path().stem().string();
-    char mainbuf[100];
-    // Assuming current standards of max filename length < 270
-    char tomlbuf[1000];
-    (void)snprintf(tomlbuf, 1000, cmake_toml, dir_name.c_str(), dir_name.c_str(), str);
+    const auto dir_name = fs::current_path().stem().string();
+    std::string mainbuf;
+    const auto tomlbuf = detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str);
     if (!strcmp(str, "exe")) {
-        (void)snprintf(mainbuf, 100, hello_world, "main");
+        mainbuf = detail::format(hello_world, "main");
     } else if (!strcmp(str, "static") || !strcmp(str, "shared")) {
         fs::create_directory("include");
-        (void)snprintf(mainbuf, 100, hello_world, "test");
+        mainbuf = detail::format(hello_world, "test");
     } else {
         throw std::runtime_error("Unknown project type. Types are exe, shared, static!");
     }
@@ -121,8 +132,9 @@ int generate_cmake(const char *path) {
     }
 
     if (toml.contains("find-package")) {
-        std::map<std::string, std::string> deps =
-            toml::find<std::map<std::string, std::string>>(toml, "find-package");
+        using pkg_map = std::map<std::string, std::string>;
+        pkg_map deps =
+            toml::find<pkg_map>(toml, "find-package");
         for (const auto &dep : deps) {
             ss << "find_package(" << dep.first;
             if (dep.second != "*") {
@@ -134,9 +146,8 @@ int generate_cmake(const char *path) {
     }
 
     if (toml.contains("fetch-content")) {
-        std::map<std::string, std::map<std::string, std::string>> deps =
-            toml::find<std::map<std::string, std::map<std::string, std::string>>>(toml,
-                                                                                  "fetch-content");
+        using content_map = std::map<std::string, std::map<std::string, std::string>>;
+        content_map deps = toml::find<content_map>(toml, "fetch-content");
         ss << "include(FetchContent)\n\n";
         for (const auto &dep : deps) {
             ss << "FetchContent_Declare(\n\t" << dep.first << "\n";
