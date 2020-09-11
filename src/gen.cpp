@@ -13,7 +13,6 @@
 #include <string_view>
 #include <toml.hpp>
 
-
 namespace fs = std::filesystem;
 
 namespace cmkr::gen {
@@ -233,6 +232,8 @@ int generate_cmake(const char *path) {
 int cmkr_gen_generate_project(const char *typ) {
     try {
         return cmkr::gen::generate_project(typ);
+    } catch (const std::system_error &e) {
+        return e.code().value();
     } catch (...) {
         return cmkr::error::Status(cmkr::error::Status::Code::InitError);
     }
@@ -241,6 +242,8 @@ int cmkr_gen_generate_project(const char *typ) {
 int cmkr_gen_generate_cmake(const char *path) {
     try {
         return cmkr::gen::generate_cmake(path);
+    } catch (const std::system_error &e) {
+        return e.code().value();
     } catch (...) {
         return cmkr::error::Status(cmkr::error::Status::Code::GenerationError);
     }

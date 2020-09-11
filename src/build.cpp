@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <stdlib.h>
 #include <string>
+#include <system_error>
 #include <toml.hpp>
 
 namespace cmkr::build {
@@ -53,6 +54,8 @@ int run(int argc, char **argv) {
 int cmkr_build_run(int argc, char **argv) {
     try {
         return cmkr::build::run(argc, argv);
+    } catch (const std::system_error &e) {
+        return e.code().value();
     } catch (...) {
         return cmkr::error::Status(cmkr::error::Status::Code::BuildError);
     }
