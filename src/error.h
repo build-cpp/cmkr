@@ -12,7 +12,8 @@ struct Status {
         BuildError,
     };
     Status(Code ec) noexcept;
-    operator int() noexcept;
+    operator int() const noexcept;
+    Code code() const noexcept;
 
   private:
     Code ec_ = Code::Success;

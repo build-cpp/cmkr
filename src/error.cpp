@@ -6,7 +6,9 @@ namespace cmkr::error {
 
 Status::Status(Code ec) noexcept : ec_(ec) {}
 
-Status::operator int() noexcept { return static_cast<int>(ec_); }
+Status::operator int() const noexcept { return static_cast<int>(ec_); }
+
+Status::Code Status::code() const noexcept { return ec_; }
 
 } // namespace cmkr::error
 
