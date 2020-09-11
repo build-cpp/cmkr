@@ -1,5 +1,6 @@
 #include "build.h"
 #include "error.h"
+#include "gen.h"
 
 #include <filesystem>
 #include <sstream>
@@ -14,8 +15,10 @@ namespace cmkr::build {
 int run(int argc, char **argv) {
     std::stringstream ss;
     std::string bin_dir = "bin";
+
     if (!std::filesystem::exists("CMakeLists.txt"))
-        throw std::runtime_error("No valid CMakeLists.txt found!");
+        if (gen::generate_cmake("."))
+            throw std::runtime_error("CMake generation failure!");
 
     const auto toml = toml::parse("cmake.toml");
     if (toml.contains("cmake")) {

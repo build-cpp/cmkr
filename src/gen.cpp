@@ -1,13 +1,18 @@
 #include "gen.h"
 #include "error.h"
+#include "literals.h"
 
 #include <filesystem>
 #include <fstream>
 #include <map>
 #include <sstream>
 #include <stdexcept>
+#include <stdio.h>
 #include <string.h>
+#include <string>
+#include <string_view>
 #include <toml.hpp>
+
 
 namespace fs = std::filesystem;
 
@@ -28,47 +33,34 @@ inline std::string to_upper(const std::string &str) {
 
 int generate_project(const char *str) {
     fs::create_directory("src");
-    auto dir_name = fs::current_path().stem();
+    auto dir_name = fs::current_path().stem().string();
+    char mainbuf[100];
+    // Assuming current standards of max filename length < 270
+    char tomlbuf[1000];
+    (void)snprintf(tomlbuf, 1000, cmake_toml, dir_name.c_str(), dir_name.c_str(), str);
     if (!strcmp(str, "exe")) {
-        std::ofstream ofs("src/main.cpp");
-        if (ofs.is_open()) {
-            ofs << "#include <iostream>\n\nint main() {\n\tstd::cout << \"Hello world!\" << "
-                   "std::endl;\n}";
-        }
-        ofs.flush();
-        ofs.close();
-
-        std::ofstream ofs2("cmake.toml");
-        if (ofs2.is_open()) {
-            ofs2 << "[cmake]\nminimum = \"3.14\"\n\n[project]\nname = \"" << dir_name.string()
-                 << "\"\nversion = "
-                    "\"0.1.0\"\n\n[[bin]]\nname = \""
-                 << dir_name.string() << "\"\nsources = [\"src/main.cpp\"]\ntype = \"" << str
-                 << "\"\n";
-        }
-        ofs2.flush();
-        ofs2.close();
+        (void)snprintf(mainbuf, 100, hello_world, "main");
     } else if (!strcmp(str, "static") || !strcmp(str, "shared")) {
-        std::ofstream ofs("src/lib.cpp");
-        if (ofs.is_open()) {
-            ofs << "int test() {\n\treturn 0;\n}";
-        }
-        ofs.flush();
-        ofs.close();
-
-        std::ofstream ofs2("cmake.toml");
-        if (ofs2.is_open()) {
-            ofs2 << "[cmake]\nminimum = \"3.14\"\n\n[project]\nname = \"" << dir_name.string()
-                 << "\"\nversion = "
-                    "\"0.1.0\"\n\n[[bin]]\nname = \""
-                 << dir_name.string() << "\"\nsources = [\"src/lib.cpp\"]\ntype = \"" << str
-                 << "\"\n";
-        }
-        ofs2.flush();
-        ofs2.close();
+        fs::create_directory("include");
+        (void)snprintf(mainbuf, 100, hello_world, "test");
     } else {
         throw std::runtime_error("Unknown project type. Types are exe, shared, static!");
     }
+
+    std::ofstream ofs("src/main.cpp");
+    if (ofs.is_open()) {
+        ofs << mainbuf;
+    }
+    ofs.flush();
+    ofs.close();
+
+    std::ofstream ofs2("cmake.toml");
+    if (ofs2.is_open()) {
+        ofs2 << tomlbuf;
+    }
+    ofs2.flush();
+    ofs2.close();
+
     return 0;
 }
 
@@ -82,11 +74,13 @@ int generate_cmake(const char *path) {
         const std::string cmake_min = toml::find(cmake, "minimum").as_string();
         ss << "cmake_minimum_required(VERSION " << cmake_min << ")\n\n";
 
+        ss << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n";
+
         if (cmake.contains("cpp-flags")) {
             ss << "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}\"";
             const auto flags = toml::find(cmake, "cpp-flags").as_array();
             for (const auto &flag : flags) {
-                ss << " " << std::string(flag.as_string());
+                ss << " " << std::string_view(flag.as_string());
             }
             ss << "\")\n\n";
         }
@@ -95,7 +89,7 @@ int generate_cmake(const char *path) {
             ss << "set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS}\"";
             const auto flags = toml::find(cmake, "c-flags").as_array();
             for (const auto &flag : flags) {
-                ss << " " << std::string(flag.as_string());
+                ss << " " << std::string_view(flag.as_string());
             }
             ss << "\")\n\n";
         }
@@ -104,7 +98,7 @@ int generate_cmake(const char *path) {
             ss << "set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS}\"";
             const auto flags = toml::find(cmake, "link-flags").as_array();
             for (const auto &flag : flags) {
-                ss << " " << std::string(flag.as_string());
+                ss << " " << std::string_view(flag.as_string());
             }
             ss << "\")\n\n";
         }
@@ -154,8 +148,6 @@ int generate_cmake(const char *path) {
                << "FetchContent_MakeAvailable(" << dep.first << ")\n\n";
         }
     }
-
-    ss << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n";
 
     if (toml.contains("bin")) {
         const auto &bins = toml::find(toml, "bin").as_array();
