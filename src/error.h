@@ -11,12 +11,11 @@ struct Status {
         GenerationError,
         BuildError,
     };
-    Status() = delete;
     Status(Code ec) noexcept;
     operator int() noexcept;
 
   private:
-    Code ec_;
+    Code ec_ = Code::Success;
 };
 
 } // namespace cmkr::error
