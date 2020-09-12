@@ -11,7 +11,7 @@ namespace cmkr::cmake {
 namespace detail {
 std::vector<std::string> to_string_vec(
     const std::vector<toml::basic_value<toml::discard_comments, std::unordered_map, std::vector>>
-        vals) {
+        &vals) {
     std::vector<std::string> temp;
     for (const auto &val : vals)
         temp.push_back(val.as_string());
@@ -23,8 +23,8 @@ CMake::CMake(const std::string &path, bool build) {
     if (!fs::exists(fs::path(path) / "cmake.toml")) {
         throw std::runtime_error("No cmake.toml was found!");
     }
+    const auto toml = toml::parse(fs::path(path) / "cmake.toml");
     if (build) {
-        const auto toml = toml::parse("cmake.toml");
         if (toml.contains("cmake")) {
             const auto &cmake = toml::find(toml, "cmake");
 
@@ -41,7 +41,6 @@ CMake::CMake(const std::string &path, bool build) {
             }
         }
     } else {
-        const auto toml = toml::parse((fs::path(path) / "cmake.toml").string());
         if (toml.contains("cmake")) {
             const auto &cmake = toml::find(toml, "cmake");
             cmake_version = toml::find(cmake, "minimum").as_string();

@@ -22,7 +22,7 @@ inline std::string to_upper(const std::string &str) {
     std::string temp;
     temp.reserve(str.size());
     for (auto c : str) {
-        temp.push_back(toupper(c));
+        temp.push_back(::toupper(c));
     }
     return temp;
 }
@@ -76,7 +76,8 @@ int generate_cmake(const char *path) {
     if (fs::exists(fs::path(path) / "cmake.toml")) {
         cmake::CMake cmake(path, false);
         std::stringstream ss;
-
+        ss << "# This file was generated automatically by cmkr.\n\n";
+        
         if (!cmake.cmake_version.empty()) {
             ss << "cmake_minimum_required(VERSION " << cmake.cmake_version << ")\n\n";
 
