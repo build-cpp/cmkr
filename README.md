@@ -41,7 +41,7 @@ version = "0.1.0"
 name = "cmkrlib"
 type = "static"
 sources = ["src/cmake.cpp", "src/gen.cpp", "src/help.cpp", "src/build.cpp", "src/error.cpp"]
-include-dirs = ["vendor"]
+include-dirs = ["include", "vendor"]
 features = ["cxx_std_17"]
 
 [[bin]]

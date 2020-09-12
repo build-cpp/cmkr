@@ -15,6 +15,7 @@ set(CMKRLIB_SOURCES
 add_library(cmkrlib STATIC ${CMKRLIB_SOURCES})
 
 target_include_directories(cmkrlib PUBLIC
+	include
 	vendor
 	)
 
