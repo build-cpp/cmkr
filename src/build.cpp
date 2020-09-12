@@ -28,7 +28,7 @@ int run(int argc, char **argv) {
     ss << "cmake -S. -B" << cmake.bin_dir << " ";
 
     if (!cmake.generator.empty()) {
-        ss << "-G " << cmake.generator << " ";
+        ss << "-G \"" << cmake.generator << "\" ";
     }
     if (!cmake.gen_args.empty()) {
         for (const auto &arg : cmake.gen_args) {
