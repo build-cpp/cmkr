@@ -39,6 +39,11 @@ const char *handle_args(int argc, char **argv) {
         if (ret)
             return "CMake build error!";
         return "CMake run completed!";
+    } else if (main_arg == "clean") {
+        auto ret = build::clean();
+        if (ret)
+            return "CMake clean error!";
+        return "CMake run completed!";
     } else {
         return "Unknown argument!";
     }

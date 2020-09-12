@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <system_error>
 
+namespace fs = std::filesystem;
+
 namespace cmkr::build {
 
 int run(int argc, char **argv) {
@@ -21,7 +23,7 @@ int run(int argc, char **argv) {
     }
     std::stringstream ss;
 
-    if (!std::filesystem::exists("CMakeLists.txt"))
+    if (!fs::exists("CMakeLists.txt"))
         if (gen::generate_cmake("."))
             throw std::runtime_error("CMake generation failure!");
 
@@ -45,11 +47,31 @@ int run(int argc, char **argv) {
     return ::system(ss.str().c_str());
 }
 
+int clean() {
+    int ret = 0;
+    cmake::CMake cmake(".", true);
+    if (fs::exists(cmake.bin_dir)) {
+        ret = fs::remove_all(cmake.bin_dir);
+        fs::create_directory(cmake.bin_dir);
+    }
+    return ret;
+}
+
 } // namespace cmkr::build
 
 int cmkr_build_run(int argc, char **argv) {
     try {
         return cmkr::build::run(argc, argv);
+    } catch (const std::system_error &e) {
+        return e.code().value();
+    } catch (...) {
+        return cmkr::error::Status(cmkr::error::Status::Code::BuildError);
+    }
+}
+
+int cmkr_build_clean(void) {
+    try {
+        return cmkr::build::clean();
     } catch (const std::system_error &e) {
         return e.code().value();
     } catch (...) {
