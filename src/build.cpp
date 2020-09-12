@@ -48,13 +48,13 @@ int run(int argc, char **argv) {
 }
 
 int clean() {
-    int ret = 0;
+    bool ret = false;
     cmake::CMake cmake(".", true);
     if (fs::exists(cmake.bin_dir)) {
         ret = fs::remove_all(cmake.bin_dir);
         fs::create_directory(cmake.bin_dir);
     }
-    return ret;
+    return !ret;
 }
 
 } // namespace cmkr::build
