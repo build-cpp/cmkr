@@ -93,7 +93,7 @@ arguments:
     help                            Show help.
     version                         Current cmkr version.
 ```
-The build command invokes cmake and the default build-system on your platform, it also accepts extra cmake arguments:
+The build command invokes cmake and the default build-system on your platform (unless a generator is specified), it also accepts extra cmake build arguments:
 ```
 cmkr build --config Release 
 ```
