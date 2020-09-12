@@ -24,7 +24,7 @@ struct Status {
 extern "C" {
 #endif
 
-const char *cmkr_error_status(int);
+const char *cmkr_error_status_string(int);
 
 #ifdef __cplusplus
 }
