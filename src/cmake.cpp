@@ -69,12 +69,23 @@ CMake::CMake(const std::string &path, bool build) {
         }
 
         if (toml.contains("options")) {
-            using opts_map = std::map<std::string, bool>;
+            using opts_map =
+                std::map<std::string, toml::basic_value<toml::discard_comments, std::unordered_map,
+                                                        std::vector>>;
             const auto &opts = toml::find<opts_map>(toml, "options");
-            for (const auto opt: opts) {
+            for (const auto opt : opts) {
                 Option o;
                 o.name = opt.first;
-                o.val = opt.second;
+                if (opt.second.is_boolean()) {
+                    o.val = opt.second.as_boolean();
+                } else {
+                    if (opt.second.contains("comment")) {
+                        o.comment = toml::find(opt.second, "comment").as_string();
+                    }
+                    if (opt.second.contains("value")) {
+                        o.val = toml::find(opt.second, "value").as_boolean();
+                    }
+                }
                 options.push_back(o);
             }
         }

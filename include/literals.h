@@ -12,11 +12,11 @@ int %s() {
 const char *cmake_toml = R"lit(
 [cmake]
 minimum = "3.14"
+# subdirs = []
 # bin-dir = ""
 # cpp-flags = []
 # c-flags = []
 # link-flags = []
-# subdirs = []
 # generator = ""
 # arguments = []
 

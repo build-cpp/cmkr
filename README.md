@@ -55,11 +55,11 @@ Currently supported fields:
 ```toml
 [cmake] # required for top-level project
 minimum = "3.14" # required
+subdirs = [] # optional
+bin-dir = "bin" # optional
 cpp-flags = [] # optional
 c-flags = [] # optional
 link-flags = [] # optional
-subdirs = [] # optional
-bin-dir = "bin" # optional
 generator = "Ninja" # optional
 arguments = ["CMAKE_TOOLCHAIN_FILE=/path/to/toolchain"] # optional
 
@@ -76,6 +76,7 @@ toml11 = { GIT_REPOSITORY = "https://github.com/ToruNiina/toml11", GIT_TAG = "v3
 
 [options] # optional
 APP_BUILD_STUFF = false # optional
+APP_OTHER_STUFF = { comment = "does other stuff", value = false } # optional
 
 [[bin]] # required, can define several binaries
 name = "app" # required

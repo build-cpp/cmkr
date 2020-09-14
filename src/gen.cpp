@@ -152,7 +152,7 @@ int generate_cmake(const char *path) {
 
         if (!cmake.options.empty()) {
             for (const auto &opt: cmake.options) {
-                ss << "option(" << opt.name << " \"" << opt.name << "\" " << (opt.val ? "ON" : "OFF") << ")\n"; 
+                ss << "option(" << opt.name << " \"" << opt.comment << "\" " << (opt.val ? "ON" : "OFF") << ")\n"; 
             }
         }
 

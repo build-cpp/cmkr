@@ -8,6 +8,7 @@ namespace cmkr::cmake {
 
 struct Option {
     std::string name;
+    std::string comment;
     bool val;
 };
 
