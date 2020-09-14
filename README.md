@@ -68,7 +68,7 @@ name = "app" # required
 version = "0.1.0" # required
 
 [find-package] # optional, runs find_package, use "*" to ignore version
-boost = "1.74.0" # optional
+Boost = "1.74.0" # optional
 
 [fetch-content] # optional, runs fetchContent
 toml11 = { GIT_REPOSITORY = "https://github.com/ToruNiina/toml11", GIT_TAG = "v3.5.0" } # optional
