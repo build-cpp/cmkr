@@ -6,19 +6,20 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(cmkr VERSION 0.1.0)
 
+
 set(CMKRLIB_SOURCES
-	src/cmake.cpp
-	src/gen.cpp
-	src/help.cpp
-	src/build.cpp
-	src/error.cpp
+	"src/cmake.cpp"
+	"src/gen.cpp"
+	"src/help.cpp"
+	"src/build.cpp"
+	"src/error.cpp"
 	)
 
 add_library(cmkrlib STATIC ${CMKRLIB_SOURCES})
 
 target_include_directories(cmkrlib PUBLIC
-	include
-	vendor
+	"include"
+	"vendor"
 	)
 
 target_compile_features(cmkrlib PUBLIC
@@ -26,8 +27,8 @@ target_compile_features(cmkrlib PUBLIC
 	)
 
 set(CMKR_SOURCES
-	src/main.cpp
-	src/args.cpp
+	"src/main.cpp"
+	"src/args.cpp"
 	)
 
 add_executable(cmkr  ${CMKR_SOURCES})

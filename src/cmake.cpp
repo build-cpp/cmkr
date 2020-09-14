@@ -68,9 +68,41 @@ CMake::CMake(const std::string &path, bool build) {
             proj_version = toml::find(project, "version").as_string();
         }
 
+        if (toml.contains("options")) {
+            using opts_map = std::map<std::string, bool>;
+            const auto &opts = toml::find<opts_map>(toml, "options");
+            for (const auto opt: opts) {
+                Option o;
+                o.name = opt.first;
+                o.val = opt.second;
+                options.push_back(o);
+            }
+        }
+
         if (toml.contains("find-package")) {
-            using pkg_map = std::map<std::string, std::string>;
-            packages = toml::find<pkg_map>(toml, "find-package");
+            using pkg_map =
+                std::map<std::string, toml::basic_value<toml::discard_comments, std::unordered_map,
+                                                        std::vector>>;
+            const auto &pkgs = toml::find<pkg_map>(toml, "find-package");
+            for (const auto &pkg : pkgs) {
+                Package p;
+                p.name = pkg.first;
+                if (pkg.second.is_string()) {
+                    p.version = pkg.second.as_string();
+                } else {
+                    if (pkg.second.contains("version")) {
+                        p.version = toml::find(pkg.second, "version").as_string();
+                    }
+                    if (pkg.second.contains("required")) {
+                        p.required = toml::find(pkg.second, "required").as_boolean();
+                    }
+                    if (pkg.second.contains("components")) {
+                        p.components =
+                            detail::to_string_vec(toml::find(pkg.second, "components").as_array());
+                    }
+                }
+                packages.push_back(p);
+            }
         }
 
         if (toml.contains("fetch-content")) {

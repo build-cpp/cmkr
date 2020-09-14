@@ -6,6 +6,18 @@
 
 namespace cmkr::cmake {
 
+struct Option {
+    std::string name;
+    bool val;
+};
+
+struct Package {
+    std::string name;
+    std::string version;
+    bool required = true;
+    std::vector<std::string> components;
+};
+
 struct Bin {
     std::string name;
     std::string type;
@@ -28,7 +40,8 @@ struct CMake {
     std::vector<std::string> build_args;
     std::string proj_name;
     std::string proj_version;
-    std::map<std::string, std::string> packages;
+    std::vector<Option> options;
+    std::vector<Package> packages;
     std::map<std::string, std::map<std::string, std::string>> contents;
     std::vector<Bin> binaries;
     CMake(const std::string &path, bool build);

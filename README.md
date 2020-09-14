@@ -68,15 +68,19 @@ name = "app" # required
 version = "0.1.0" # required
 
 [find-package] # optional, runs find_package, use "*" to ignore version
-Boost = "1.74.0" # optional
+Boost = { version = "1.74.0", required = false, components = ["system"] } # optional
+spdlog = "*"
 
 [fetch-content] # optional, runs fetchContent
 toml11 = { GIT_REPOSITORY = "https://github.com/ToruNiina/toml11", GIT_TAG = "v3.5.0" } # optional
 
+[options] # optional
+APP_BUILD_STUFF = false # optional
+
 [[bin]] # required, can define several binaries
 name = "app" # required
 type = "exe" # required (exe || shared || static)
-sources = ["src/main.cpp"] # required
+sources = ["src/*.cpp"] # required, supports globbing
 include-dirs = [] # optional
 features = [] # optional
 defines = [] # optional

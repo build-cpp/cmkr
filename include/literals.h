@@ -28,6 +28,8 @@ version = "0.1.0"
 
 # [fetch-content]
 
+# [options]
+
 [[bin]]
 name = "%s"
 type = "%s"

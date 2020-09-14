@@ -121,12 +121,20 @@ int generate_cmake(const char *path) {
 
         if (!cmake.packages.empty()) {
             for (const auto &dep : cmake.packages) {
-                ss << "find_package(" << dep.first;
-                if (dep.second != "*") {
-                    ss << " " << dep.second << " REQUIRED)\n";
-                } else {
-                    ss << " REQUIRED)\n";
+                ss << "find_package(" << dep.name << " ";
+                if (dep.version != "*") {
+                    ss << dep.version << " ";
                 }
+                if (dep.required) {
+                    ss << "REQUIRED ";
+                }
+                if (!dep.components.empty()) {
+                    ss << "COMPONENTS ";
+                    for (const auto &comp: dep.components) {
+                        ss << comp << " ";
+                    }
+                }
+                ss << ")\n\n";
             }
         }
 
@@ -141,6 +149,14 @@ int generate_cmake(const char *path) {
                    << "FetchContent_MakeAvailable(" << dep.first << ")\n\n";
             }
         }
+
+        if (!cmake.options.empty()) {
+            for (const auto &opt: cmake.options) {
+                ss << "option(" << opt.name << " \"" << opt.name << "\" " << (opt.val ? "ON" : "OFF") << ")\n"; 
+            }
+        }
+
+        ss << "\n";
 
         if (!cmake.binaries.empty()) {
             for (const auto &bin : cmake.binaries) {
@@ -159,7 +175,17 @@ int generate_cmake(const char *path) {
 
                 ss << "set(" << detail::to_upper(bin.name) << "_SOURCES\n";
                 for (const auto &src : bin.sources) {
-                    ss << "\t" << src << "\n";
+                    auto path = fs::path(src);
+                    if (path.filename().stem().string() == "*") {
+                        auto ext = path.extension();
+                        for (const auto& f: fs::directory_iterator(path.parent_path())) {
+                            if (f.path().extension() == ext) {
+                                ss << "\t" << f << "\n";
+                            }
+                        }
+                    } else {
+                        ss << "\t" << path << "\n";
+                    }
                 }
                 ss << "\t)\n\n"
                    << add_command << "(" << bin.name << " " << bin_type << " ${"
@@ -168,7 +194,7 @@ int generate_cmake(const char *path) {
                 if (!bin.include_dirs.empty()) {
                     ss << "target_include_directories(" << bin.name << " PUBLIC\n\t";
                     for (const auto &inc : bin.include_dirs) {
-                        ss << inc << "\n\t";
+                        ss << fs::path(inc) << "\n\t";
                     }
                     ss << ")\n\n";
                 }
