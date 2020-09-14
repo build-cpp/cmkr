@@ -123,9 +123,9 @@ int generate_cmake(const char *path) {
             for (const auto &dep : cmake.packages) {
                 ss << "find_package(" << dep.first;
                 if (dep.second != "*") {
-                    ss << " " << dep.second << " CONFIG REQUIRED)\n";
+                    ss << " " << dep.second << " REQUIRED)\n";
                 } else {
-                    ss << " CONFIG REQUIRED)\n";
+                    ss << " REQUIRED)\n";
                 }
             }
         }
