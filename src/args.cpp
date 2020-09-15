@@ -56,6 +56,6 @@ const char *cmkr_args_handle_args(int argc, char **argv) {
     } catch (const std::exception &e) {
         return e.what();
     } catch (...) {
-        return nullptr;
+        return "Unknown error!";
     }
 }
