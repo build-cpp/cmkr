@@ -85,8 +85,8 @@ APP_OTHER_STUFF = { comment = "does other stuff", value = false } # optional
 name = "app" # required
 type = "exe" # required (exe || shared || static)
 sources = ["src/*.cpp"] # required, supports globbing
+include-dirs = ["include"] # optional
 alias = "" # optional
-include-dirs = [] # optional
 features = [] # optional
 defines = [] # optional
 link-libs = [] # optional 

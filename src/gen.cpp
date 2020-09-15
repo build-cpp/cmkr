@@ -43,16 +43,16 @@ std::string format(const char *fmt, Args... args) {
 
 int generate_project(const char *str) {
     fs::create_directory("src");
+    fs::create_directory("include");
     const auto dir_name = fs::current_path().stem().string();
     std::string mainbuf;
     const auto tomlbuf = detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str);
     if (!strcmp(str, "exe")) {
         mainbuf = detail::format(hello_world, "main");
     } else if (!strcmp(str, "static") || !strcmp(str, "shared") !strcmp(str, "lib")) {
-        fs::create_directory("include");
         mainbuf = detail::format(hello_world, "test");
     } else if (!strcmp(str, "interface")) {
-        fs::create_directory("include");
+        // Nothing special!
     } else {
         throw std::runtime_error(
             "Unknown project type. Types are exe, lib, shared, static, interface!");
