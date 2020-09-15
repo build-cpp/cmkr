@@ -131,6 +131,8 @@ CMake::CMake(const std::string &path, bool build) {
 
                 b.sources = detail::to_string_vec(toml::find(bin, "sources").as_array());
 
+                b.alias = toml::find(bin, "alias").as_string();
+
                 if (bin.contains("include-dirs")) {
                     b.include_dirs =
                         detail::to_string_vec(toml::find(bin, "include-dirs").as_array());

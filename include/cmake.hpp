@@ -27,6 +27,7 @@ struct Bin {
     std::vector<std::string> features;
     std::vector<std::string> defines;
     std::vector<std::string> link_libs;
+    std::string alias;
 };
 
 struct CMake {

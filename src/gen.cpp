@@ -48,19 +48,24 @@ int generate_project(const char *str) {
     const auto tomlbuf = detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str);
     if (!strcmp(str, "exe")) {
         mainbuf = detail::format(hello_world, "main");
-    } else if (!strcmp(str, "static") || !strcmp(str, "shared")) {
+    } else if (!strcmp(str, "static") || !strcmp(str, "shared") !strcmp(str, "lib")) {
         fs::create_directory("include");
         mainbuf = detail::format(hello_world, "test");
+    } else if (!strcmp(str, "interface")) {
+        fs::create_directory("include");
     } else {
-        throw std::runtime_error("Unknown project type. Types are exe, shared, static!");
+        throw std::runtime_error(
+            "Unknown project type. Types are exe, lib, shared, static, interface!");
     }
 
-    std::ofstream ofs("src/main.cpp");
-    if (ofs.is_open()) {
-        ofs << mainbuf;
+    if (strcmp(str, "interface")) {
+        std::ofstream ofs("src/main.cpp");
+        if (ofs.is_open()) {
+            ofs << mainbuf;
+        }
+        ofs.flush();
+        ofs.close();
     }
-    ofs.flush();
-    ofs.close();
 
     std::ofstream ofs2("cmake.toml");
     if (ofs2.is_open()) {
@@ -77,7 +82,7 @@ int generate_cmake(const char *path) {
         cmake::CMake cmake(path, false);
         std::stringstream ss;
         ss << "# This file was generated automatically by cmkr.\n\n";
-        
+
         if (!cmake.cmake_version.empty()) {
             ss << "cmake_minimum_required(VERSION " << cmake.cmake_version << ")\n\n";
 
@@ -130,7 +135,7 @@ int generate_cmake(const char *path) {
                 }
                 if (!dep.components.empty()) {
                     ss << "COMPONENTS ";
-                    for (const auto &comp: dep.components) {
+                    for (const auto &comp : dep.components) {
                         ss << comp << " ";
                     }
                 }
@@ -151,8 +156,9 @@ int generate_cmake(const char *path) {
         }
 
         if (!cmake.options.empty()) {
-            for (const auto &opt: cmake.options) {
-                ss << "option(" << opt.name << " \"" << opt.comment << "\" " << (opt.val ? "ON" : "OFF") << ")\n"; 
+            for (const auto &opt : cmake.options) {
+                ss << "option(" << opt.name << " \"" << opt.comment << "\" "
+                   << (opt.val ? "ON" : "OFF") << ")\n";
             }
         }
 
@@ -165,31 +171,47 @@ int generate_cmake(const char *path) {
                 if (bin.type == "exe") {
                     bin_type = "";
                     add_command = "add_executable";
-                } else if (bin.type == "shared" || bin.type == "static") {
+                } else if (bin.type == "shared" || bin.type == "static" ||
+                           bin.type == "interface") {
                     bin_type = detail::to_upper(bin.type);
+                    add_command = "add_library";
+                } else if (bin.type == "lib") {
+                    bin_type = "";
                     add_command = "add_library";
                 } else {
                     throw std::runtime_error(
                         "Unknown binary type! Supported types are exe, shared and static");
                 }
 
-                ss << "set(" << detail::to_upper(bin.name) << "_SOURCES\n";
-                for (const auto &src : bin.sources) {
-                    auto path = fs::path(src);
-                    if (path.filename().stem().string() == "*") {
-                        auto ext = path.extension();
-                        for (const auto& f: fs::directory_iterator(path.parent_path())) {
-                            if (f.path().extension() == ext) {
-                                ss << "\t" << f.path() << "\n";
+                if (!bin.sources.empty()) {
+                    ss << "set(" << detail::to_upper(bin.name) << "_SOURCES\n";
+                    for (const auto &src : bin.sources) {
+                        auto path = fs::path(src);
+                        if (path.filename().stem().string() == "*") {
+                            auto ext = path.extension();
+                            for (const auto &f : fs::directory_iterator(path.parent_path())) {
+                                if (f.path().extension() == ext) {
+                                    ss << "\t" << f.path() << "\n";
+                                }
                             }
+                        } else {
+                            ss << "\t" << path << "\n";
                         }
-                    } else {
-                        ss << "\t" << path << "\n";
                     }
+                    ss << "\t)\n\n";
                 }
-                ss << "\t)\n\n"
-                   << add_command << "(" << bin.name << " " << bin_type << " ${"
-                   << detail::to_upper(bin.name) << "_SOURCES})\n\n";
+
+                ss << add_command << "(" << bin.name << " " << bin_type;
+
+                if (!bin.sources.empty()) {
+                    ss << " ${" << detail::to_upper(bin.name) << "_SOURCES})\n\n";
+                } else {
+                    ss << ")\n\n";
+                }
+
+                if (!bin.alias.empty()) {
+                    ss << "add_library(" << bin.alias << " ALIAS " << bin.name << ")\n\n";
+                }
 
                 if (!bin.include_dirs.empty()) {
                     ss << "target_include_directories(" << bin.name << " PUBLIC\n\t";

@@ -33,7 +33,8 @@ version = "0.1.0"
 [[bin]]
 name = "%s"
 type = "%s"
-sources = ["src/main.cpp"]
+sources = ["src/*.cpp"]
+# alias = ""
 # include-dirs = []
 # features = []
 # defines = []

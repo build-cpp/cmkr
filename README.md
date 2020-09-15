@@ -85,6 +85,7 @@ APP_OTHER_STUFF = { comment = "does other stuff", value = false } # optional
 name = "app" # required
 type = "exe" # required (exe || shared || static)
 sources = ["src/*.cpp"] # required, supports globbing
+alias = "" # optional
 include-dirs = [] # optional
 features = [] # optional
 defines = [] # optional
@@ -95,17 +96,34 @@ The cmkr executable can be run from the command-line:
 ```
 Usage: cmkr [arguments]
 arguments:
-    init     [exe|shared|static]    Starts a new project in the same directory.
-    gen                             Generates CMakeLists.txt file.
-    build    <extra cmake args>     Run cmake and build.
-    clean                           Clean the build directory.
-    help                            Show help.
-    version                         Current cmkr version.
+    init     [exe|lib|shared|static|interface]    Starts a new project in the same directory.
+    gen                                           Generates CMakeLists.txt file.
+    build    <extra cmake args>                   Run cmake and build.
+    clean                                         Clean the build directory.
+    help                                          Show help.
+    version                                       Current cmkr version.
 ```
 The build command invokes cmake and the default build-system on your platform (unless a generator is specified), it also accepts extra cmake build arguments:
 ```
 cmkr build --config Release 
 ```
+
+## Binary types
+
+### exe
+Executable binary.
+
+### lib
+Library, can be static or shared depending on the BUILD_SHARED_LIBS variable.
+
+### static
+Static library/archive.
+
+### shared
+Shared/dynamic library.
+
+### interface
+Header only library.
 
 ## Roadmap
 - Support more fields.
