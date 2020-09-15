@@ -180,7 +180,7 @@ int generate_cmake(const char *path) {
                         auto ext = path.extension();
                         for (const auto& f: fs::directory_iterator(path.parent_path())) {
                             if (f.path().extension() == ext) {
-                                ss << "\t" << f << "\n";
+                                ss << "\t" << f.path() << "\n";
                             }
                         }
                     } else {
