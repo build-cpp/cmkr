@@ -94,8 +94,8 @@ link-libs = [] # optional
 
 [[test]] # optional
 name = "test1" # required
-command = "cmkr" # required
-arguments = [] # optional
+command = "app" # required
+arguments = ["arg1", "arg2"] # optional
 ```
 
 The cmkr executable can be run from the command-line:
@@ -129,7 +129,7 @@ Static library/archive.
 Shared/dynamic library.
 
 ### interface
-Header only library.
+Header-only library.
 
 ## Roadmap
 - Support more cmake fields.
