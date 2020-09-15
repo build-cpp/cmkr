@@ -49,7 +49,7 @@ int generate_project(const char *str) {
     const auto tomlbuf = detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str);
     if (!strcmp(str, "exe")) {
         mainbuf = detail::format(hello_world, "main");
-    } else if (!strcmp(str, "static") || !strcmp(str, "shared") !strcmp(str, "lib")) {
+    } else if (!strcmp(str, "static") || !strcmp(str, "shared") || !strcmp(str, "lib")) {
         mainbuf = detail::format(hello_world, "test");
     } else if (!strcmp(str, "interface")) {
         // Nothing special!
