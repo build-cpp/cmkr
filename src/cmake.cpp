@@ -23,7 +23,7 @@ CMake::CMake(const std::string &path, bool build) {
     if (!fs::exists(fs::path(path) / "cmake.toml")) {
         throw std::runtime_error("No cmake.toml was found!");
     }
-    const auto toml = toml::parse(fs::path(path) / "cmake.toml");
+    const auto toml = toml::parse((fs::path(path) / "cmake.toml").string());
     if (build) {
         if (toml.contains("cmake")) {
             const auto &cmake = toml::find(toml, "cmake");
