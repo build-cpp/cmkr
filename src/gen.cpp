@@ -46,7 +46,8 @@ int generate_project(const char *str) {
     fs::create_directory("include");
     const auto dir_name = fs::current_path().stem().string();
     std::string mainbuf;
-    const auto tomlbuf = detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str);
+    const auto tomlbuf =
+        detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str, dir_name.c_str());
     if (!strcmp(str, "exe")) {
         mainbuf = detail::format(hello_world, "main");
     } else if (!strcmp(str, "static") || !strcmp(str, "shared") || !strcmp(str, "lib")) {
@@ -244,6 +245,20 @@ int generate_cmake(const char *path) {
                     }
                     ss << ")\n\n";
                 }
+            }
+        }
+
+        if (!cmake.tests.empty()) {
+            ss << "include(CTest)\n"
+               << "enable_testing()\n\n";
+            for (const auto &test : cmake.tests) {
+                ss << "add_test(NAME " << test.name << " COMMAND " << test.cmd;
+                if (!test.args.empty()) {
+                    for (const auto &arg : test.args) {
+                        ss << " " << arg;
+                    }
+                }
+                ss << ")\n\n";
             }
         }
 

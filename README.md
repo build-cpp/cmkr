@@ -91,6 +91,11 @@ alias = "" # optional
 features = [] # optional
 defines = [] # optional
 link-libs = [] # optional 
+
+[[test]] # optional
+name = "test1" # required
+command = "cmkr" # required
+arguments = [] # optional
 ```
 
 The cmkr executable can be run from the command-line:
@@ -129,4 +134,3 @@ Header only library.
 ## Roadmap
 - Support more cmake fields.
 - Support conditional cmake args somehow!
-- Support ctest.

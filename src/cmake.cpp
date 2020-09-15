@@ -152,6 +152,19 @@ CMake::CMake(const std::string &path, bool build) {
                 binaries.push_back(b);
             }
         }
+
+        if (toml.contains("test")) {
+            const auto &ts = toml::find(toml, "test").as_array();
+            for (const auto &t : ts) {
+                Test test;
+                test.name = toml::find(t, "name").as_string();
+                test.cmd = toml::find(t, "type").as_string();
+                if (t.contains("arguments")) {
+                    test.args = detail::to_string_vec(toml::find(t, "arguments").as_array());
+                }
+                tests.push_back(test);
+            }
+        }
     }
 }
 } // namespace cmkr::cmake

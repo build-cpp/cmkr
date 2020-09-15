@@ -30,6 +30,12 @@ struct Bin {
     std::string alias;
 };
 
+struct Test {
+    std::string name;
+    std::string cmd;
+    std::vector<std::string> args;
+};
+
 struct CMake {
     std::string cmake_version = "3.14";
     std::string bin_dir = "bin";
@@ -46,6 +52,7 @@ struct CMake {
     std::vector<Package> packages;
     std::map<std::string, std::map<std::string, std::string>> contents;
     std::vector<Bin> binaries;
+    std::vector<Test> tests;
     CMake(const std::string &path, bool build);
 };
 

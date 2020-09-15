@@ -6,3 +6,4 @@
 - Add options.
 - Support aliases.
 - Support interface libs (header-only libs).
+- Support testing.
