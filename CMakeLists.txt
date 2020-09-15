@@ -6,6 +6,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(cmkr VERSION 0.1.0)
 
+include(FetchContent)
+
+FetchContent_Declare(
+	toml11
+	GIT_REPOSITORY https://github.com/ToruNiina/toml11
+	)
+
+FetchContent_MakeAvailable(toml11)
+
 
 set(CMKRLIB_SOURCES
 	"src/cmake.cpp"
@@ -19,7 +28,10 @@ add_library(cmkrlib STATIC ${CMKRLIB_SOURCES})
 
 target_include_directories(cmkrlib PUBLIC
 	"include"
-	"vendor"
+	)
+
+target_link_libraries(cmkrlib PUBLIC
+	toml11::toml11
 	)
 
 target_compile_features(cmkrlib PUBLIC

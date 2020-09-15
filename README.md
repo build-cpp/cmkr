@@ -7,8 +7,7 @@ cmkr requires a C++17 compiler, cmake >= 3.14 and git. It depends on toml11 by T
 ```
 git clone https://github.com/moalyousef/cmkr
 cd cmkr
-git submodule update --init --recursive
-cmake -S. -Bbin
+cmake -Bbin
 cmake --build bin
 ```
 
@@ -37,12 +36,16 @@ minimum = "3.14"
 name = "cmkr"
 version = "0.1.0"
 
+[fetch-content]
+toml11 = { GIT_REPOSITORY = "https://github.com/ToruNiina/toml11" }
+
 [[bin]]
 name = "cmkrlib"
 type = "static"
 sources = ["src/cmake.cpp", "src/gen.cpp", "src/help.cpp", "src/build.cpp", "src/error.cpp"]
-include-dirs = ["include", "vendor"]
+include-dirs = ["include"]
 features = ["cxx_std_17"]
+link-libs = ["toml11::toml11"]
 
 [[bin]]
 name = "cmkr"
