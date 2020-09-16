@@ -4,7 +4,7 @@ cmkr, pronounced "cmaker", is A CMakeLists.txt generator from TOML.
 
 
 ## Building
-cmkr requires a C++17 compiler, cmake >= 3.14 and git. It depends on toml11 by ToruNiina, which is added as a git submodule.
+cmkr requires a C++17 compiler, cmake >= 3.14.
 ```
 git clone https://github.com/moalyousef/cmkr
 cd cmkr
@@ -13,7 +13,7 @@ cmake --build bin
 ```
 
 ## Usage
-cmkr parses cmake.toml files (using toml11) at the project directory. A basic hello world format with the minimum required fields:
+cmkr parses cmake.toml files (using toml11 by Toru Niina) at the project directory. A basic hello world format with the minimum required fields:
 ```toml
 [cmake]
 minimum = "3.14"
