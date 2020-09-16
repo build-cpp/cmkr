@@ -39,9 +39,4 @@ include-dirs = ["include"]
 # features = []
 # defines = []
 # link-libs = []
-
-# [[test]]]
-# name = "test1"
-# command = "%s"
-# arguments = []
 )lit";

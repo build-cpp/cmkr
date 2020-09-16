@@ -47,7 +47,7 @@ int generate_project(const char *str) {
     const auto dir_name = fs::current_path().stem().string();
     std::string mainbuf;
     const auto tomlbuf =
-        detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str, dir_name.c_str());
+        detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str);
     if (!strcmp(str, "exe")) {
         mainbuf = detail::format(hello_world, "main");
     } else if (!strcmp(str, "static") || !strcmp(str, "shared") || !strcmp(str, "lib")) {
