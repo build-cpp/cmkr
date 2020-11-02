@@ -84,7 +84,7 @@ APP_OTHER_STUFF = { comment = "does other stuff", value = false } # optional
 
 [[bin]] # required, can define several binaries
 name = "app" # required
-type = "exe" # required (exe || shared || static)
+type = "exe" # required (exe || lib || shared || static || interface)
 sources = ["src/*.cpp"] # required, supports globbing
 include-dirs = ["include"] # optional
 alias = "" # optional
