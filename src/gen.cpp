@@ -182,9 +182,9 @@ int generate_cmake(const char *path) {
                     } else if (first_arg == "tag") {
                         first_arg = "GIT_TAG";
                     } else if (first_arg == "svn") {
-                        first_arg == "SVN_REPOSITORY";
+                        first_arg = "SVN_REPOSITORY";
                     } else if (first_arg == "rev") {
-                        first_arg == "SVN_REVISION";
+                        first_arg = "SVN_REVISION";
                     } else if (first_arg == "url") {
                         first_arg = "URL";
                     } else if (first_arg == "hash") {
