@@ -11,6 +11,7 @@ arguments:
     init     [exe|lib|shared|static|interface]    Starts a new project in the same directory.
     gen                                           Generates CMakeLists.txt file.
     build    <extra cmake args>                   Run cmake and build.
+    install                                       Run cmake --install. Needs admin privileges.
     clean                                         Clean the build directory.
     help                                          Show help.
     version                                       Current cmkr version.

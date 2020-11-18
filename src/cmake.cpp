@@ -131,8 +131,6 @@ CMake::CMake(const std::string &path, bool build) {
 
                 b.sources = detail::to_string_vec(toml::find(bin, "sources").as_array());
 
-                b.alias = toml::find(bin, "alias").as_string();
-
                 if (bin.contains("include-dirs")) {
                     b.include_dirs =
                         detail::to_string_vec(toml::find(bin, "include-dirs").as_array());
@@ -149,6 +147,11 @@ CMake::CMake(const std::string &path, bool build) {
                 if (bin.contains("defines")) {
                     b.defines = detail::to_string_vec(toml::find(bin, "defines").as_array());
                 }
+
+                if (bin.contains("alias")) {
+                    b.alias = toml::find(bin, "alias").as_string();
+                }
+
                 binaries.push_back(b);
             }
         }
@@ -163,6 +166,27 @@ CMake::CMake(const std::string &path, bool build) {
                     test.args = detail::to_string_vec(toml::find(t, "arguments").as_array());
                 }
                 tests.push_back(test);
+            }
+        }
+
+        if (toml.contains("install")) {
+            const auto &ts = toml::find(toml, "install").as_array();
+            for (const auto &t : ts) {
+                Install inst;
+                if (t.contains("targets")) {
+                    inst.targets = detail::to_string_vec(toml::find(t, "targets").as_array());
+                }
+                if (t.contains("files")) {
+                    inst.files = detail::to_string_vec(toml::find(t, "files").as_array());
+                }
+                if (t.contains("dirs")) {
+                    inst.dirs = detail::to_string_vec(toml::find(t, "dirs").as_array());
+                }
+                if (t.contains("configs")) {
+                    inst.configs = detail::to_string_vec(toml::find(t, "configs").as_array());
+                }
+                inst.destination = toml::find(t, "destination").as_string();
+                installs.push_back(inst);
             }
         }
     }

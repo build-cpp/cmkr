@@ -39,6 +39,21 @@ std::string format(const char *fmt, Args... args) {
     return temp;
 }
 
+std::vector<fs::path> expand_path(const fs::path &p) {
+    std::vector<fs::path> temp;
+    if (p.filename().stem().string() == "*") {
+        auto ext = p.extension();
+        for (const auto &f : fs::directory_iterator(p.parent_path())) {
+            if (f.path().extension() == ext) {
+                temp.push_back(f.path());
+            }
+        }
+    } else {
+        temp.push_back(p);
+    }
+    return temp;
+}
+
 } // namespace detail
 
 int generate_project(const char *str) {
@@ -46,18 +61,30 @@ int generate_project(const char *str) {
     fs::create_directory("include");
     const auto dir_name = fs::current_path().stem().string();
     std::string mainbuf;
-    const auto tomlbuf =
-        detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str);
+    std::string installed;
+    std::string target;
+    std::string dest;
     if (!strcmp(str, "exe")) {
         mainbuf = detail::format(hello_world, "main");
+        installed = "targets";
+        target = dir_name;
+        dest = "bin";
     } else if (!strcmp(str, "static") || !strcmp(str, "shared") || !strcmp(str, "lib")) {
         mainbuf = detail::format(hello_world, "test");
+        installed = "targets";
+        target = dir_name;
+        dest = "lib";
     } else if (!strcmp(str, "interface")) {
-        // Nothing special!
+        installed = "files";
+        target = "include/*.h";
+        dest = "include/" + dir_name;
     } else {
         throw std::runtime_error(
             "Unknown project type. Types are exe, lib, shared, static, interface!");
     }
+
+    const auto tomlbuf = detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str,
+                                        installed.c_str(), target.c_str(), dest.c_str());
 
     if (strcmp(str, "interface")) {
         std::ofstream ofs("src/main.cpp");
@@ -149,7 +176,23 @@ int generate_cmake(const char *path) {
             for (const auto &dep : cmake.contents) {
                 ss << "FetchContent_Declare(\n\t" << dep.first << "\n";
                 for (const auto &arg : dep.second) {
-                    ss << "\t" << arg.first << " " << arg.second << "\n";
+                    std::string first_arg = arg.first;
+                    if (first_arg == "git") {
+                        first_arg = "GIT_REPOSITORY";
+                    } else if (first_arg == "tag") {
+                        first_arg = "GIT_TAG";
+                    } else if (first_arg == "svn") {
+                        first_arg == "SVN_REPOSITORY";
+                    } else if (first_arg == "rev") {
+                        first_arg == "SVN_REVISION";
+                    } else if (first_arg == "url") {
+                        first_arg = "URL";
+                    } else if (first_arg == "hash") {
+                        first_arg = "URL_HASH";
+                    } else {
+                        // don't change arg
+                    }
+                    ss << "\t" << first_arg << " " << arg.second << "\n";
                 }
                 ss << "\t)\n\n"
                    << "FetchContent_MakeAvailable(" << dep.first << ")\n\n";
@@ -188,15 +231,9 @@ int generate_cmake(const char *path) {
                     ss << "set(" << detail::to_upper(bin.name) << "_SOURCES\n";
                     for (const auto &src : bin.sources) {
                         auto path = fs::path(src);
-                        if (path.filename().stem().string() == "*") {
-                            auto ext = path.extension();
-                            for (const auto &f : fs::directory_iterator(path.parent_path())) {
-                                if (f.path().extension() == ext) {
-                                    ss << "\t" << f.path() << "\n";
-                                }
-                            }
-                        } else {
-                            ss << "\t" << path << "\n";
+                        auto expanded = detail::expand_path(path);
+                        for (const auto &f : expanded) {
+                            ss << "\t" << f << "\n";
                         }
                     }
                     ss << "\t)\n\n";
@@ -259,6 +296,39 @@ int generate_cmake(const char *path) {
                     }
                 }
                 ss << ")\n\n";
+            }
+        }
+
+        if (!cmake.installs.empty()) {
+            for (const auto &inst : cmake.installs) {
+                ss << "install(\n";
+                if (!inst.targets.empty()) {
+                    ss << "\tTARGETS ";
+                    for (const auto &target : inst.targets) {
+                        ss << target << " ";
+                    }
+                }
+                if (!inst.dirs.empty()) {
+                    ss << "\tDIRS ";
+                    for (const auto &dir : inst.dirs) {
+                        ss << dir << " ";
+                    }
+                }
+                if (!inst.files.empty()) {
+                    ss << "\tFILES ";
+                    for (const auto &file : inst.files) {
+                        auto path = detail::expand_path(fs::path(file));
+                        for (const auto &f : path)
+                            ss << f << " ";
+                    }
+                }
+                if (!inst.configs.empty()) {
+                    ss << "\tCONFIGURATIONS";
+                    for (const auto &conf : inst.configs) {
+                        ss << conf << " ";
+                    }
+                }
+                ss << "\n\tDESTINATION " << inst.destination << "\n\t)\n\n";
             }
         }
 

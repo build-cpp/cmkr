@@ -28,9 +28,10 @@ const char *handle_args(int argc, char **argv) {
     } else if (main_arg == "version") {
         return cmkr::help::version();
     } else if (main_arg == "init") {
-        if (args.size() < 3)
-            return "Please provide a project type!";
-        auto ret = cmkr::gen::generate_project(args[2].c_str());
+        std::string typ = "exe";
+        if (args.size() > 2)
+            typ = args[2];
+        auto ret = cmkr::gen::generate_project(typ.c_str());
         if (ret)
             return "Initialization failure!";
         return "Directory initialized!";
@@ -39,6 +40,11 @@ const char *handle_args(int argc, char **argv) {
         if (ret)
             return "CMake build error!";
         return "CMake run completed!";
+    } else if (main_arg == "install") {
+        auto ret = build::install();
+        if (ret)
+            return "CMake install error!";
+        return "CMake install completed!";
     } else if (main_arg == "clean") {
         auto ret = build::clean();
         if (ret)

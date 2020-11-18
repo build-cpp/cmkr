@@ -4,7 +4,7 @@ cmkr, pronounced "cmaker", is A CMakeLists.txt generator from TOML.
 
 
 ## Building
-cmkr requires a C++17 compiler, cmake >= 3.14.
+cmkr requires a C++17 compiler, cmake >= 3.15.
 ```
 git clone https://github.com/moalyousef/cmkr
 cd cmkr
@@ -16,7 +16,7 @@ cmake --build bin
 cmkr parses cmake.toml files (using toml11 by Toru Niina) at the project directory. A basic hello world format with the minimum required fields:
 ```toml
 [cmake]
-minimum = "3.14"
+minimum = "3.15"
 
 [project]
 name = "app"
@@ -31,14 +31,14 @@ sources = ["src/main.cpp"]
 This project's cmake.toml:
 ```toml
 [cmake]
-minimum = "3.14"
+minimum = "3.15"
 
 [project]
 name = "cmkr"
 version = "0.1.0"
 
 [fetch-content]
-toml11 = { GIT_REPOSITORY = "https://github.com/ToruNiina/toml11" }
+toml11 = { git = "https://github.com/ToruNiina/toml11" }
 
 [[bin]]
 name = "cmkrlib"
@@ -53,12 +53,16 @@ name = "cmkr"
 type = "exe"
 sources = ["src/main.cpp", "src/args.cpp"]
 link-libs = ["cmkrlib"]
+
+[[install]]
+targets = ["cmkr"]
+destination = "${CMAKE_INSTALL_PREFIX}/bin"
 ```
 
 Currently supported fields:
 ```toml
 [cmake] # required for top-level project
-minimum = "3.14" # required
+minimum = "3.15" # required
 subdirs = [] # optional
 bin-dir = "bin" # optional
 cpp-flags = [] # optional
@@ -76,7 +80,7 @@ Boost = { version = "1.74.0", required = false, components = ["system"] } # opti
 spdlog = "*"
 
 [fetch-content] # optional, runs fetchContent
-toml11 = { GIT_REPOSITORY = "https://github.com/ToruNiina/toml11", GIT_TAG = "v3.5.0" } # optional
+toml11 = { git = "https://github.com/ToruNiina/toml11", tag = "v3.5.0" } # optional
 
 [options] # optional
 APP_BUILD_STUFF = false # optional
@@ -92,10 +96,17 @@ features = [] # optional
 defines = [] # optional
 link-libs = [] # optional 
 
-[[test]] # optional
+[[test]] # optional, can define several
 name = "test1" # required
 command = "app" # required
 arguments = ["arg1", "arg2"] # optional
+
+[[install]] # optional, can define several
+targets = ["app"] # optional
+files = ["include/*.h"] # optional
+dirs = [] # optional
+configs = [] # optional (Release|Debug...etc)
+destination = "${CMAKE_INSTALL_PREFIX}/bin" # required
 ```
 
 The cmkr executable can be run from the command-line:
@@ -105,6 +116,7 @@ arguments:
     init     [exe|lib|shared|static|interface]    Starts a new project in the same directory.
     gen                                           Generates CMakeLists.txt file.
     build    <extra cmake args>                   Run cmake and build.
+    install                                       Run cmake --install. Needs admin privileges.
     clean                                         Clean the build directory.
     help                                          Show help.
     version                                       Current cmkr version.

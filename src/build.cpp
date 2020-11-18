@@ -57,6 +57,12 @@ int clean() {
     return !ret;
 }
 
+int install() {
+    cmake::CMake cmake(".", false);
+    auto cmd = "cmake --install " + cmake.bin_dir;
+    return ::system(cmd.c_str());
+}
+
 } // namespace cmkr::build
 
 int cmkr_build_run(int argc, char **argv) {
@@ -75,6 +81,16 @@ int cmkr_build_clean(void) {
     } catch (const std::system_error &e) {
         return e.code().value();
     } catch (...) {
-        return cmkr::error::Status(cmkr::error::Status::Code::BuildError);
+        return cmkr::error::Status(cmkr::error::Status::Code::CleanError);
+    }
+}
+
+int cmkr_build_install(void) {
+    try {
+        return cmkr::build::install();
+    } catch (const std::system_error &e) {
+        return e.code().value();
+    } catch (...) {
+        return cmkr::error::Status(cmkr::error::Status::Code::InstallError);
     }
 }

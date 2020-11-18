@@ -10,6 +10,8 @@ struct Status {
         InitError,
         GenerationError,
         BuildError,
+        CleanError,
+        InstallError,
     };
     Status(Code ec) noexcept;
     operator int() const noexcept;

@@ -1,12 +1,12 @@
 [cmake]
-minimum = "3.14"
+minimum = "3.15"
 
 [project]
 name = "cmkr"
-version = "0.1.0"
+version = "0.1.1"
 
 [fetch-content]
-toml11 = { GIT_REPOSITORY = "https://github.com/ToruNiina/toml11" }
+toml11 = { git = "https://github.com/ToruNiina/toml11" }
 
 [[bin]]
 name = "cmkrlib"
@@ -22,3 +22,6 @@ type = "exe"
 sources = ["src/main.cpp", "src/args.cpp"]
 link-libs = ["cmkrlib"]
 
+[[install]]
+targets = ["cmkr"]
+destination = "${CMAKE_INSTALL_PREFIX}/bin"

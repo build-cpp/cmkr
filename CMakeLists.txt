@@ -1,10 +1,10 @@
 # This file was generated automatically by cmkr.
 
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.15)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-project(cmkr VERSION 0.1.0)
+project(cmkr VERSION 0.1.1)
 
 include(FetchContent)
 
@@ -47,6 +47,11 @@ add_executable(cmkr  ${CMKR_SOURCES})
 
 target_link_libraries(cmkr PUBLIC
 	cmkrlib
+	)
+
+install(
+	TARGETS cmkr 
+	DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 	)
 
 

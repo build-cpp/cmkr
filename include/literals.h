@@ -7,11 +7,12 @@ int %s() {
     std::cout << "Hello World!\n";
     return 0;
 }
+
 )lit";
 
 const char *cmake_toml = R"lit(
 [cmake]
-minimum = "3.14"
+minimum = "3.15"
 # subdirs = []
 # bin-dir = ""
 # cpp-flags = []
@@ -39,4 +40,9 @@ include-dirs = ["include"]
 # features = []
 # defines = []
 # link-libs = []
+
+[[install]]
+%s = ["%s"]
+destination = "${CMAKE_INSTALL_PREFIX}/%s"
+
 )lit";

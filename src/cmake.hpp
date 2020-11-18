@@ -36,8 +36,16 @@ struct Test {
     std::vector<std::string> args;
 };
 
+struct Install {
+    std::vector<std::string> targets;
+    std::vector<std::string> files;
+    std::vector<std::string> dirs;
+    std::vector<std::string> configs;
+    std::string destination;
+};
+
 struct CMake {
-    std::string cmake_version = "3.14";
+    std::string cmake_version = "3.15";
     std::string bin_dir = "bin";
     std::string generator;
     std::vector<std::string> subdirs;
@@ -53,6 +61,7 @@ struct CMake {
     std::map<std::string, std::map<std::string, std::string>> contents;
     std::vector<Bin> binaries;
     std::vector<Test> tests;
+    std::vector<Install> installs;
     CMake(const std::string &path, bool build);
 };
 
