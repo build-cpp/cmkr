@@ -3,8 +3,18 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <variant>
 
 namespace cmkr::cmake {
+
+
+struct Setting {
+    std::string name;
+    std::string comment;
+    std::variant<bool, std::string> val;
+    bool cache = false;
+    bool force = false;
+};
 
 struct Option {
     std::string name;
@@ -28,6 +38,7 @@ struct Bin {
     std::vector<std::string> defines;
     std::vector<std::string> link_libs;
     std::string alias;
+    std::map<std::string, std::string> properties;
 };
 
 struct Test {
@@ -48,6 +59,7 @@ struct CMake {
     std::string cmake_version = "3.15";
     std::string bin_dir = "bin";
     std::string generator;
+    std::string config;
     std::vector<std::string> subdirs;
     std::vector<std::string> cppflags;
     std::vector<std::string> cflags;
@@ -56,6 +68,7 @@ struct CMake {
     std::vector<std::string> build_args;
     std::string proj_name;
     std::string proj_version;
+    std::vector<Setting> settings;
     std::vector<Option> options;
     std::vector<Package> packages;
     std::map<std::string, std::map<std::string, std::string>> contents;

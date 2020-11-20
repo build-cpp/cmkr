@@ -149,7 +149,10 @@ int generate_cmake(const char *path) {
         }
 
         if (!cmake.proj_name.empty() && !cmake.proj_version.empty()) {
-            ss << "project(" << cmake.proj_name << " VERSION " << cmake.proj_version << ")\n\n";
+            ss << "set(" << cmake.proj_name << "_PROJECT_VERSION " << cmake.proj_version << ")\n"
+               << "project(" << cmake.proj_name << " VERSION "
+               << "${" << cmake.proj_name << "_PROJECT_VERSION}"
+               << ")\n\n";
         }
 
         if (!cmake.packages.empty()) {
@@ -202,11 +205,28 @@ int generate_cmake(const char *path) {
         if (!cmake.options.empty()) {
             for (const auto &opt : cmake.options) {
                 ss << "option(" << opt.name << " \"" << opt.comment << "\" "
-                   << (opt.val ? "ON" : "OFF") << ")\n";
+                   << (opt.val ? "ON" : "OFF") << ")\n\n";
             }
         }
 
-        ss << "\n";
+        if (!cmake.settings.empty()) {
+            for (const auto &set : cmake.settings) {
+                std::string set_val;
+                if (set.val.index() == 1) {
+                    set_val = std::get<std::string>(set.val);
+                } else {
+                    set_val = std::get<bool>(set.val) ? "ON" : "OFF";
+                }
+                ss << "set(" << set.name << " " << set_val;;
+                if (set.cache) {
+                    std::string typ;
+                    if (set.val.index() == 1) typ = "STRING"; else typ = "BOOL";
+                    ss << " CACHE " << typ << " \"" << set.comment <<  "\"";
+                    if (set.force) ss << " FORCE";
+                }
+                   ss << ")\n\n";
+            }
+        }
 
         if (!cmake.binaries.empty()) {
             for (const auto &bin : cmake.binaries) {
@@ -281,6 +301,14 @@ int generate_cmake(const char *path) {
                         ss << def << "\n\t";
                     }
                     ss << ")\n\n";
+                }
+
+                if (!bin.properties.empty()) {
+                    ss << "set_target_properties(" << bin.name << " PROPERTIES\n";
+                    for (const auto &prop : bin.properties) {
+                        ss << "\t" << prop.first << " " << prop.second << "\n";
+                    }
+                    ss << "\t)\n\n";
                 }
             }
         }

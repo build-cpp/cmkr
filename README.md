@@ -9,7 +9,7 @@ cmkr requires a C++17 compiler, cmake >= 3.15.
 git clone https://github.com/moalyousef/cmkr
 cd cmkr
 cmake -Bbin
-cmake --build bin
+cmake --build bin --parallel
 ```
 
 ## Usage
@@ -35,7 +35,7 @@ minimum = "3.15"
 
 [project]
 name = "cmkr"
-version = "0.1.0"
+version = "0.1.2"
 
 [fetch-content]
 toml11 = { git = "https://github.com/ToruNiina/toml11" }
@@ -68,8 +68,15 @@ bin-dir = "bin" # optional
 cpp-flags = [] # optional
 c-flags = [] # optional
 link-flags = [] # optional
-generator = "Ninja" # optional
-arguments = ["CMAKE_TOOLCHAIN_FILE=/path/to/toolchain"] # optional
+generator = "Ninja" # optional, only valid when run using: cmkr build
+config = "Release" # optional, only valid when run using: cmkr build
+arguments = ["CMAKE_TOOLCHAIN_FILE=/path/to/toolchain"] # optional, valid when run using: cmkr build
+
+[settings] # optional
+CMAKE_BUILD_TYPE = "Release"
+TOML_BUILD_TESTS = false # optional
+TOML_BUILD_DOCS = { value = false, comment = "builds dependency docs", cache = true, force = true } # optional
+OLD_VERSION = "0.1.1" # optional
 
 [project] # required per project
 name = "app" # required
@@ -95,6 +102,7 @@ alias = "" # optional
 features = [] # optional
 defines = [] # optional
 link-libs = [] # optional 
+properties = { PROPERTY1 = "property1", ... } # optional
 
 [[test]] # optional, can define several
 name = "test1" # required

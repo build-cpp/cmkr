@@ -2,7 +2,7 @@
 
 namespace cmkr::help {
 
-const char *version() noexcept { return "cmkr version 0.1.0"; }
+const char *version() noexcept { return "cmkr version 0.1.2"; }
 
 const char *message() noexcept {
     return R"lit(

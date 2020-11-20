@@ -32,12 +32,15 @@ int run(int argc, char **argv) {
     if (!cmake.generator.empty()) {
         ss << "-G \"" << cmake.generator << "\" ";
     }
+    if (!cmake.config.empty()) {
+        ss << "-DCMAKE_BUILD_TYPE=" << cmake.config << " ";
+    }
     if (!cmake.gen_args.empty()) {
         for (const auto &arg : cmake.gen_args) {
             ss << "-D" << arg << " ";
         }
     }
-    ss << "&& cmake --build " << cmake.bin_dir;
+    ss << "&& cmake --build " << cmake.bin_dir << " --parallel";
     if (argc > 2) {
         for (const auto &arg : cmake.build_args) {
             ss << " " << arg;

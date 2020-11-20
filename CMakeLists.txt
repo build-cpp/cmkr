@@ -4,7 +4,8 @@ cmake_minimum_required(VERSION 3.15)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-project(cmkr VERSION 0.1.1)
+set(cmkr_PROJECT_VERSION 0.1.2)
+project(cmkr VERSION ${cmkr_PROJECT_VERSION})
 
 include(FetchContent)
 
@@ -14,7 +15,6 @@ FetchContent_Declare(
 	)
 
 FetchContent_MakeAvailable(toml11)
-
 
 set(CMKRLIB_SOURCES
 	"src/cmake.cpp"

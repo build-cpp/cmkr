@@ -36,6 +36,10 @@ CMake::CMake(const std::string &path, bool build) {
                 generator = toml::find(cmake, "generator").as_string();
             }
 
+            if (cmake.contains("config")) {
+                config = toml::find(cmake, "config").as_string();
+            }
+
             if (cmake.contains("arguments")) {
                 gen_args = detail::to_string_vec(toml::find(cmake, "arguments").as_array());
             }
@@ -66,6 +70,41 @@ CMake::CMake(const std::string &path, bool build) {
             const auto &project = toml::find(toml, "project");
             proj_name = toml::find(project, "name").as_string();
             proj_version = toml::find(project, "version").as_string();
+        }
+
+        if (toml.contains("settings")) {
+            using set_map =
+                std::map<std::string, toml::basic_value<toml::discard_comments, std::unordered_map,
+                                                        std::vector>>;
+            const auto &sets = toml::find<set_map>(toml, "settings");
+            for (const auto set : sets) {
+                Setting s;
+                s.name = set.first;
+                if (set.second.is_boolean()) {
+                    s.val = set.second.as_boolean();
+                } else if (set.second.is_string()) {
+                    s.val = set.second.as_string();
+                } else {
+                    if (set.second.contains("comment")) {
+                        s.comment = toml::find(set.second, "comment").as_string();
+                    }
+                    if (set.second.contains("value")) {
+                        auto v = toml::find(set.second, "value");
+                        if (v.is_boolean()) {
+                            s.val = v.as_boolean();
+                        } else {
+                            s.val = v.as_string();
+                        }
+                    }
+                    if (set.second.contains("cache")) {
+                        s.cache = toml::find(set.second, "cache").as_boolean();
+                    }
+                    if (set.second.contains("force")) {
+                        s.force = toml::find(set.second, "force").as_boolean();
+                    }
+                }
+                settings.push_back(s);
+            }
         }
 
         if (toml.contains("options")) {
@@ -150,6 +189,11 @@ CMake::CMake(const std::string &path, bool build) {
 
                 if (bin.contains("alias")) {
                     b.alias = toml::find(bin, "alias").as_string();
+                }
+
+                if (bin.contains("properties")) {
+                    using prop_map = std::map<std::string, std::string>;
+                    b.properties = toml::find<prop_map>(bin, "properties");
                 }
 
                 binaries.push_back(b);
