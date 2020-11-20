@@ -5,9 +5,12 @@
 
 #include <exception>
 #include <filesystem>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+
+namespace fs = std::filesystem;
 
 namespace cmkr::args {
 const char *handle_args(int argc, char **argv) {
@@ -19,7 +22,20 @@ const char *handle_args(int argc, char **argv) {
         return "Please provide command line arguments!";
     std::string main_arg = args[1];
     if (main_arg == "gen") {
-        auto ret = cmkr::gen::generate_cmake(std::filesystem::current_path().string().c_str());
+        bool cont = false;
+        if (args.size() > 2 && args[2] == "-y")
+            cont = true;
+        auto current_path = fs::current_path();
+        if (fs::exists(current_path / "CMakeLists.txt") && cont == false) {
+            std::cout << "A CMakeLists.txt file already exists in the current directory.\nWould you "
+                         "like to overwrite it?[y/n]"
+                      << std::endl;
+            std::string resp;
+            std::cin >> resp;
+            if (resp != "y")
+                return "CMake generation aborted!";
+        }
+        auto ret = cmkr::gen::generate_cmake(current_path.string().c_str());
         if (ret)
             return "CMake generation error!";
         return "CMake generation successful!";

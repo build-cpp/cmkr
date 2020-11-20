@@ -6,6 +6,7 @@
 - Require cmake >= 3.15.
 - Support settings and caching settings.
 - Support config when running cmkr build.
+- Add prompt prior to CMakeLists.txt generation if already existent in the current dir.
 
 ## 0.1.1 - 2020-11-19
 - Add support for globbing.
