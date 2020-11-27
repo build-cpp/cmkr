@@ -3,7 +3,7 @@
 #include "error.h"
 #include "literals.h"
 
-#include <filesystem>
+#include "fs.hpp"
 #include <fstream>
 #include <new>
 #include <sstream>
@@ -11,8 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <string>
-
-namespace fs = std::filesystem;
 
 namespace cmkr::gen {
 
@@ -221,9 +219,9 @@ int generate_cmake(const char *path) {
             for (const auto &set : cmake.settings) {
                 std::string set_val;
                 if (set.val.index() == 1) {
-                    set_val = std::get<std::string>(set.val);
+                    set_val = set.val.second;
                 } else {
-                    set_val = std::get<bool>(set.val) ? "ON" : "OFF";
+                    set_val = set.val.first ? "ON" : "OFF";
                 }
                 ss << "set(" << set.name << " " << set_val;
                 ;
@@ -256,8 +254,8 @@ int generate_cmake(const char *path) {
                     bin_type = "";
                     add_command = "add_library";
                 } else {
-                    throw std::runtime_error(
-                        "[cmkr] error: Unknown binary type! Supported types are exe, lib, shared, static, interface");
+                    throw std::runtime_error("[cmkr] error: Unknown binary type! Supported types "
+                                             "are exe, lib, shared, static, interface");
                 }
 
                 if (!bin.sources.empty()) {
@@ -370,10 +368,10 @@ int generate_cmake(const char *path) {
                     }
                 }
                 ss << "\n\tDESTINATION " << inst.destination << "\n\t";
-                if (!inst.targets.empty()) 
+                if (!inst.targets.empty())
                     ss << "COMPONENT " << inst.targets[0] << "\n\t)\n\n";
                 else
-                   ss << "\n\t)\n\n";
+                    ss << "\n\t)\n\n";
             }
         }
 

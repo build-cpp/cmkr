@@ -3,14 +3,12 @@
 #include "error.h"
 #include "gen.h"
 
-#include <filesystem>
+#include "fs.hpp"
 #include <sstream>
 #include <stddef.h>
 #include <stdexcept>
 #include <stdlib.h>
 #include <system_error>
-
-namespace fs = std::filesystem;
 
 namespace cmkr::build {
 

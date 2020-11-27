@@ -17,6 +17,13 @@ project(cmkr VERSION ${cmkr_PROJECT_VERSION})
 include(FetchContent)
 
 FetchContent_Declare(
+	filesystem
+	GIT_REPOSITORY https://github.com/gulrak/filesystem
+	)
+
+FetchContent_MakeAvailable(filesystem)
+
+FetchContent_Declare(
 	toml11
 	GIT_REPOSITORY https://github.com/ToruNiina/toml11
 	)
@@ -39,10 +46,11 @@ target_include_directories(cmkrlib PUBLIC
 
 target_link_libraries(cmkrlib PUBLIC
 	toml11::toml11
+	ghc_filesystem
 	)
 
 target_compile_features(cmkrlib PUBLIC
-	cxx_std_17
+	cxx_std_11
 	)
 
 set(CMKR_SOURCES

@@ -4,13 +4,11 @@
 #include "help.h"
 
 #include <exception>
-#include <filesystem>
+#include "fs.hpp"
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
-
-namespace fs = std::filesystem;
 
 namespace cmkr::args {
 const char *handle_args(int argc, char **argv) {

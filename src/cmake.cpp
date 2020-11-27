@@ -1,10 +1,8 @@
 #include "cmake.hpp"
 
-#include <filesystem>
+#include "fs.hpp"
 #include <stdexcept>
 #include <toml.hpp>
-
-namespace fs = std::filesystem;
 
 namespace cmkr::cmake {
 
