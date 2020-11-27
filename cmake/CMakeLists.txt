@@ -2,6 +2,7 @@
 
 # Regenerate CMakeLists.txt file when necessary
 include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)
+
 if(CMKR_INCLUDE_RESULT)
 	cmkr()
 endif()
@@ -14,7 +15,7 @@ set(example_PROJECT_VERSION 0.1.0)
 project(example VERSION ${example_PROJECT_VERSION})
 
 set(EXAMPLE_SOURCES
-	"src/example.cpp"
+	src/example.cpp
 	)
 
 add_executable(example  ${EXAMPLE_SOURCES})

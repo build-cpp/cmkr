@@ -38,17 +38,21 @@ std::string format(const char *fmt, Args... args) {
     return temp;
 }
 
-std::vector<fs::path> expand_path(const fs::path &p) {
-    std::vector<fs::path> temp;
+static std::vector<std::string> expand_cmake_path(const fs::path &p) {
+    std::vector<std::string> temp;
     if (p.filename().stem().string() == "*") {
         auto ext = p.extension();
         for (const auto &f : fs::directory_iterator(p.parent_path())) {
             if (f.path().extension() == ext) {
-                temp.push_back(f.path());
+                temp.push_back(f.path().string());
             }
         }
     } else {
-        temp.push_back(p);
+        temp.push_back(p.string());
+    }
+    // Normalize all paths to work with CMake (it needs a / on Windows as well)
+    for(auto& path : temp) {
+        std::replace(path.begin(), path.end(), '\\', '/');
     }
     return temp;
 }
@@ -263,7 +267,7 @@ int generate_cmake(const char *path) {
                     ss << "set(" << detail::to_upper(bin.name) << "_SOURCES\n";
                     for (const auto &src : bin.sources) {
                         auto path = fs::path(src);
-                        auto expanded = detail::expand_path(path);
+                        auto expanded = detail::expand_cmake_path(path);
                         for (const auto &f : expanded) {
                             ss << "\t" << f << "\n";
                         }
@@ -357,7 +361,7 @@ int generate_cmake(const char *path) {
                 if (!inst.files.empty()) {
                     ss << "\tFILES ";
                     for (const auto &file : inst.files) {
-                        auto path = detail::expand_path(fs::path(file));
+                        auto path = detail::expand_cmake_path(fs::path(file));
                         for (const auto &f : path)
                             ss << f << " ";
                     }
