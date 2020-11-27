@@ -31,11 +31,11 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(toml11)
 
 set(CMKRLIB_SOURCES
-	"src/cmake.cpp"
-	"src/gen.cpp"
-	"src/help.cpp"
-	"src/build.cpp"
-	"src/error.cpp"
+	src/cmake.cpp
+	src/gen.cpp
+	src/help.cpp
+	src/build.cpp
+	src/error.cpp
 	)
 
 add_library(cmkrlib STATIC ${CMKRLIB_SOURCES})
@@ -54,8 +54,8 @@ target_compile_features(cmkrlib PUBLIC
 	)
 
 set(CMKR_SOURCES
-	"src/main.cpp"
-	"src/args.cpp"
+	src/main.cpp
+	src/args.cpp
 	)
 
 add_executable(cmkr  ${CMKR_SOURCES})
