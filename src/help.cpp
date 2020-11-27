@@ -1,6 +1,7 @@
 #include "help.h"
 
-namespace cmkr::help {
+namespace cmkr {
+namespace help {
 
 const char *version() noexcept { return "cmkr version 0.1.2"; }
 
@@ -17,7 +18,8 @@ arguments:
     version                                       Current cmkr version.
             )lit";
 }
-} // namespace cmkr::help
+} // namespace help
+} // namespace cmkr
 
 const char *cmkr_help_version(void) { return cmkr::help::version(); }
 

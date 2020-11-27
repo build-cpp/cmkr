@@ -1,7 +1,8 @@
 #pragma once
 
 #ifdef __cplusplus
-namespace cmkr::error {
+namespace cmkr {
+namespace error {
 
 struct Status {
     enum class Code {
@@ -21,7 +22,8 @@ struct Status {
     Code ec_ = Code::Success;
 };
 
-} // namespace cmkr::error
+} // namespace error
+} // namespace cmkr
 
 extern "C" {
 #endif

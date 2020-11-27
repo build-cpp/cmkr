@@ -2,7 +2,8 @@
 
 #ifdef __cplusplus
 
-namespace cmkr::build {
+namespace cmkr {
+namespace build {
 
 int run(int argc, char **argv);
 
@@ -10,7 +11,8 @@ int clean();
 
 int install();
 
-} // namespace cmkr::build
+} // namespace build
+} // namespace cmkr
 extern "C" {
 #endif
 

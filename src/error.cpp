@@ -2,7 +2,8 @@
 
 #include <assert.h>
 
-namespace cmkr::error {
+namespace cmkr {
+namespace error {
 
 Status::Status(Code ec) noexcept : ec_(ec) {}
 
@@ -10,7 +11,8 @@ Status::operator int() const noexcept { return static_cast<int>(ec_); }
 
 Status::Code Status::code() const noexcept { return ec_; }
 
-} // namespace cmkr::error
+} // namespace error
+} // namespace cmkr
 
 const char *err_string[] = {
     "Success", "Runtime error", "Initialization error", "CMake generation error", "Build error",

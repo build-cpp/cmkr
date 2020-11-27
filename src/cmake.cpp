@@ -4,7 +4,8 @@
 #include <stdexcept>
 #include <toml.hpp>
 
-namespace cmkr::cmake {
+namespace cmkr {
+namespace cmake {
 
 namespace detail {
 std::vector<std::string> to_string_vec(
@@ -233,4 +234,5 @@ CMake::CMake(const std::string &path, bool build) {
         }
     }
 }
-} // namespace cmkr::cmake
+} // namespace cmake
+} // namespace cmkr

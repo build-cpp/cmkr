@@ -12,7 +12,8 @@
 #include <string.h>
 #include <string>
 
-namespace cmkr::gen {
+namespace cmkr {
+namespace gen {
 
 namespace detail {
 
@@ -394,7 +395,8 @@ int generate_cmake(const char *path) {
     }
     return 0;
 }
-} // namespace cmkr::gen
+} // namespace gen
+} // namespace cmkr
 
 int cmkr_gen_generate_project(const char *typ) {
     try {

@@ -5,7 +5,8 @@
 #include <string>
 #include <vector>
 
-namespace cmkr::cmake {
+namespace cmkr {
+namespace cmake {
 
 namespace detail {
 template <typename T, typename O>
@@ -106,4 +107,5 @@ struct CMake {
     CMake(const std::string &path, bool build);
 };
 
-} // namespace cmkr::cmake
+} // namespace cmake
+} // namespace cmkr

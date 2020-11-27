@@ -10,7 +10,8 @@
 #include <stdlib.h>
 #include <system_error>
 
-namespace cmkr::build {
+namespace cmkr {
+namespace build {
 
 int run(int argc, char **argv) {
     cmake::CMake cmake(".", true);
@@ -63,8 +64,8 @@ int install() {
     auto cmd = "cmake --install " + cmake.bin_dir;
     return ::system(cmd.c_str());
 }
-
-} // namespace cmkr::build
+} // namespace build
+} // namespace cmkr
 
 int cmkr_build_run(int argc, char **argv) {
     try {

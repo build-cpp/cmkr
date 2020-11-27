@@ -1,10 +1,11 @@
 #pragma once
 
 #ifdef __cplusplus
-namespace cmkr::args {
-
+namespace cmkr {
+namespace args {
 const char *handle_args(int argc, char **argv);
 }
+} // namespace cmkr
 
 extern "C" {
 #endif

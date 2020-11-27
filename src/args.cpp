@@ -3,14 +3,15 @@
 #include "gen.h"
 #include "help.h"
 
-#include <exception>
 #include "fs.hpp"
+#include <exception>
 #include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-namespace cmkr::args {
+namespace cmkr {
+namespace args {
 const char *handle_args(int argc, char **argv) {
     std::vector<std::string> args;
     for (int i = 0; i < argc; ++i)
@@ -25,9 +26,10 @@ const char *handle_args(int argc, char **argv) {
             cont = true;
         auto current_path = fs::current_path();
         if (fs::exists(current_path / "CMakeLists.txt") && cont == false) {
-            std::cout << "A CMakeLists.txt file already exists in the current directory.\nWould you "
-                         "like to overwrite it?[y/n]"
-                      << std::endl;
+            std::cout
+                << "A CMakeLists.txt file already exists in the current directory.\nWould you "
+                   "like to overwrite it?[y/n]"
+                << std::endl;
             std::string resp;
             std::cin >> resp;
             if (resp != "y")
@@ -68,7 +70,8 @@ const char *handle_args(int argc, char **argv) {
         return "Unknown argument!";
     }
 }
-} // namespace cmkr::args
+} // namespace args
+} // namespace cmkr
 
 const char *cmkr_args_handle_args(int argc, char **argv) {
     try {

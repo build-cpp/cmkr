@@ -1,13 +1,15 @@
 #pragma once
 
 #ifdef __cplusplus
-namespace cmkr::help {
+namespace cmkr {
+namespace help {
 
 const char *version() noexcept;
 
 const char *message() noexcept;
 
-} // namespace cmkr::help
+} // namespace help
+} // namespace cmkr
 
 extern "C" {
 #endif
