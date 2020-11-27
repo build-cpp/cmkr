@@ -109,7 +109,15 @@ int generate_cmake(const char *path) {
     if (fs::exists(fs::path(path) / "cmake.toml")) {
         cmake::CMake cmake(path, false);
         std::stringstream ss;
-        ss << "# This file was generated automatically by cmkr.\n\n";
+        ss << "# This file was generated automatically by cmkr.\n";
+        ss << "\n";
+        
+        ss << "# Regenerate CMakeLists.txt file when necessary\n";
+        ss << "include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)\n";
+        ss << "if(CMKR_INCLUDE_RESULT)\n";
+        ss << "\tcmkr()\n";
+        ss << "endif()\n";
+        ss << "\n";
 
         if (!cmake.cmake_version.empty()) {
             ss << "cmake_minimum_required(VERSION " << cmake.cmake_version << ")\n\n";

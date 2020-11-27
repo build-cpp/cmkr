@@ -5,3 +5,4 @@ compile_commands.json
 temp.*
 .vs
 .cache
+build*/

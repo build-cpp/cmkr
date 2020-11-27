@@ -1,0 +1,13 @@
+# This is a minimal example project used for testing the cmkr bootstrapping process
+
+[cmake]
+minimum = "3.15"
+
+[project]
+name = "example"
+version = "0.1.0"
+
+[[bin]]
+name = "example"
+type = "exe"
+sources = ["src/example.cpp"]

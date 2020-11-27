@@ -52,6 +52,7 @@ target_link_libraries(cmkr PUBLIC
 install(
 	TARGETS cmkr 
 	DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+	COMPONENT cmkr
 	)
 
 
