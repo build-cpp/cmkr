@@ -21,7 +21,7 @@ std::vector<std::string> to_string_vec(
 
 CMake::CMake(const std::string &path, bool build) {
     if (!fs::exists(fs::path(path) / "cmake.toml")) {
-        throw std::runtime_error("No cmake.toml was found!");
+        throw std::runtime_error("[cmkr] error: No cmake.toml was found!");
     }
     const auto toml = toml::parse((fs::path(path) / "cmake.toml").string());
     if (build) {

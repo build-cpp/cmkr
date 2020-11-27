@@ -33,7 +33,7 @@ std::string format(const char *fmt, Args... args) {
     char *buf = new char[sz];
     int ret = snprintf(buf, sz, fmt, args...);
     if (ret != sz - 1)
-        throw std::runtime_error("Error formatting string!");
+        throw std::runtime_error("[cmkr] error: Error formatting string!");
     std::string temp(buf, buf + sz - 1);
     delete[] buf;
     return temp;
@@ -80,7 +80,7 @@ int generate_project(const char *str) {
         dest = "include/" + dir_name;
     } else {
         throw std::runtime_error(
-            "Unknown project type. Types are exe, lib, shared, static, interface!");
+            "[cmkr] error: Unknown project type. Types are exe, lib, shared, static, interface!");
     }
 
     const auto tomlbuf = detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str,
@@ -257,7 +257,7 @@ int generate_cmake(const char *path) {
                     add_command = "add_library";
                 } else {
                     throw std::runtime_error(
-                        "Unknown binary type! Supported types are exe, shared and static");
+                        "[cmkr] error: Unknown binary type! Supported types are exe, lib, shared, static, interface");
                 }
 
                 if (!bin.sources.empty()) {
@@ -391,6 +391,8 @@ int generate_cmake(const char *path) {
             if (fs::exists(fs::path(sub) / "cmake.toml"))
                 generate_cmake(sub.c_str());
         }
+    } else {
+        throw std::runtime_error("[cmkr] error: No cmake.toml found!");
     }
     return 0;
 }

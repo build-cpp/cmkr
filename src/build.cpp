@@ -25,7 +25,7 @@ int run(int argc, char **argv) {
 
     if (!fs::exists("CMakeLists.txt"))
         if (gen::generate_cmake("."))
-            throw std::runtime_error("CMake generation failure!");
+            throw std::runtime_error("[cmkr] error: CMake generation failure!");
 
     ss << "cmake -S. -B" << cmake.bin_dir << " ";
 
