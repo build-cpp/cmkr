@@ -4,7 +4,7 @@ cmkr, pronounced "cmaker", is A CMakeLists.txt generator from TOML.
 
 
 ## Building
-cmkr requires a C++17 compiler, cmake >= 3.15.
+cmkr requires a C++11 compiler, cmake >= 3.15.
 ```
 git clone https://github.com/moalyousef/cmkr
 cd cmkr
