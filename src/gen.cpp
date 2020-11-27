@@ -111,9 +111,9 @@ int generate_cmake(const char *path) {
         std::stringstream ss;
         ss << "# This file was generated automatically by cmkr.\n";
         ss << "\n";
-        
+
         ss << "# Regenerate CMakeLists.txt file when necessary\n";
-        ss << "include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)\n";
+        ss << "include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)\n\n";
         ss << "if(CMKR_INCLUDE_RESULT)\n";
         ss << "\tcmkr()\n";
         ss << "endif()\n";
@@ -225,14 +225,19 @@ int generate_cmake(const char *path) {
                 } else {
                     set_val = std::get<bool>(set.val) ? "ON" : "OFF";
                 }
-                ss << "set(" << set.name << " " << set_val;;
+                ss << "set(" << set.name << " " << set_val;
+                ;
                 if (set.cache) {
                     std::string typ;
-                    if (set.val.index() == 1) typ = "STRING"; else typ = "BOOL";
-                    ss << " CACHE " << typ << " \"" << set.comment <<  "\"";
-                    if (set.force) ss << " FORCE";
+                    if (set.val.index() == 1)
+                        typ = "STRING";
+                    else
+                        typ = "BOOL";
+                    ss << " CACHE " << typ << " \"" << set.comment << "\"";
+                    if (set.force)
+                        ss << " FORCE";
                 }
-                   ss << ")\n\n";
+                ss << ")\n\n";
             }
         }
 
@@ -364,7 +369,11 @@ int generate_cmake(const char *path) {
                         ss << conf << " ";
                     }
                 }
-                ss << "\n\tDESTINATION " << inst.destination << "\n\t)\n\n";
+                ss << "\n\tDESTINATION " << inst.destination << "\n\t";
+                if (!inst.targets.empty()) 
+                    ss << "COMPONENT " << inst.targets[0] << "\n\t)\n\n";
+                else
+                   ss << "\n\t)\n\n";
             }
         }
 
