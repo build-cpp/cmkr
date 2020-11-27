@@ -35,18 +35,19 @@ minimum = "3.15"
 
 [project]
 name = "cmkr"
-version = "0.1.2"
+version = "0.1.3"
 
 [fetch-content]
 toml11 = { git = "https://github.com/ToruNiina/toml11" }
+filesystem = { git = "https://github.com/gulrak/filesystem" }
 
 [[bin]]
 name = "cmkrlib"
 type = "static"
 sources = ["src/cmake.cpp", "src/gen.cpp", "src/help.cpp", "src/build.cpp", "src/error.cpp"]
 include-dirs = ["include"]
-features = ["cxx_std_17"]
-link-libs = ["toml11::toml11"]
+features = ["cxx_std_11"]
+link-libs = ["toml11::toml11", "ghc_filesystem"]
 
 [[bin]]
 name = "cmkr"

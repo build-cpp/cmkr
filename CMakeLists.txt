@@ -11,7 +11,7 @@ cmake_minimum_required(VERSION 3.15)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(cmkr_PROJECT_VERSION 0.1.2)
+set(cmkr_PROJECT_VERSION 0.1.3)
 project(cmkr VERSION ${cmkr_PROJECT_VERSION})
 
 include(FetchContent)

@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.1.3 - 2020-11-27
+- Support building with C++11.
+- @mrexodia implemented CMake integration and bootstrapping.
+- Add dependency on ghc_filesystem which is fetched automatically using FetchContent.
+
 ## 0.1.2 - 2020-11-20
 - Add support for target properties.
 - Add installs.
