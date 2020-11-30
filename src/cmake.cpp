@@ -20,7 +20,7 @@ std::vector<std::string> to_string_vec(
 
 CMake::CMake(const std::string &path, bool build) {
     if (!fs::exists(fs::path(path) / "cmake.toml")) {
-        throw std::runtime_error("[cmkr] error: No cmake.toml was found!");
+        throw std::runtime_error("No cmake.toml was found!");
     }
     const auto toml = toml::parse((fs::path(path) / "cmake.toml").string());
     if (build) {
@@ -28,7 +28,11 @@ CMake::CMake(const std::string &path, bool build) {
             const auto &cmake = toml::find(toml, "cmake");
 
             if (cmake.contains("bin-dir")) {
-                bin_dir = toml::find(cmake, "bin-dir").as_string();
+                throw std::runtime_error("bin-dir has been renamed to build-dir");
+            }
+
+            if (cmake.contains("build-dir")) {
+                build_dir = toml::find(cmake, "build-dir").as_string();
             }
 
             if (cmake.contains("generator")) {
@@ -160,42 +164,61 @@ CMake::CMake(const std::string &path, bool build) {
         }
 
         if (toml.contains("bin")) {
-            const auto &bins = toml::find(toml, "bin").as_array();
+            throw std::runtime_error("[[bin]] has been renamed to [[target]]");
+        }
 
-            for (const auto &bin : bins) {
-                Bin b;
-                b.name = toml::find(bin, "name").as_string();
-                b.type = toml::find(bin, "type").as_string();
+        if (toml.contains("target")) {
+            const auto &ts = toml::find(toml, "target").as_array();
 
-                b.sources = detail::to_string_vec(toml::find(bin, "sources").as_array());
+            for (const auto &t : ts) {
+                Target target;
+                target.name = toml::find(t, "name").as_string();
+                target.type = toml::find(t, "type").as_string();
 
-                if (bin.contains("include-dirs")) {
-                    b.include_dirs =
-                        detail::to_string_vec(toml::find(bin, "include-dirs").as_array());
+                target.sources = detail::to_string_vec(toml::find(t, "sources").as_array());
+
+#define renamed(from, to)                                                                          \
+    if (t.contains(from)) {                                                                        \
+        throw std::runtime_error(from "has been renamed to " to);                                  \
+    }
+
+                renamed("include-dirs", "include-directories");
+                renamed("link-libs", "link-libraries");
+                renamed("defines", "compile-definitions");
+                renamed("features", "compile-features");
+
+#undef renamed
+
+                if (t.contains("include-directories")) {
+                    target.include_directories =
+                        detail::to_string_vec(toml::find(t, "include-directories").as_array());
                 }
 
-                if (bin.contains("link-libs")) {
-                    b.link_libs = detail::to_string_vec(toml::find(bin, "link-libs").as_array());
+                if (t.contains("link-libraries")) {
+                    target.link_libraries =
+                        detail::to_string_vec(toml::find(t, "link-libraries").as_array());
                 }
 
-                if (bin.contains("features")) {
-                    b.features = detail::to_string_vec(toml::find(bin, "features").as_array());
+                if (t.contains("compile-features")) {
+                    target.compile_features =
+                        detail::to_string_vec(toml::find(t, "compile-features").as_array());
                 }
 
-                if (bin.contains("defines")) {
-                    b.defines = detail::to_string_vec(toml::find(bin, "defines").as_array());
+                if (t.contains("compile-definitions")) {
+                    target.compile_definitions =
+                        detail::to_string_vec(toml::find(t, "compile-definitions").as_array());
                 }
 
-                if (bin.contains("alias")) {
-                    b.alias = toml::find(bin, "alias").as_string();
+                if (t.contains("alias")) {
+                    target.alias = toml::find(t, "alias").as_string();
                 }
 
-                if (bin.contains("properties")) {
+                if (t.contains("properties")) {
                     using prop_map = std::map<std::string, std::string>;
-                    b.properties = toml::find<prop_map>(bin, "properties");
+                    target.properties = toml::find<prop_map>(t, "properties");
                 }
 
-                binaries.push_back(b);
+                binaries.push_back(target);
             }
         }
 

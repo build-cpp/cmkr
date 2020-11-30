@@ -10,19 +10,19 @@ toml11 = { git = "https://github.com/ToruNiina/toml11" }
 filesystem = { git = "https://github.com/gulrak/filesystem" }
 mpark_variant = { url = "https://github.com/mpark/variant/archive/v1.4.0.tar.gz" }
 
-[[bin]]
+[[target]]
 name = "cmkrlib"
 type = "static"
 sources = ["src/cmake.cpp", "src/gen.cpp", "src/help.cpp", "src/build.cpp", "src/error.cpp"]
-include-dirs = ["include"]
-features = ["cxx_std_11"]
-link-libs = ["toml11::toml11", "ghc_filesystem", "mpark_variant"]
+include-directories = ["include"]
+compile-features = ["cxx_std_11"]
+link-libraries = ["toml11::toml11", "ghc_filesystem", "mpark_variant"]
 
-[[bin]]
+[[target]]
 name = "cmkr"
-type = "exe"
+type = "executable"
 sources = ["src/main.cpp", "src/args.cpp"]
-link-libs = ["cmkrlib"]
+link-libraries = ["cmkrlib"]
 
 [[install]]
 targets = ["cmkr"]

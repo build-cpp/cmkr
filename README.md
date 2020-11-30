@@ -22,9 +22,9 @@ minimum = "3.15"
 name = "app"
 version = "0.1.0"
 
-[[bin]]
+[[target]]
 name = "app"
-type = "exe"
+type = "executable"
 sources = ["src/main.cpp"]
 ```
 
@@ -42,19 +42,19 @@ toml11 = { git = "https://github.com/ToruNiina/toml11" }
 filesystem = { git = "https://github.com/gulrak/filesystem" }
 mpark_variant = { url = "https://github.com/mpark/variant/archive/v1.4.0.tar.gz" }
 
-[[bin]]
+[[target]]
 name = "cmkrlib"
 type = "static"
 sources = ["src/cmake.cpp", "src/gen.cpp", "src/help.cpp", "src/build.cpp", "src/error.cpp"]
-include-dirs = ["include"]
-features = ["cxx_std_11"]
-link-libs = ["toml11::toml11", "ghc_filesystem"]
+include-directories = ["include"]
+compile-features = ["cxx_std_11"]
+link-libraries = ["toml11::toml11", "ghc_filesystem"]
 
-[[bin]]
+[[target]]
 name = "cmkr"
-type = "exe"
+type = "executable"
 sources = ["src/main.cpp", "src/args.cpp"]
-link-libs = ["cmkrlib"]
+link-libraries = ["cmkrlib"]
 
 [[install]]
 targets = ["cmkr"]
@@ -66,7 +66,7 @@ Currently supported fields:
 [cmake] # required for top-level project
 minimum = "3.15" # required
 subdirs = [] # optional
-bin-dir = "bin" # optional
+build-dir = "build" # optional
 cpp-flags = [] # optional
 c-flags = [] # optional
 link-flags = [] # optional
@@ -95,15 +95,15 @@ toml11 = { git = "https://github.com/ToruNiina/toml11", tag = "v3.5.0" } # optio
 APP_BUILD_STUFF = false # optional
 APP_OTHER_STUFF = { comment = "does other stuff", value = false } # optional
 
-[[bin]] # required, can define several binaries
+[[target]] # required, can define several binaries
 name = "app" # required
-type = "exe" # required (exe || lib || shared || static || interface)
+type = "executable" # required (executable || library || shared || static || interface)
 sources = ["src/*.cpp"] # required, supports globbing
-include-dirs = ["include"] # optional
+include-directories = ["include"] # optional
 alias = "" # optional
-features = [] # optional
-defines = [] # optional
-link-libs = [] # optional 
+compile-features = [] # optional
+compile-definitions = [] # optional
+link-libraries = [] # optional 
 properties = { PROPERTY1 = "property1", ... } # optional
 
 [[test]] # optional, can define several
@@ -123,13 +123,13 @@ The cmkr executable can be run from the command-line:
 ```
 Usage: cmkr [arguments]
 arguments:
-    init     [exe|lib|shared|static|interface]    Starts a new project in the same directory.
-    gen                                           Generates CMakeLists.txt file.
-    build    <extra cmake args>                   Run cmake and build.
-    install                                       Run cmake --install. Needs admin privileges.
-    clean                                         Clean the build directory.
-    help                                          Show help.
-    version                                       Current cmkr version.
+    init    [executable|library|shared|static|interface] Starts a new project in the same directory.
+    gen                                                  Generates CMakeLists.txt file.
+    build   <extra cmake args>                           Run cmake and build.
+    install                                              Run cmake --install. Needs admin privileges.
+    clean                                                Clean the build directory.
+    help                                                 Show help.
+    version                                              Current cmkr version.
 ```
 The build command invokes cmake and the default build-system on your platform (unless a generator is specified), it also accepts extra cmake build arguments:
 ```
@@ -138,20 +138,20 @@ cmkr build --config Release
 
 ## Binary types
 
-### exe
-Executable binary.
+### executable
+Executable binary. Equivalent to [add_executable(name)](https://cmake.org/cmake/help/latest/command/add_executable.html).
 
-### lib
-Library, can be static or shared depending on the BUILD_SHARED_LIBS variable.
+### library
+Library, can be static or shared depending on the BUILD_SHARED_LIBS variable. Equivalent to [add_library()](https://cmake.org/cmake/help/latest/command/add_library.html).
 
 ### static
-Static library/archive.
+Static library/archive. Equivalent to [add_library(name STATIC)](https://cmake.org/cmake/help/latest/command/add_library.html).
 
 ### shared
-Shared/dynamic library.
+Shared/dynamic library. Equivalent to [add_library(name SHARED)](https://cmake.org/cmake/help/latest/command/add_library.html).
 
 ### interface
-Header-only library.
+Header-only library. Equivalent to [add_library(name INTERFACE)](https://cmake.org/cmake/help/latest/command/add_library.html).
 
 ## Roadmap
 - Support more cmake fields.

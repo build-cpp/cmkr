@@ -30,14 +30,14 @@ struct Package {
     std::vector<std::string> components;
 };
 
-struct Bin {
+struct Target {
     std::string name;
     std::string type;
     std::vector<std::string> sources;
-    std::vector<std::string> include_dirs;
-    std::vector<std::string> features;
-    std::vector<std::string> defines;
-    std::vector<std::string> link_libs;
+    std::vector<std::string> include_directories;
+    std::vector<std::string> compile_features;
+    std::vector<std::string> compile_definitions;
+    std::vector<std::string> link_libraries;
     std::string alias;
     std::map<std::string, std::string> properties;
 };
@@ -57,8 +57,8 @@ struct Install {
 };
 
 struct CMake {
-    std::string cmake_version = "3.15";
-    std::string bin_dir = "bin";
+    std::string cmake_version;
+    std::string build_dir = "build";
     std::string generator;
     std::string config;
     std::vector<std::string> subdirs;
@@ -73,7 +73,7 @@ struct CMake {
     std::vector<Option> options;
     std::vector<Package> packages;
     std::map<std::string, std::map<std::string, std::string>> contents;
-    std::vector<Bin> binaries;
+    std::vector<Target> binaries;
     std::vector<Test> tests;
     std::vector<Install> installs;
     CMake(const std::string &path, bool build);

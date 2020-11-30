@@ -14,7 +14,7 @@ const char *cmake_toml = R"lit(
 [cmake]
 minimum = "3.15"
 # subdirs = []
-# bin-dir = ""
+# build-dir = ""
 # cpp-flags = []
 # c-flags = []
 # link-flags = []
@@ -31,15 +31,15 @@ version = "0.1.0"
 
 # [options]
 
-[[bin]]
+[[target]]
 name = "%s"
 type = "%s"
 sources = ["src/*.cpp"]
-include-dirs = ["include"]
+include-directories = ["include"]
 # alias = ""
-# features = []
-# defines = []
-# link-libs = []
+# compile-features = []
+# compile-definitions = []
+# link-libraries = []
 
 [[install]]
 %s = ["%s"]

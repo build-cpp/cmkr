@@ -50,23 +50,19 @@ else()
         if(NOT EXISTS ${CMKR_EXECUTABLE})
             message(FATAL_ERROR "[cmkr] Failed to bootstrap '${CMKR_EXECUTABLE}'")
         endif()
-        cmkr_exec(${CMKR_EXECUTABLE} version OUTPUT_VARIABLE CMKR_VERSION)
-        string(STRIP ${CMKR_VERSION} CMKR_VERSION)
+        cmkr_exec(${CMKR_EXECUTABLE} version)
         message(STATUS "[cmkr] Bootstrapped ${CMKR_EXECUTABLE}")
     else()
         message(VERBOSE "[cmkr] Found cmkr: '${CMKR_EXECUTABLE}'")
     endif()
 endif()
 execute_process(COMMAND ${CMKR_EXECUTABLE} version
-    OUTPUT_VARIABLE CMKR_VERSION
     RESULT_VARIABLE CMKR_EXEC_RESULT
 )
 if(NOT CMKR_EXEC_RESULT EQUAL 0)
     unset(CMKR_EXECUTABLE CACHE)
     message(FATAL_ERROR "[cmkr] Failed to get version, try clearing the cache and rebuilding")
 endif()
-string(STRIP ${CMKR_VERSION} CMKR_VERSION)
-message(STATUS "[cmkr] Using ${CMKR_VERSION}")
 
 # This is the macro that contains black magic
 macro(cmkr)
@@ -83,12 +79,9 @@ macro(cmkr)
         set_source_files_properties(${CMAKE_CURRENT_LIST_FILE} PROPERTIES CMKR_INCLUDE_GUARD TRUE)
 
         # Generate CMakeLists.txt
-        cmkr_exec(${CMKR_EXECUTABLE} gen -y
+        cmkr_exec(${CMKR_EXECUTABLE} gen
             WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-            OUTPUT_VARIABLE CMKR_GEN_OUTPUT
         )
-        string(STRIP ${CMKR_GEN_OUTPUT} CMKR_GEN_OUTPUT)
-        message(STATUS "[cmkr] ${CMKR_GEN_OUTPUT}")
 
         # Copy the now-generated CMakeLists.txt to CMakerLists.txt
         # This is done because you cannot include() a file you are currently in

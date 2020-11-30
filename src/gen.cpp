@@ -32,7 +32,7 @@ std::string format(const char *fmt, Args... args) {
     char *buf = new char[sz];
     int ret = snprintf(buf, sz, fmt, args...);
     if (ret != sz - 1)
-        throw std::runtime_error("[cmkr] error: Error formatting string!");
+        throw std::runtime_error("Error formatting string!");
     std::string temp(buf, buf + sz - 1);
     delete[] buf;
     return temp;
@@ -51,7 +51,7 @@ static std::vector<std::string> expand_cmake_path(const fs::path &p) {
         temp.push_back(p.string());
     }
     // Normalize all paths to work with CMake (it needs a / on Windows as well)
-    for(auto& path : temp) {
+    for (auto &path : temp) {
         std::replace(path.begin(), path.end(), '\\', '/');
     }
     return temp;
@@ -67,12 +67,12 @@ int generate_project(const char *str) {
     std::string installed;
     std::string target;
     std::string dest;
-    if (!strcmp(str, "exe")) {
+    if (!strcmp(str, "executable")) {
         mainbuf = detail::format(hello_world, "main");
         installed = "targets";
         target = dir_name;
         dest = "bin";
-    } else if (!strcmp(str, "static") || !strcmp(str, "shared") || !strcmp(str, "lib")) {
+    } else if (!strcmp(str, "static") || !strcmp(str, "shared") || !strcmp(str, "library")) {
         mainbuf = detail::format(hello_world, "test");
         installed = "targets";
         target = dir_name;
@@ -83,7 +83,8 @@ int generate_project(const char *str) {
         dest = "include/" + dir_name;
     } else {
         throw std::runtime_error(
-            "[cmkr] error: Unknown project type. Types are exe, lib, shared, static, interface!");
+            "Unknown project type " + std::string(str) +
+            "! Supported types are: executable, library, shared, static, interface");
     }
 
     const auto tomlbuf = detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str,
@@ -122,11 +123,11 @@ int generate_cmake(const char *path) {
         ss << "endif()\n";
         ss << "\n";
 
-        if (!cmake.cmake_version.empty()) {
-            ss << "cmake_minimum_required(VERSION " << cmake.cmake_version << ")\n\n";
+        ss << "cmake_minimum_required(VERSION " << cmake.cmake_version << ")\n";
+        ss << "\n";
 
-            ss << "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n";
-        }
+        ss << "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
+        ss << "\n";
 
         if (!cmake.cppflags.empty()) {
             ss << "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} \"";
@@ -208,7 +209,7 @@ int generate_cmake(const char *path) {
                     }
                     ss << "\t" << first_arg << " " << arg.second << "\n";
                 }
-                ss << "\t)\n\n"
+                ss << ")\n\n"
                    << "FetchContent_MakeAvailable(" << dep.first << ")\n\n";
             }
         }
@@ -248,19 +249,20 @@ int generate_cmake(const char *path) {
             for (const auto &bin : cmake.binaries) {
                 std::string bin_type;
                 std::string add_command;
-                if (bin.type == "exe") {
+                if (bin.type == "executable") {
                     bin_type = "";
                     add_command = "add_executable";
                 } else if (bin.type == "shared" || bin.type == "static" ||
                            bin.type == "interface") {
                     bin_type = detail::to_upper(bin.type);
                     add_command = "add_library";
-                } else if (bin.type == "lib") {
+                } else if (bin.type == "library") {
                     bin_type = "";
                     add_command = "add_library";
                 } else {
-                    throw std::runtime_error("[cmkr] error: Unknown binary type! Supported types "
-                                             "are exe, lib, shared, static, interface");
+                    throw std::runtime_error(
+                        "Unknown binary type " + bin.type +
+                        "! Supported types are: executable, library, shared, static, interface");
                 }
 
                 if (!bin.sources.empty()) {
@@ -272,10 +274,12 @@ int generate_cmake(const char *path) {
                             ss << "\t" << f << "\n";
                         }
                     }
-                    ss << "\t)\n\n";
+                    ss << ")\n\n";
                 }
 
-                ss << add_command << "(" << bin.name << " " << bin_type;
+                ss << add_command << "(" << bin.name;
+                if (!bin_type.empty())
+                    ss << " " << bin_type;
 
                 if (!bin.sources.empty()) {
                     ss << " ${" << detail::to_upper(bin.name) << "_SOURCES})\n\n";
@@ -287,33 +291,33 @@ int generate_cmake(const char *path) {
                     ss << "add_library(" << bin.alias << " ALIAS " << bin.name << ")\n\n";
                 }
 
-                if (!bin.include_dirs.empty()) {
+                if (!bin.include_directories.empty()) {
                     ss << "target_include_directories(" << bin.name << " PUBLIC\n\t";
-                    for (const auto &inc : bin.include_dirs) {
+                    for (const auto &inc : bin.include_directories) {
                         ss << fs::path(inc).string() << "\n\t";
                     }
                     ss << ")\n\n";
                 }
 
-                if (!bin.link_libs.empty()) {
+                if (!bin.link_libraries.empty()) {
                     ss << "target_link_libraries(" << bin.name << " PUBLIC\n\t";
-                    for (const auto &l : bin.link_libs) {
+                    for (const auto &l : bin.link_libraries) {
                         ss << l << "\n\t";
                     }
                     ss << ")\n\n";
                 }
 
-                if (!bin.features.empty()) {
+                if (!bin.compile_features.empty()) {
                     ss << "target_compile_features(" << bin.name << " PUBLIC\n\t";
-                    for (const auto &feat : bin.features) {
+                    for (const auto &feat : bin.compile_features) {
                         ss << feat << "\n\t";
                     }
                     ss << ")\n\n";
                 }
 
-                if (!bin.defines.empty()) {
+                if (!bin.compile_definitions.empty()) {
                     ss << "target_add_definitions(" << bin.name << " PUBLIC\n\t";
-                    for (const auto &def : bin.defines) {
+                    for (const auto &def : bin.compile_definitions) {
                         ss << def << "\n\t";
                     }
                     ss << ")\n\n";
@@ -324,7 +328,7 @@ int generate_cmake(const char *path) {
                     for (const auto &prop : bin.properties) {
                         ss << "\t" << prop.first << " " << prop.second << "\n";
                     }
-                    ss << "\t)\n\n";
+                    ss << ")\n\n";
                 }
             }
         }
@@ -374,16 +378,16 @@ int generate_cmake(const char *path) {
                 }
                 ss << "\n\tDESTINATION " << inst.destination << "\n\t";
                 if (!inst.targets.empty())
-                    ss << "COMPONENT " << inst.targets[0] << "\n\t)\n\n";
+                    ss << "COMPONENT " << inst.targets[0] << "\n)\n\n";
                 else
-                    ss << "\n\t)\n\n";
+                    ss << "\n)\n\n";
             }
         }
 
         ss << "\n\n";
         // printf("%s\n", ss.str().c_str());
 
-        std::ofstream ofs(fs::path(path) / "CMakeLists.txt");
+        std::ofstream ofs(fs::path(path) / "CMakeLists.txt", std::ios_base::binary);
         if (ofs.is_open()) {
             ofs << ss.rdbuf();
         }
@@ -395,7 +399,7 @@ int generate_cmake(const char *path) {
                 generate_cmake(sub.c_str());
         }
     } else {
-        throw std::runtime_error("[cmkr] error: No cmake.toml found!");
+        throw std::runtime_error("No cmake.toml found!");
     }
     return 0;
 }

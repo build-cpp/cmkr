@@ -18,23 +18,10 @@ const char *handle_args(int argc, char **argv) {
         args.push_back(argv[i]);
 
     if (args.size() < 2)
-        return "Please provide command line arguments!";
+        throw std::runtime_error(cmkr::help::message());
     std::string main_arg = args[1];
     if (main_arg == "gen") {
-        bool cont = false;
-        if (args.size() > 2 && args[2] == "-y")
-            cont = true;
         auto current_path = fs::current_path();
-        if (fs::exists(current_path / "CMakeLists.txt") && cont == false) {
-            std::cout
-                << "A CMakeLists.txt file already exists in the current directory.\nWould you "
-                   "like to overwrite it?[y/n]"
-                << std::endl;
-            std::string resp;
-            std::cin >> resp;
-            if (resp != "y")
-                return "CMake generation aborted!";
-        }
         auto ret = cmkr::gen::generate_cmake(current_path.string().c_str());
         if (ret)
             return "CMake generation error!";
@@ -44,10 +31,10 @@ const char *handle_args(int argc, char **argv) {
     } else if (main_arg == "version") {
         return cmkr::help::version();
     } else if (main_arg == "init") {
-        std::string typ = "exe";
+        std::string type = "executable";
         if (args.size() > 2)
-            typ = args[2];
-        auto ret = cmkr::gen::generate_project(typ.c_str());
+            type = args[2];
+        auto ret = cmkr::gen::generate_project(type.c_str());
         if (ret)
             return "Initialization failure!";
         return "Directory initialized!";
@@ -67,7 +54,7 @@ const char *handle_args(int argc, char **argv) {
             return "CMake clean error!";
         return "Cleaned build directory!";
     } else {
-        return "Unknown argument!";
+        throw std::runtime_error(cmkr::help::message());
     }
 }
 } // namespace args
