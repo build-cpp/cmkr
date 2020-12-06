@@ -40,7 +40,7 @@ version = "0.1.3"
 [fetch-content]
 toml11 = { git = "https://github.com/ToruNiina/toml11" }
 filesystem = { git = "https://github.com/gulrak/filesystem" }
-mpark_variant = { git = "https://github.com/mpark/variant", tag = "v1.4.0" }
+mpark_variant = { url = "https://github.com/mpark/variant/archive/v1.4.0.tar.gz" }
 
 [[bin]]
 name = "cmkrlib"

@@ -25,8 +25,7 @@ FetchContent_MakeAvailable(filesystem)
 
 FetchContent_Declare(
 	mpark_variant
-	GIT_REPOSITORY https://github.com/mpark/variant
-	GIT_TAG v1.4.0
+	URL https://github.com/mpark/variant/archive/v1.4.0.tar.gz
 	)
 
 FetchContent_MakeAvailable(mpark_variant)
