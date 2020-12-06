@@ -16,4 +16,4 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build
-      run: cmake -S. -Bbin && cmake --build bin --parallel --config $BUILD_TYPE
+      run: cmake -S. -Bbin -DCMAKE_BUILD_TYPE=$BUILD_TYPE && cmake --build bin --parallel --config $BUILD_TYPE
