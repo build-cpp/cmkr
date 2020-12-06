@@ -224,9 +224,9 @@ int generate_cmake(const char *path) {
             for (const auto &set : cmake.settings) {
                 std::string set_val;
                 if (set.val.index() == 1) {
-                    set_val = set.val.second;
+                    set_val = mpark::get<1>(set.val);
                 } else {
-                    set_val = set.val.first ? "ON" : "OFF";
+                    set_val = mpark::get<0>(set.val) ? "ON" : "OFF";
                 }
                 ss << "set(" << set.name << " " << set_val;
                 ;
@@ -290,7 +290,7 @@ int generate_cmake(const char *path) {
                 if (!bin.include_dirs.empty()) {
                     ss << "target_include_directories(" << bin.name << " PUBLIC\n\t";
                     for (const auto &inc : bin.include_dirs) {
-                        ss << fs::path(inc) << "\n\t";
+                        ss << fs::path(inc).string() << "\n\t";
                     }
                     ss << ")\n\n";
                 }

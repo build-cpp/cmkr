@@ -24,6 +24,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(filesystem)
 
 FetchContent_Declare(
+	mpark_variant
+	GIT_REPOSITORY https://github.com/mpark/variant
+	GIT_TAG v1.4.0
+	)
+
+FetchContent_MakeAvailable(mpark_variant)
+
+FetchContent_Declare(
 	toml11
 	GIT_REPOSITORY https://github.com/ToruNiina/toml11
 	)
@@ -31,22 +39,23 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(toml11)
 
 set(CMKRLIB_SOURCES
-	"src/cmake.cpp"
-	"src/gen.cpp"
-	"src/help.cpp"
-	"src/build.cpp"
-	"src/error.cpp"
+	src/cmake.cpp
+	src/gen.cpp
+	src/help.cpp
+	src/build.cpp
+	src/error.cpp
 	)
 
 add_library(cmkrlib STATIC ${CMKRLIB_SOURCES})
 
 target_include_directories(cmkrlib PUBLIC
-	"include"
+	include
 	)
 
 target_link_libraries(cmkrlib PUBLIC
 	toml11::toml11
 	ghc_filesystem
+	mpark_variant
 	)
 
 target_compile_features(cmkrlib PUBLIC
@@ -54,8 +63,8 @@ target_compile_features(cmkrlib PUBLIC
 	)
 
 set(CMKR_SOURCES
-	"src/main.cpp"
-	"src/args.cpp"
+	src/main.cpp
+	src/args.cpp
 	)
 
 add_executable(cmkr  ${CMKR_SOURCES})

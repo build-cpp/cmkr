@@ -4,43 +4,15 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <mpark/variant.hpp>
 
 namespace cmkr {
 namespace cmake {
 
-namespace detail {
-template <typename T, typename O>
-struct Variant {
-    T first;
-    O second;
-    Variant() {}
-    Variant(const T &t) : first(t), tag(0) {}
-    Variant(const O &o) : second(o), tag(1) {}
-    Variant &operator=(const T &t) {
-        tag = 0;
-        first = t;
-        return *this;
-    }
-    Variant &operator=(const O &o) {
-        tag = 1;
-        second = o;
-        return *this;
-    }
-    char index() const {
-        if (tag == -1)
-            throw std::runtime_error("[cmkr] error: Internal error!");
-        return tag;
-    }
-
-  private:
-    char tag = -1;
-};
-} // namespace detail
-
 struct Setting {
     std::string name;
     std::string comment;
-    detail::Variant<bool, std::string> val;
+    mpark::variant<bool, std::string> val;
     bool cache = false;
     bool force = false;
 };

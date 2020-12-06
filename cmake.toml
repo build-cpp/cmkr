@@ -8,6 +8,7 @@ version = "0.1.3"
 [fetch-content]
 toml11 = { git = "https://github.com/ToruNiina/toml11" }
 filesystem = { git = "https://github.com/gulrak/filesystem" }
+mpark_variant = { git = "https://github.com/mpark/variant", tag = "v1.4.0" }
 
 [[bin]]
 name = "cmkrlib"
@@ -15,7 +16,7 @@ type = "static"
 sources = ["src/cmake.cpp", "src/gen.cpp", "src/help.cpp", "src/build.cpp", "src/error.cpp"]
 include-dirs = ["include"]
 features = ["cxx_std_11"]
-link-libs = ["toml11::toml11", "ghc_filesystem"]
+link-libs = ["toml11::toml11", "ghc_filesystem", "mpark_variant"]
 
 [[bin]]
 name = "cmkr"
