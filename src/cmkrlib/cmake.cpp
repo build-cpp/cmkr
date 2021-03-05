@@ -218,7 +218,7 @@ CMake::CMake(const std::string &path, bool build) {
                     target.properties = toml::find<prop_map>(t, "properties");
                 }
 
-                binaries.push_back(target);
+                targets.push_back(target);
             }
         }
 

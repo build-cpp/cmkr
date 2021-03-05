@@ -1,16 +1,15 @@
 #pragma once
 
-const char *hello_world = R"lit(
+static const char *hello_world = R"lit(
 #include <iostream>
 
 int %s() {
     std::cout << "Hello World!\n";
     return 0;
 }
+)lit" + 1; // skip initial newline
 
-)lit";
-
-const char *cmake_toml = R"lit(
+static const char *cmake_toml = R"lit(
 [cmake]
 minimum = "3.15"
 # subdirs = []
@@ -44,5 +43,4 @@ include-directories = ["include"]
 [[install]]
 %s = ["%s"]
 destination = "${CMAKE_INSTALL_PREFIX}/%s"
-
-)lit";
+)lit" + 1; // skip initial newline

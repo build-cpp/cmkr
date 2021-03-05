@@ -40,14 +40,19 @@ std::string format(const char *fmt, Args... args) {
 
 static std::vector<std::string> expand_cmake_path(const fs::path &p) {
     std::vector<std::string> temp;
-    if (p.filename().stem().string() == "*") {
-        auto ext = p.extension();
+    auto stem = p.filename().stem().string();
+    auto ext = p.extension();
+    if (stem == "*") {
+        for (const auto &f : fs::directory_iterator(
+                 p.parent_path(), fs::directory_options::follow_directory_symlink)) {
+            if (!f.is_directory() && f.path().extension() == ext) {
+                temp.push_back(f.path().string());
+            }
+        }
+    } else if (stem == "**") {
         for (const auto &f : fs::recursive_directory_iterator(
                  p.parent_path(), fs::directory_options::follow_directory_symlink)) {
-            if (f.is_directory()) {
-                continue;
-            }
-            if (f.path().extension() == ext) {
+            if (!f.is_directory() && f.path().extension() == ext) {
                 temp.push_back(f.path().string());
             }
         }
@@ -193,6 +198,7 @@ int generate_cmake(const char *path) {
         if (!cmake.contents.empty()) {
             ss << "include(FetchContent)\n\n";
             for (const auto &dep : cmake.contents) {
+                ss << "message(STATUS \"Fetching " << dep.first << "...\")\n";
                 ss << "FetchContent_Declare(\n\t" << dep.first << "\n";
                 for (const auto &arg : dep.second) {
                     std::string first_arg = arg.first;
@@ -213,7 +219,7 @@ int generate_cmake(const char *path) {
                     }
                     ss << "\t" << first_arg << " " << arg.second << "\n";
                 }
-                ss << ")\n\n"
+                ss << ")\n"
                    << "FetchContent_MakeAvailable(" << dep.first << ")\n\n";
             }
         }
@@ -249,87 +255,98 @@ int generate_cmake(const char *path) {
             }
         }
 
-        if (!cmake.binaries.empty()) {
-            for (const auto &bin : cmake.binaries) {
-                std::string bin_type;
+        if (!cmake.targets.empty()) {
+            for (const auto &target : cmake.targets) {
                 std::string add_command;
-                if (bin.type == "executable") {
-                    bin_type = "";
+                std::string target_type;
+                if (target.type == "executable") {
                     add_command = "add_executable";
-                } else if (bin.type == "shared" || bin.type == "static" ||
-                           bin.type == "interface") {
-                    bin_type = detail::to_upper(bin.type);
+                    target_type = "";
+                } else if (target.type == "shared" || target.type == "static" ||
+                           target.type == "interface") {
                     add_command = "add_library";
-                } else if (bin.type == "library") {
-                    bin_type = "";
+                    target_type = detail::to_upper(target.type);
+                } else if (target.type == "library") {
                     add_command = "add_library";
+                    target_type = "";
                 } else {
                     throw std::runtime_error(
-                        "Unknown binary type " + bin.type +
+                        "Unknown binary type " + target.type +
                         "! Supported types are: executable, library, shared, static, interface");
                 }
 
-                if (!bin.sources.empty()) {
-                    ss << "set(" << detail::to_upper(bin.name) << "_SOURCES\n";
-                    for (const auto &src : bin.sources) {
+                if (!target.sources.empty()) {
+                    ss << "set(" << detail::to_upper(target.name) << "_SOURCES\n";
+                    int sources_added = 0;
+                    for (const auto &src : target.sources) {
                         auto path = fs::path(src);
                         auto expanded = detail::expand_cmake_path(path);
                         for (const auto &f : expanded) {
                             ss << "\t" << f << "\n";
+                            sources_added++;
                         }
+                    }
+                    if (sources_added == 0) {
+                        throw std::runtime_error(target.name + " sources wildcard found 0 files");
+                    }
+                    if (target.type != "interface") {
+                        ss << "\tcmake.toml\n";
                     }
                     ss << ")\n\n";
                 }
 
-                ss << add_command << "(" << bin.name;
-                if (!bin_type.empty())
-                    ss << " " << bin_type;
+                ss << add_command << "(" << target.name;
+                if (!target_type.empty()) {
+                    ss << " " << target_type;
+                }
 
-                if (!bin.sources.empty()) {
-                    ss << " ${" << detail::to_upper(bin.name) << "_SOURCES})\n\n";
+                if (!target.sources.empty()) {
+                    ss << " ${" << detail::to_upper(target.name) << "_SOURCES})\n\n";
+                    ss << "source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${"
+                       << detail::to_upper(target.name) << "_SOURCES})\n\n";
                 } else {
                     ss << ")\n\n";
                 }
 
-                if (!bin.alias.empty()) {
-                    ss << "add_library(" << bin.alias << " ALIAS " << bin.name << ")\n\n";
+                if (!target.alias.empty()) {
+                    ss << "add_library(" << target.alias << " ALIAS " << target.name << ")\n\n";
                 }
 
-                if (!bin.include_directories.empty()) {
-                    ss << "target_include_directories(" << bin.name << " PUBLIC\n\t";
-                    for (const auto &inc : bin.include_directories) {
-                        ss << fs::path(inc).string() << "\n\t";
+                if (!target.include_directories.empty()) {
+                    ss << "target_include_directories(" << target.name << " PUBLIC\n";
+                    for (const auto &inc : target.include_directories) {
+                        ss << "\t" << inc << "\n";
                     }
                     ss << ")\n\n";
                 }
 
-                if (!bin.link_libraries.empty()) {
-                    ss << "target_link_libraries(" << bin.name << " PUBLIC\n\t";
-                    for (const auto &l : bin.link_libraries) {
-                        ss << l << "\n\t";
+                if (!target.link_libraries.empty()) {
+                    ss << "target_link_libraries(" << target.name << " PUBLIC\n";
+                    for (const auto &l : target.link_libraries) {
+                        ss << "\t" << l << "\n";
                     }
                     ss << ")\n\n";
                 }
 
-                if (!bin.compile_features.empty()) {
-                    ss << "target_compile_features(" << bin.name << " PUBLIC\n\t";
-                    for (const auto &feat : bin.compile_features) {
-                        ss << feat << "\n\t";
+                if (!target.compile_features.empty()) {
+                    ss << "target_compile_features(" << target.name << " PUBLIC\n";
+                    for (const auto &feat : target.compile_features) {
+                        ss << "\t" << feat << "\n";
                     }
                     ss << ")\n\n";
                 }
 
-                if (!bin.compile_definitions.empty()) {
-                    ss << "target_add_definitions(" << bin.name << " PUBLIC\n\t";
-                    for (const auto &def : bin.compile_definitions) {
-                        ss << def << "\n\t";
+                if (!target.compile_definitions.empty()) {
+                    ss << "target_compile_definitions(" << target.name << " PUBLIC\n";
+                    for (const auto &def : target.compile_definitions) {
+                        ss << "\t" << def << "\n";
                     }
                     ss << ")\n\n";
                 }
 
-                if (!bin.properties.empty()) {
-                    ss << "set_target_properties(" << bin.name << " PROPERTIES\n";
-                    for (const auto &prop : bin.properties) {
+                if (!target.properties.empty()) {
+                    ss << "set_target_properties(" << target.name << " PROPERTIES\n";
+                    for (const auto &prop : target.properties) {
                         ss << "\t" << prop.first << " " << prop.second << "\n";
                     }
                     ss << ")\n\n";
@@ -368,10 +385,17 @@ int generate_cmake(const char *path) {
                 }
                 if (!inst.files.empty()) {
                     ss << "\tFILES ";
+                    int files_added = 0;
                     for (const auto &file : inst.files) {
                         auto path = detail::expand_cmake_path(fs::path(file));
-                        for (const auto &f : path)
+                        for (const auto &f : path) {
                             ss << f << " ";
+                            files_added++;
+                        }
+                    }
+                    if (files_added == 0) {
+                        throw std::runtime_error(
+                            "[[install]] files wildcard did not resolve to any files");
                     }
                 }
                 if (!inst.configs.empty()) {

@@ -73,7 +73,7 @@ struct CMake {
     std::vector<Option> options;
     std::vector<Package> packages;
     std::map<std::string, std::map<std::string, std::string>> contents;
-    std::vector<Target> binaries;
+    std::vector<Target> targets;
     std::vector<Test> tests;
     std::vector<Install> installs;
     CMake(const std::string &path, bool build);

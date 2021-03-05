@@ -16,61 +16,75 @@ project(cmkr VERSION ${cmkr_PROJECT_VERSION})
 
 include(FetchContent)
 
+message(STATUS "Fetching filesystem...")
 FetchContent_Declare(
 	filesystem
 	GIT_REPOSITORY https://github.com/gulrak/filesystem
 )
-
 FetchContent_MakeAvailable(filesystem)
 
+message(STATUS "Fetching mpark_variant...")
 FetchContent_Declare(
 	mpark_variant
 	URL https://github.com/mpark/variant/archive/v1.4.0.tar.gz
 )
-
 FetchContent_MakeAvailable(mpark_variant)
 
+message(STATUS "Fetching toml11...")
 FetchContent_Declare(
 	toml11
 	GIT_REPOSITORY https://github.com/ToruNiina/toml11
 )
-
 FetchContent_MakeAvailable(toml11)
 
 set(CMKRLIB_SOURCES
-	src/cmake.cpp
-	src/gen.cpp
-	src/help.cpp
-	src/build.cpp
-	src/error.cpp
+	src/cmkrlib/args.cpp
+	src/cmkrlib/build.cpp
+	src/cmkrlib/cmake.cpp
+	src/cmkrlib/error.cpp
+	src/cmkrlib/gen.cpp
+	src/cmkrlib/help.cpp
+	src/cmkrlib/cmake.hpp
+	src/cmkrlib/fs.hpp
+	include/args.h
+	include/build.h
+	include/error.h
+	include/gen.h
+	include/help.h
+	include/literals.h
+	cmake.toml
 )
 
 add_library(cmkrlib STATIC ${CMKRLIB_SOURCES})
 
+source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${CMKRLIB_SOURCES})
+
 target_include_directories(cmkrlib PUBLIC
 	include
-	)
+)
 
 target_link_libraries(cmkrlib PUBLIC
 	toml11::toml11
 	ghc_filesystem
 	mpark_variant
-	)
+)
 
 target_compile_features(cmkrlib PUBLIC
 	cxx_std_11
-	)
+)
 
 set(CMKR_SOURCES
 	src/main.cpp
-	src/args.cpp
+	cmake.toml
 )
 
 add_executable(cmkr ${CMKR_SOURCES})
 
+source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${CMKR_SOURCES})
+
 target_link_libraries(cmkr PUBLIC
 	cmkrlib
-	)
+)
 
 install(
 	TARGETS cmkr 

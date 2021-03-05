@@ -13,7 +13,7 @@ mpark_variant = { url = "https://github.com/mpark/variant/archive/v1.4.0.tar.gz"
 [[target]]
 name = "cmkrlib"
 type = "static"
-sources = ["src/cmake.cpp", "src/gen.cpp", "src/help.cpp", "src/build.cpp", "src/error.cpp"]
+sources = ["src/cmkrlib/*.cpp", "src/cmkrlib/*.hpp", "include/*.h"]
 include-directories = ["include"]
 compile-features = ["cxx_std_11"]
 link-libraries = ["toml11::toml11", "ghc_filesystem", "mpark_variant"]
@@ -21,7 +21,7 @@ link-libraries = ["toml11::toml11", "ghc_filesystem", "mpark_variant"]
 [[target]]
 name = "cmkr"
 type = "executable"
-sources = ["src/main.cpp", "src/args.cpp"]
+sources = ["src/main.cpp"]
 link-libraries = ["cmkrlib"]
 
 [[install]]
