@@ -42,7 +42,11 @@ static std::vector<std::string> expand_cmake_path(const fs::path &p) {
     std::vector<std::string> temp;
     if (p.filename().stem().string() == "*") {
         auto ext = p.extension();
-        for (const auto &f : fs::directory_iterator(p.parent_path())) {
+        for (const auto &f : fs::recursive_directory_iterator(
+                 p.parent_path(), fs::directory_options::follow_directory_symlink)) {
+            if (f.is_directory()) {
+                continue;
+            }
             if (f.path().extension() == ext) {
                 temp.push_back(f.path().string());
             }
