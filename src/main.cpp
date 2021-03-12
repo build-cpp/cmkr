@@ -1,8 +1,9 @@
 #include "args.h"
 
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <stdexcept>
-#include <stdio.h>
-#include <stdlib.h>
 
 int main(int argc, char **argv) try {
     auto output = cmkr::args::handle_args(argc, argv);

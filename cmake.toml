@@ -6,8 +6,8 @@ name = "cmkr"
 version = "0.1.3"
 
 [fetch-content]
-toml11 = { git = "https://github.com/ToruNiina/toml11" }
-filesystem = { git = "https://github.com/gulrak/filesystem" }
+toml11 = { url = "https://github.com/ToruNiina/toml11/archive/v3.6.0.tar.gz" }
+filesystem = { url = "https://github.com/gulrak/filesystem/archive/v1.5.2.tar.gz" }
 mpark_variant = { url = "https://github.com/mpark/variant/archive/v1.4.0.tar.gz" }
 
 [[target]]

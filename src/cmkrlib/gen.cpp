@@ -4,12 +4,13 @@
 #include "literals.h"
 
 #include "fs.hpp"
+#include <cassert>
+#include <cstdio>
+#include <cstring>
 #include <fstream>
 #include <new>
 #include <sstream>
 #include <stdexcept>
-#include <stdio.h>
-#include <string.h>
 #include <string>
 
 namespace cmkr {
@@ -43,15 +44,13 @@ static std::vector<std::string> expand_cmake_path(const fs::path &p) {
     auto stem = p.filename().stem().string();
     auto ext = p.extension();
     if (stem == "*") {
-        for (const auto &f : fs::directory_iterator(
-                 p.parent_path(), fs::directory_options::follow_directory_symlink)) {
+        for (const auto &f : fs::directory_iterator(p.parent_path(), fs::directory_options::follow_directory_symlink)) {
             if (!f.is_directory() && f.path().extension() == ext) {
                 temp.push_back(f.path().string());
             }
         }
     } else if (stem == "**") {
-        for (const auto &f : fs::recursive_directory_iterator(
-                 p.parent_path(), fs::directory_options::follow_directory_symlink)) {
+        for (const auto &f : fs::recursive_directory_iterator(p.parent_path(), fs::directory_options::follow_directory_symlink)) {
             if (!f.is_directory() && f.path().extension() == ext) {
                 temp.push_back(f.path().string());
             }
@@ -91,13 +90,11 @@ int generate_project(const char *str) {
         target = "include/*.h";
         dest = "include/" + dir_name;
     } else {
-        throw std::runtime_error(
-            "Unknown project type " + std::string(str) +
-            "! Supported types are: executable, library, shared, static, interface");
+        throw std::runtime_error("Unknown project type " + std::string(str) +
+                                 "! Supported types are: executable, library, shared, static, interface");
     }
 
-    const auto tomlbuf = detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str,
-                                        installed.c_str(), target.c_str(), dest.c_str());
+    const auto tomlbuf = detail::format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str, installed.c_str(), target.c_str(), dest.c_str());
 
     if (strcmp(str, "interface")) {
         std::ofstream ofs("src/main.cpp");
@@ -118,26 +115,133 @@ int generate_project(const char *str) {
     return 0;
 }
 
+struct CommandEndl {
+    std::stringstream &ss;
+    CommandEndl(std::stringstream &ss) : ss(ss) {}
+    void endl() { ss << '\n'; }
+};
+
+// Credit: JustMagic
+struct Command {
+    std::stringstream &ss;
+    int depth = 0;
+    std::string command;
+    bool first_arg = true;
+    bool generated = false;
+
+    Command(std::stringstream &ss, int depth, const std::string &command) : ss(ss), depth(depth), command(command) {}
+
+    ~Command() {
+        if (!generated) {
+            assert(false && "Incorrect usage of cmd()");
+        }
+    }
+
+    const char *indent(int n) {
+        for (int i = 0; i < n; i++) {
+            ss << '\t';
+        }
+        return "";
+    }
+
+    template <class T>
+    bool print_arg(const std::vector<T> &vec) {
+        if (vec.empty()) {
+            return true;
+        }
+
+        ss << '\n';
+        for (const auto &value : vec) {
+            ss << indent(depth + 1) << value << '\n';
+        }
+        return true;
+    }
+
+    template <class Key, class Value>
+    bool print_arg(const std::map<Key, Value> &map) {
+        if (map.empty()) {
+            return true;
+        }
+
+        ss << '\n';
+        for (const auto &itr : map) {
+            ss << indent(depth + 1) << itr.first << ' ' << itr.second << '\n';
+        }
+        return true;
+    }
+
+    bool print_arg(const std::string &value) {
+        if (value.empty()) {
+            return true;
+        }
+
+        if (first_arg) {
+            first_arg = false;
+        } else {
+            ss << ' ';
+        }
+        ss << value;
+        return true;
+    }
+
+    template <class T>
+    bool print_arg(const T &value) {
+        if (first_arg) {
+            first_arg = false;
+        } else {
+            ss << ' ';
+        }
+        ss << value;
+        return true;
+    }
+
+    template <class... Ts>
+    CommandEndl operator()(Ts &&... values) {
+        generated = true;
+        ss << indent(depth) << command << '(';
+        std::initializer_list<bool>{print_arg(values)...};
+        ss << ")\n";
+        return CommandEndl(ss);
+    }
+};
+
 int generate_cmake(const char *path) {
     if (fs::exists(fs::path(path) / "cmake.toml")) {
         cmake::CMake cmake(path, false);
         std::stringstream ss;
-        ss << "# This file was generated automatically by cmkr.\n";
-        ss << "\n";
 
-        ss << "# Regenerate CMakeLists.txt file when necessary\n";
-        ss << "include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)\n\n";
-        ss << "if(CMKR_INCLUDE_RESULT)\n";
-        ss << "\tcmkr()\n";
-        ss << "endif()\n";
-        ss << "\n";
+        int indent = 0;
+        auto cmd = [&ss, &indent](const std::string &command) {
+            if (command == "if") {
+                indent++;
+                return Command(ss, indent - 1, command);
+            } else if (command == "else" || command == "elseif") {
+                return Command(ss, indent - 1, command);
+            } else if (command == "endif") {
+                indent--;
+            }
+            return Command(ss, indent, command);
+        };
+        auto comment = [&ss](const char *comment) {
+            ss << "# " << comment << '\n';
+            return CommandEndl(ss);
+        };
+        auto endl = [&ss]() { ss << '\n'; };
 
-        ss << "cmake_minimum_required(VERSION " << cmake.cmake_version << ")\n";
-        ss << "\n";
+        comment("This file was generated automatically by cmkr.").endl();
 
-        ss << "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
-        ss << "\n";
+        comment("Regenerate CMakeLists.txt file when necessary");
+        cmd("include")("cmkr.cmake", "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT").endl();
 
+        cmd("if")("CMKR_INCLUDE_RESULT");
+        cmd("cmkr")();
+        cmd("endif")().endl();
+
+        cmd("cmake_minimum_required")("VERSION", cmake.cmake_version).endl();
+
+        cmd("set_property")("GLOBAL", "PROPERTY", "USE_FOLDERS", "ON").endl();
+
+        // TODO: remove support and replace with global compile-features
         if (!cmake.cppflags.empty()) {
             ss << "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} \"";
             for (const auto &flag : cmake.cppflags) {
@@ -146,6 +250,7 @@ int generate_cmake(const char *path) {
             ss << "\")\n\n";
         }
 
+        // TODO: remove support and replace with global compile-features
         if (!cmake.cflags.empty()) {
             ss << "set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} \"";
             for (const auto &flag : cmake.cflags) {
@@ -154,6 +259,7 @@ int generate_cmake(const char *path) {
             ss << "\")\n\n";
         }
 
+        // TODO: remove support and replace with global linker-flags
         if (!cmake.linkflags.empty()) {
             ss << "set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} \"";
             for (const auto &flag : cmake.linkflags) {
@@ -162,23 +268,24 @@ int generate_cmake(const char *path) {
             ss << "\")\n\n";
         }
 
+        // TODO: support cmake.toml subdirectory generation
         if (!cmake.subdirs.empty()) {
             for (const auto &dir : cmake.subdirs) {
-                ss << "add_subdirectory(" << dir << ")\n";
+                cmd("add_subdirectory")(dir);
             }
-            ss << "\n\n";
+            ss << '\n';
         }
 
         if (!cmake.proj_name.empty() && !cmake.proj_version.empty()) {
-            ss << "set(" << cmake.proj_name << "_PROJECT_VERSION " << cmake.proj_version << ")\n"
-               << "project(" << cmake.proj_name << " VERSION "
-               << "${" << cmake.proj_name << "_PROJECT_VERSION}"
-               << ")\n\n";
+            auto name = cmake.proj_name;
+            auto version = cmake.proj_version;
+            cmd("set")(name + "_PROJECT_VERSION", version);
+            cmd("project")(name, "VERSION", "${" + name + "_PROJECT_VERSION}").endl();
         }
 
         if (!cmake.packages.empty()) {
             for (const auto &dep : cmake.packages) {
-                ss << "find_package(" << dep.name << " ";
+                ss << "find_package(" << dep.name << ' ';
                 if (dep.version != "*") {
                     ss << dep.version << " ";
                 }
@@ -226,8 +333,7 @@ int generate_cmake(const char *path) {
 
         if (!cmake.options.empty()) {
             for (const auto &opt : cmake.options) {
-                ss << "option(" << opt.name << " \"" << opt.comment << "\" "
-                   << (opt.val ? "ON" : "OFF") << ")\n\n";
+                ss << "option(" << opt.name << " \"" << opt.comment << "\" " << (opt.val ? "ON" : "OFF") << ")\n\n";
             }
         }
 
@@ -259,104 +365,77 @@ int generate_cmake(const char *path) {
             for (const auto &target : cmake.targets) {
                 std::string add_command;
                 std::string target_type;
+                std::string target_scope;
                 if (target.type == "executable") {
                     add_command = "add_executable";
                     target_type = "";
-                } else if (target.type == "shared" || target.type == "static" ||
-                           target.type == "interface") {
+                    target_scope = "PRIVATE";
+                } else if (target.type == "shared" || target.type == "static" || target.type == "interface") {
                     add_command = "add_library";
                     target_type = detail::to_upper(target.type);
+                    target_scope = target_type == "INTERFACE" ? target_type : "PUBLIC";
                 } else if (target.type == "library") {
                     add_command = "add_library";
                     target_type = "";
+                    target_scope = "PUBLIC";
                 } else {
-                    throw std::runtime_error(
-                        "Unknown binary type " + target.type +
-                        "! Supported types are: executable, library, shared, static, interface");
+                    throw std::runtime_error("Unknown binary type " + target.type +
+                                             "! Supported types are: executable, library, shared, static, interface");
                 }
 
                 if (!target.sources.empty()) {
-                    ss << "set(" << detail::to_upper(target.name) << "_SOURCES\n";
-                    int sources_added = 0;
+                    std::vector<std::string> sources;
                     for (const auto &src : target.sources) {
                         auto path = fs::path(src);
                         auto expanded = detail::expand_cmake_path(path);
                         for (const auto &f : expanded) {
-                            ss << "\t" << f << "\n";
-                            sources_added++;
+                            sources.push_back(f);
                         }
                     }
-                    if (sources_added == 0) {
+                    if (sources.empty()) {
                         throw std::runtime_error(target.name + " sources wildcard found 0 files");
                     }
                     if (target.type != "interface") {
-                        ss << "\tcmake.toml\n";
+                        sources.push_back("cmake.toml");
                     }
-                    ss << ")\n\n";
+                    cmd("set")(target.name + "_SOURCES", sources).endl();
                 }
 
-                ss << add_command << "(" << target.name;
-                if (!target_type.empty()) {
-                    ss << " " << target_type;
-                }
+                cmd(add_command)(target.name, target_type, "${" + target.name + "_SOURCES}").endl();
 
                 if (!target.sources.empty()) {
-                    ss << " ${" << detail::to_upper(target.name) << "_SOURCES})\n\n";
-                    ss << "source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${"
-                       << detail::to_upper(target.name) << "_SOURCES})\n\n";
-                } else {
-                    ss << ")\n\n";
+                    cmd("source_group")("TREE", "${PROJECT_SOURCE_DIR}", "FILES", "${" + target.name + "_SOURCES}").endl();
                 }
 
                 if (!target.alias.empty()) {
-                    ss << "add_library(" << target.alias << " ALIAS " << target.name << ")\n\n";
+                    cmd("add_library")(target.alias, "ALIAS", target.name);
                 }
 
                 if (!target.include_directories.empty()) {
-                    ss << "target_include_directories(" << target.name << " PUBLIC\n";
-                    for (const auto &inc : target.include_directories) {
-                        ss << "\t" << inc << "\n";
-                    }
-                    ss << ")\n\n";
+                    cmd("target_include_directories")(target.name, target_scope, target.include_directories).endl();
                 }
 
                 if (!target.link_libraries.empty()) {
-                    ss << "target_link_libraries(" << target.name << " PUBLIC\n";
-                    for (const auto &l : target.link_libraries) {
-                        ss << "\t" << l << "\n";
-                    }
-                    ss << ")\n\n";
+                    cmd("target_link_libraries")(target.name, target_scope, target.link_libraries).endl();
                 }
 
                 if (!target.compile_features.empty()) {
-                    ss << "target_compile_features(" << target.name << " PUBLIC\n";
-                    for (const auto &feat : target.compile_features) {
-                        ss << "\t" << feat << "\n";
-                    }
-                    ss << ")\n\n";
+                    cmd("target_compile_features")(target.name, target_scope, target.compile_features).endl();
                 }
 
                 if (!target.compile_definitions.empty()) {
-                    ss << "target_compile_definitions(" << target.name << " PUBLIC\n";
-                    for (const auto &def : target.compile_definitions) {
-                        ss << "\t" << def << "\n";
-                    }
-                    ss << ")\n\n";
+                    cmd("target_compile_definitions")(target.name, target_scope, target.compile_definitions).endl();
                 }
 
                 if (!target.properties.empty()) {
-                    ss << "set_target_properties(" << target.name << " PROPERTIES\n";
-                    for (const auto &prop : target.properties) {
-                        ss << "\t" << prop.first << " " << prop.second << "\n";
-                    }
-                    ss << ")\n\n";
+                    cmd("set_target_properties")(target.name, "PROPERTIES", target.properties).endl();
                 }
             }
         }
 
         if (!cmake.tests.empty()) {
-            ss << "include(CTest)\n"
-               << "enable_testing()\n\n";
+            cmd("include")("CTest");
+            cmd("enable_testing")().endl();
             for (const auto &test : cmake.tests) {
                 ss << "add_test(NAME " << test.name << " COMMAND " << test.cmd;
                 if (!test.args.empty()) {
@@ -394,8 +473,7 @@ int generate_cmake(const char *path) {
                         }
                     }
                     if (files_added == 0) {
-                        throw std::runtime_error(
-                            "[[install]] files wildcard did not resolve to any files");
+                        throw std::runtime_error("[[install]] files wildcard did not resolve to any files");
                     }
                 }
                 if (!inst.configs.empty()) {

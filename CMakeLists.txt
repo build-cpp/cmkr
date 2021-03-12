@@ -19,7 +19,7 @@ include(FetchContent)
 message(STATUS "Fetching filesystem...")
 FetchContent_Declare(
 	filesystem
-	GIT_REPOSITORY https://github.com/gulrak/filesystem
+	URL https://github.com/gulrak/filesystem/archive/v1.5.2.tar.gz
 )
 FetchContent_MakeAvailable(filesystem)
 
@@ -33,11 +33,11 @@ FetchContent_MakeAvailable(mpark_variant)
 message(STATUS "Fetching toml11...")
 FetchContent_Declare(
 	toml11
-	GIT_REPOSITORY https://github.com/ToruNiina/toml11
+	URL https://github.com/ToruNiina/toml11/archive/v3.6.0.tar.gz
 )
 FetchContent_MakeAvailable(toml11)
 
-set(CMKRLIB_SOURCES
+set(cmkrlib_SOURCES
 	src/cmkrlib/args.cpp
 	src/cmkrlib/build.cpp
 	src/cmkrlib/cmake.cpp
@@ -55,9 +55,9 @@ set(CMKRLIB_SOURCES
 	cmake.toml
 )
 
-add_library(cmkrlib STATIC ${CMKRLIB_SOURCES})
+add_library(cmkrlib STATIC ${cmkrlib_SOURCES})
 
-source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${CMKRLIB_SOURCES})
+source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${cmkrlib_SOURCES})
 
 target_include_directories(cmkrlib PUBLIC
 	include
@@ -73,16 +73,16 @@ target_compile_features(cmkrlib PUBLIC
 	cxx_std_11
 )
 
-set(CMKR_SOURCES
+set(cmkr_SOURCES
 	src/main.cpp
 	cmake.toml
 )
 
-add_executable(cmkr ${CMKR_SOURCES})
+add_executable(cmkr ${cmkr_SOURCES})
 
-source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${CMKR_SOURCES})
+source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${cmkr_SOURCES})
 
-target_link_libraries(cmkr PUBLIC
+target_link_libraries(cmkr PRIVATE
 	cmkrlib
 )
 
