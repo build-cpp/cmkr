@@ -14,28 +14,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(cmkr_PROJECT_VERSION 0.1.3)
 project(cmkr VERSION ${cmkr_PROJECT_VERSION})
 
-include(FetchContent)
-
-message(STATUS "Fetching filesystem...")
-FetchContent_Declare(
-	filesystem
-	URL https://github.com/gulrak/filesystem/archive/v1.5.2.tar.gz
-)
-FetchContent_MakeAvailable(filesystem)
-
-message(STATUS "Fetching mpark_variant...")
-FetchContent_Declare(
-	mpark_variant
-	URL https://github.com/mpark/variant/archive/v1.4.0.tar.gz
-)
-FetchContent_MakeAvailable(mpark_variant)
-
-message(STATUS "Fetching toml11...")
-FetchContent_Declare(
-	toml11
-	URL https://github.com/ToruNiina/toml11/archive/v3.6.0.tar.gz
-)
-FetchContent_MakeAvailable(toml11)
+add_subdirectory(third_party)
 
 set(cmkrlib_SOURCES
 	src/cmkrlib/args.cpp
@@ -64,7 +43,7 @@ target_include_directories(cmkrlib PUBLIC
 )
 
 target_link_libraries(cmkrlib PUBLIC
-	toml11::toml11
+	toml11
 	ghc_filesystem
 	mpark_variant
 )
