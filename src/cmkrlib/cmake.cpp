@@ -73,6 +73,12 @@ CMake::CMake(const std::string &path, bool build) {
             const auto &project = toml::find(toml, "project");
             project_name = toml::find(project, "name").as_string();
             project_version = toml::find(project, "version").as_string();
+            if (project.contains("inject-before")) {
+                inject_before = toml::find(project, "inject-before").as_string();
+            }
+            if (project.contains("inject-after")) {
+                inject_after = toml::find(project, "inject-after").as_string();
+            }
             if (project.contains("include-before")) {
                 include_before = detail::to_string_vec(toml::find(project, "include-before").as_array());
             }

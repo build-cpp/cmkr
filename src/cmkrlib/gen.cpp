@@ -230,6 +230,10 @@ int generate_cmake(const char *path) {
 
         comment("This file was generated automatically by cmkr.").endl();
 
+        if (!cmake.inject_before.empty()) {
+            ss << cmake.inject_before << "\n\n";
+        }
+
         if (!cmake.include_before.empty()) {
             for (const auto &file : cmake.include_before) {
                 // TODO: warn/error if file doesn't exist?
@@ -290,6 +294,10 @@ int generate_cmake(const char *path) {
             auto version = cmake.project_version;
             cmd("set")(name + "_PROJECT_VERSION", version);
             cmd("project")(name, "VERSION", "${" + name + "_PROJECT_VERSION}").endl();
+        }
+
+        if (!cmake.inject_after.empty()) {
+            ss << cmake.inject_after << "\n\n";
         }
 
         if (!cmake.include_after.empty()) {
