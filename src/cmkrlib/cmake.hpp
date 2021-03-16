@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <mpark/variant.hpp>
+#include <tsl/ordered_map.h>
 
 namespace cmkr {
 namespace cmake {
@@ -76,7 +77,7 @@ struct CMake {
     std::vector<Setting> settings;
     std::vector<Option> options;
     std::vector<Package> packages;
-    std::map<std::string, std::map<std::string, std::string>> contents;
+    tsl::ordered_map<std::string, std::map<std::string, std::string>> contents;
     std::vector<Target> targets;
     std::vector<Test> tests;
     std::vector<Install> installs;

@@ -46,6 +46,7 @@ target_link_libraries(cmkrlib PUBLIC
 	toml11
 	ghc_filesystem
 	mpark_variant
+	ordered_map
 )
 
 target_compile_features(cmkrlib PUBLIC

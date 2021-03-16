@@ -3,14 +3,15 @@
 #include "fs.hpp"
 #include <stdexcept>
 #include <toml.hpp>
+#include <tsl/ordered_map.h>
 
 namespace cmkr {
 namespace cmake {
 
+using TomlBasicValue = toml::basic_value<toml::preserve_comments, tsl::ordered_map, std::vector>;
+
 namespace detail {
-std::vector<std::string> to_string_vec(
-    const std::vector<toml::basic_value<toml::discard_comments, std::unordered_map, std::vector>>
-        &vals) {
+std::vector<std::string> to_string_vec(const std::vector<TomlBasicValue> &vals) {
     std::vector<std::string> temp;
     for (const auto &val : vals)
         temp.push_back(val.as_string());
@@ -22,7 +23,7 @@ CMake::CMake(const std::string &path, bool build) {
     if (!fs::exists(fs::path(path) / "cmake.toml")) {
         throw std::runtime_error("No cmake.toml was found!");
     }
-    const auto toml = toml::parse((fs::path(path) / "cmake.toml").string());
+    const auto toml = toml::parse<toml::preserve_comments, tsl::ordered_map, std::vector>((fs::path(path) / "cmake.toml").string());
     if (build) {
         if (toml.contains("cmake")) {
             const auto &cmake = toml::find(toml, "cmake");
@@ -88,9 +89,7 @@ CMake::CMake(const std::string &path, bool build) {
         }
 
         if (toml.contains("settings")) {
-            using set_map =
-                std::map<std::string, toml::basic_value<toml::discard_comments, std::unordered_map,
-                                                        std::vector>>;
+            using set_map = std::map<std::string, TomlBasicValue>;
             const auto &sets = toml::find<set_map>(toml, "settings");
             for (const auto set : sets) {
                 Setting s;
@@ -123,9 +122,7 @@ CMake::CMake(const std::string &path, bool build) {
         }
 
         if (toml.contains("options")) {
-            using opts_map =
-                std::map<std::string, toml::basic_value<toml::discard_comments, std::unordered_map,
-                                                        std::vector>>;
+            using opts_map = tsl::ordered_map<std::string, TomlBasicValue>;
             const auto &opts = toml::find<opts_map>(toml, "options");
             for (const auto opt : opts) {
                 Option o;
@@ -145,9 +142,7 @@ CMake::CMake(const std::string &path, bool build) {
         }
 
         if (toml.contains("find-package")) {
-            using pkg_map =
-                std::map<std::string, toml::basic_value<toml::discard_comments, std::unordered_map,
-                                                        std::vector>>;
+            using pkg_map = tsl::ordered_map<std::string, TomlBasicValue>;
             const auto &pkgs = toml::find<pkg_map>(toml, "find-package");
             for (const auto &pkg : pkgs) {
                 Package p;
@@ -162,16 +157,16 @@ CMake::CMake(const std::string &path, bool build) {
                         p.required = toml::find(pkg.second, "required").as_boolean();
                     }
                     if (pkg.second.contains("components")) {
-                        p.components =
-                            detail::to_string_vec(toml::find(pkg.second, "components").as_array());
+                        p.components = detail::to_string_vec(toml::find(pkg.second, "components").as_array());
                     }
                 }
                 packages.push_back(p);
             }
         }
 
+        // TODO: refactor to std::vector<Content> instead of this hacky thing?
         if (toml.contains("fetch-content")) {
-            using content_map = std::map<std::string, std::map<std::string, std::string>>;
+            using content_map = tsl::ordered_map<std::string, std::map<std::string, std::string>>;
             contents = toml::find<content_map>(toml, "fetch-content");
         }
 
@@ -180,18 +175,19 @@ CMake::CMake(const std::string &path, bool build) {
         }
 
         if (toml.contains("target")) {
-            const auto &ts = toml::find(toml, "target").as_array();
+            const auto &ts = toml::find(toml, "target").as_table();
 
-            for (const auto &t : ts) {
+            for (const auto &itr : ts) {
+                const auto &t = itr.second;
                 Target target;
-                target.name = toml::find(t, "name").as_string();
+                target.name = itr.first;
                 target.type = toml::find(t, "type").as_string();
 
                 target.sources = detail::to_string_vec(toml::find(t, "sources").as_array());
 
-#define renamed(from, to)                                                                          \
-    if (t.contains(from)) {                                                                        \
-        throw std::runtime_error(from "has been renamed to " to);                                  \
+#define renamed(from, to)                                                                                                                            \
+    if (t.contains(from)) {                                                                                                                          \
+        throw std::runtime_error(from "has been renamed to " to);                                                                                    \
     }
 
                 renamed("include-dirs", "include-directories");
@@ -202,23 +198,19 @@ CMake::CMake(const std::string &path, bool build) {
 #undef renamed
 
                 if (t.contains("include-directories")) {
-                    target.include_directories =
-                        detail::to_string_vec(toml::find(t, "include-directories").as_array());
+                    target.include_directories = detail::to_string_vec(toml::find(t, "include-directories").as_array());
                 }
 
                 if (t.contains("link-libraries")) {
-                    target.link_libraries =
-                        detail::to_string_vec(toml::find(t, "link-libraries").as_array());
+                    target.link_libraries = detail::to_string_vec(toml::find(t, "link-libraries").as_array());
                 }
 
                 if (t.contains("compile-features")) {
-                    target.compile_features =
-                        detail::to_string_vec(toml::find(t, "compile-features").as_array());
+                    target.compile_features = detail::to_string_vec(toml::find(t, "compile-features").as_array());
                 }
 
                 if (t.contains("compile-definitions")) {
-                    target.compile_definitions =
-                        detail::to_string_vec(toml::find(t, "compile-definitions").as_array());
+                    target.compile_definitions = detail::to_string_vec(toml::find(t, "compile-definitions").as_array());
                 }
 
                 if (t.contains("alias")) {

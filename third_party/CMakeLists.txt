@@ -4,6 +4,11 @@
 add_library(ghc_filesystem INTERFACE)
 target_include_directories(ghc_filesystem INTERFACE filesystem-1.5.2/include)
 
+# https://github.com/Tessil/ordered-map (MIT)
+add_library(ordered_map INTERFACE)
+target_include_directories(ordered_map INTERFACE ordered-map-1.0.0/include)
+target_compile_definitions(ordered_map INTERFACE NOMINMAX)
+
 # https://github.com/ToruNiina/toml11 (MIT)
 add_library(toml11 INTERFACE)
 target_include_directories(toml11 INTERFACE toml11-3.6.0)
