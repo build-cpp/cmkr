@@ -67,8 +67,10 @@ struct CMake {
     std::vector<std::string> linkflags;
     std::vector<std::string> gen_args;
     std::vector<std::string> build_args;
-    std::string proj_name;
-    std::string proj_version;
+    std::string project_name;
+    std::string project_version;
+    std::vector<std::string> include_before;
+    std::vector<std::string> include_after;
     std::vector<Setting> settings;
     std::vector<Option> options;
     std::vector<Package> packages;

@@ -71,8 +71,14 @@ CMake::CMake(const std::string &path, bool build) {
 
         if (toml.contains("project")) {
             const auto &project = toml::find(toml, "project");
-            proj_name = toml::find(project, "name").as_string();
-            proj_version = toml::find(project, "version").as_string();
+            project_name = toml::find(project, "name").as_string();
+            project_version = toml::find(project, "version").as_string();
+            if (project.contains("include-before")) {
+                include_before = detail::to_string_vec(toml::find(project, "include-before").as_array());
+            }
+            if (project.contains("include-after")) {
+                include_after = detail::to_string_vec(toml::find(project, "include-after").as_array());
+            }
         }
 
         if (toml.contains("settings")) {

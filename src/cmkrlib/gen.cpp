@@ -230,6 +230,15 @@ int generate_cmake(const char *path) {
 
         comment("This file was generated automatically by cmkr.").endl();
 
+        if (!cmake.include_before.empty()) {
+            for (const auto &file : cmake.include_before) {
+                // TODO: warn/error if file doesn't exist?
+                cmd("include")(file);
+            }
+            endl();
+        }
+
+        // TODO: make this a setting in the toml?
         comment("Regenerate CMakeLists.txt file when necessary");
         cmd("include")("cmkr.cmake", "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT").endl();
 
@@ -273,14 +282,22 @@ int generate_cmake(const char *path) {
             for (const auto &dir : cmake.subdirs) {
                 cmd("add_subdirectory")(dir);
             }
-            ss << '\n';
+            endl();
         }
 
-        if (!cmake.proj_name.empty() && !cmake.proj_version.empty()) {
-            auto name = cmake.proj_name;
-            auto version = cmake.proj_version;
+        if (!cmake.project_name.empty() && !cmake.project_version.empty()) {
+            auto name = cmake.project_name;
+            auto version = cmake.project_version;
             cmd("set")(name + "_PROJECT_VERSION", version);
             cmd("project")(name, "VERSION", "${" + name + "_PROJECT_VERSION}").endl();
+        }
+
+        if (!cmake.include_after.empty()) {
+            for (const auto &file : cmake.include_after) {
+                // TODO: warn/error if file doesn't exist?
+                cmd("include")(file);
+            }
+            endl();
         }
 
         if (!cmake.packages.empty()) {
