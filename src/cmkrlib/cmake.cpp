@@ -64,10 +64,6 @@ CMake::CMake(const std::string &path, bool build) {
             if (cmake.contains("link-flags")) {
                 linkflags = detail::to_string_vec(toml::find(cmake, "link-flags").as_array());
             }
-
-            if (cmake.contains("subdirs")) {
-                subdirs = detail::to_string_vec(toml::find(cmake, "subdirs").as_array());
-            }
         }
 
         if (toml.contains("project")) {
@@ -85,6 +81,9 @@ CMake::CMake(const std::string &path, bool build) {
             }
             if (project.contains("include-after")) {
                 include_after = detail::to_string_vec(toml::find(project, "include-after").as_array());
+            }
+            if (project.contains("subdirs")) {
+                subdirs = detail::to_string_vec(toml::find(project, "subdirs").as_array());
             }
         }
 
