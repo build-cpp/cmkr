@@ -1,5 +1,5 @@
 [cmake]
-minimum = "3.15"
+minimum = "2.8...3.8"
 
 [project]
 name = "cmkr"
