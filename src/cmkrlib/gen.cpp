@@ -436,21 +436,19 @@ int generate_cmake(const char *path) {
                     cmd("add_library")(target.alias, "ALIAS", target.name);
                 }
 
-                if (!target.include_directories.empty()) {
-                    cmd("target_include_directories")(target.name, target_scope, target.include_directories).endl();
-                }
+                auto target_cmd = [&](const char* command, const std::vector<std::string>& args) {
+                    if(!args.empty()) {
+                        cmd(command)(target.name, target_scope, args).endl();
+                    }
+                };
 
-                if (!target.link_libraries.empty()) {
-                    cmd("target_link_libraries")(target.name, target_scope, target.link_libraries).endl();
-                }
-
-                if (!target.compile_features.empty()) {
-                    cmd("target_compile_features")(target.name, target_scope, target.compile_features).endl();
-                }
-
-                if (!target.compile_definitions.empty()) {
-                    cmd("target_compile_definitions")(target.name, target_scope, target.compile_definitions).endl();
-                }
+                target_cmd("target_compile_definitions", target.compile_definitions);
+                target_cmd("target_compile_features", target.compile_features);
+                target_cmd("target_compile_options", target.compile_options);
+                target_cmd("target_include_directories", target.include_directories);
+                target_cmd("target_link_directories", target.link_directories);
+                target_cmd("target_link_libraries", target.link_libraries);
+                target_cmd("target_precompile_headers", target.precompile_headers);
 
                 if (!target.properties.empty()) {
                     cmd("set_target_properties")(target.name, "PROPERTIES", target.properties).endl();

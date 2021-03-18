@@ -34,11 +34,18 @@ struct Package {
 struct Target {
     std::string name;
     std::string type;
-    std::vector<std::string> sources;
-    std::vector<std::string> include_directories;
-    std::vector<std::string> compile_features;
+
+    // https://cmake.org/cmake/help/latest/manual/cmake-commands.7.html#project-commands
     std::vector<std::string> compile_definitions;
+    std::vector<std::string> compile_features;
+    std::vector<std::string> compile_options;
+    std::vector<std::string> include_directories;
+    std::vector<std::string> link_directories;
     std::vector<std::string> link_libraries;
+    std::vector<std::string> link_options;
+    std::vector<std::string> precompile_headers;
+    std::vector<std::string> sources;
+    
     std::string alias;
     std::map<std::string, std::string> properties;
 };

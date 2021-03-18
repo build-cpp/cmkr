@@ -38,6 +38,10 @@ add_library(cmkrlib STATIC ${cmkrlib_SOURCES})
 
 source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${cmkrlib_SOURCES})
 
+target_compile_features(cmkrlib PUBLIC
+	cxx_std_11
+)
+
 target_include_directories(cmkrlib PUBLIC
 	include
 )
@@ -47,10 +51,6 @@ target_link_libraries(cmkrlib PUBLIC
 	ghc_filesystem
 	mpark_variant
 	ordered_map
-)
-
-target_compile_features(cmkrlib PUBLIC
-	cxx_std_11
 )
 
 set(cmkr_SOURCES

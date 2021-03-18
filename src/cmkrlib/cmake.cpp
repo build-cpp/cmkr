@@ -196,21 +196,20 @@ CMake::CMake(const std::string &path, bool build) {
 
 #undef renamed
 
-                if (t.contains("include-directories")) {
-                    target.include_directories = detail::to_string_vec(toml::find(t, "include-directories").as_array());
-                }
+                auto optional_array = [&t](const toml::key &k, std::vector<std::string> &v) {
+                    if (t.contains(k)) {
+                        v = detail::to_string_vec(toml::find(t, k).as_array());
+                    }
+                };
 
-                if (t.contains("link-libraries")) {
-                    target.link_libraries = detail::to_string_vec(toml::find(t, "link-libraries").as_array());
-                }
-
-                if (t.contains("compile-features")) {
-                    target.compile_features = detail::to_string_vec(toml::find(t, "compile-features").as_array());
-                }
-
-                if (t.contains("compile-definitions")) {
-                    target.compile_definitions = detail::to_string_vec(toml::find(t, "compile-definitions").as_array());
-                }
+                optional_array("compile-definitions", target.compile_definitions);
+                optional_array("compile-features", target.compile_features);
+                optional_array("compile-options", target.compile_options);
+                optional_array("include-directories", target.include_directories);
+                optional_array("link-directories", target.link_directories);
+                optional_array("link-libraries", target.link_libraries);
+                optional_array("link-options", target.link_options);
+                optional_array("precompile-headers", target.precompile_headers);
 
                 if (t.contains("alias")) {
                     target.alias = toml::find(t, "alias").as_string();
