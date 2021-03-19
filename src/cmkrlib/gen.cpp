@@ -281,7 +281,7 @@ int generate_cmake(const char *path) {
             ss << "\")\n\n";
         }
 
-        // TODO: support cmake.toml subdirectory generation
+        // generate_cmake is called on these recursively later
         if (!cmake.subdirs.empty()) {
             for (const auto &dir : cmake.subdirs) {
                 cmd("add_subdirectory")(dir);
@@ -404,7 +404,7 @@ int generate_cmake(const char *path) {
                     target_type = "";
                     target_scope = "PUBLIC";
                 } else {
-                    throw std::runtime_error("Unknown binary type " + target.type +
+                    throw std::runtime_error("Unknown target type " + target.type +
                                              "! Supported types are: executable, library, shared, static, interface");
                 }
 
@@ -513,15 +513,30 @@ int generate_cmake(const char *path) {
             }
         }
 
-        ss << "\n\n";
-        // printf("%s\n", ss.str().c_str());
+        auto list_path = fs::path(path) / "CMakeLists.txt";
 
-        std::ofstream ofs(fs::path(path) / "CMakeLists.txt", std::ios_base::binary);
-        if (ofs.is_open()) {
-            ofs << ss.rdbuf();
+        auto should_regenerate = [&list_path, &ss]()
+        {
+            if(!fs::exists(list_path))
+                return true;
+
+            std::ifstream ifs(list_path, std::ios_base::binary);
+            if(!ifs.is_open()) {
+                throw std::runtime_error("Failed to read " + list_path.string());
+            }
+
+            std::string data((std::istreambuf_iterator<char>(ifs)),std::istreambuf_iterator<char>());
+            return data != ss.str();
+        }();
+
+        if(should_regenerate) {
+            std::ofstream ofs(list_path, std::ios_base::binary);
+            if (ofs.is_open()) {
+                ofs << ss.str();
+            } else {
+                throw std::runtime_error("Failed to write " + list_path.string());
+            }
         }
-        ofs.flush();
-        ofs.close();
 
         for (const auto &sub : cmake.subdirs) {
             if (fs::exists(fs::path(sub) / "cmake.toml"))
