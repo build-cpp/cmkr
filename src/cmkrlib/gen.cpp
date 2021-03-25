@@ -283,14 +283,6 @@ int generate_cmake(const char *path, bool root) {
             ss << "\")\n\n";
         }
 
-        // generate_cmake is called on these recursively later
-        if (!cmake.subdirs.empty()) {
-            for (const auto &dir : cmake.subdirs) {
-                cmd("add_subdirectory")(dir);
-            }
-            endl();
-        }
-
         if (!cmake.project_name.empty() && !cmake.project_version.empty()) {
             auto name = cmake.project_name;
             auto version = cmake.project_version;
@@ -388,6 +380,14 @@ int generate_cmake(const char *path, bool root) {
             }
         }
 
+        // generate_cmake is called on these recursively later
+        if (!cmake.subdirs.empty()) {
+            for (const auto &dir : cmake.subdirs) {
+                cmd("add_subdirectory")(dir);
+            }
+            endl();
+        }
+
         if (!cmake.targets.empty()) {
             for (const auto &target : cmake.targets) {
                 std::string add_command;
@@ -431,7 +431,7 @@ int generate_cmake(const char *path, bool root) {
                 cmd(add_command)(target.name, target_type, "${" + target.name + "_SOURCES}").endl();
 
                 if (!target.sources.empty()) {
-                    cmd("source_group")("TREE", "${PROJECT_SOURCE_DIR}", "FILES", "${" + target.name + "_SOURCES}").endl();
+                    cmd("source_group")("TREE", "${CMAKE_CURRENT_SOURCE_DIR}", "FILES", "${" + target.name + "_SOURCES}").endl();
                 }
 
                 if (!target.alias.empty()) {
