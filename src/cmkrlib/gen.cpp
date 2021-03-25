@@ -205,7 +205,7 @@ struct Command {
     }
 };
 
-int generate_cmake(const char *path) {
+int generate_cmake(const char *path, bool root) {
     if (fs::exists(fs::path(path) / "cmake.toml")) {
         cmake::CMake cmake(path, false);
         std::stringstream ss;
@@ -243,16 +243,18 @@ int generate_cmake(const char *path) {
         }
 
         // TODO: make this a setting in the toml?
-        comment("Regenerate CMakeLists.txt file when necessary");
-        cmd("include")("cmkr.cmake", "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT").endl();
+        if(root) {
+            comment("Regenerate CMakeLists.txt file when necessary");
+            cmd("include")("cmkr.cmake", "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT").endl();
 
-        cmd("if")("CMKR_INCLUDE_RESULT");
-        cmd("cmkr")();
-        cmd("endif")().endl();
+            cmd("if")("CMKR_INCLUDE_RESULT");
+            cmd("cmkr")();
+            cmd("endif")().endl();
 
-        cmd("cmake_minimum_required")("VERSION", cmake.cmake_version).endl();
+            cmd("cmake_minimum_required")("VERSION", cmake.cmake_version).endl();
 
-        cmd("set_property")("GLOBAL", "PROPERTY", "USE_FOLDERS", "ON").endl();
+            cmd("set_property")("GLOBAL", "PROPERTY", "USE_FOLDERS", "ON").endl();
+        }
 
         // TODO: remove support and replace with global compile-features
         if (!cmake.cppflags.empty()) {
@@ -540,7 +542,7 @@ int generate_cmake(const char *path) {
 
         for (const auto &sub : cmake.subdirs) {
             if (fs::exists(fs::path(sub) / "cmake.toml"))
-                generate_cmake(sub.c_str());
+                generate_cmake(sub.c_str(), false);
         }
     } else {
         throw std::runtime_error("No cmake.toml found!");
