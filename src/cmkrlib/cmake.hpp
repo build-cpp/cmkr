@@ -47,7 +47,7 @@ struct Target {
     std::vector<std::string> sources;
     
     std::string alias;
-    std::map<std::string, std::string> properties;
+    tsl::ordered_map<std::string, std::string> properties;
 };
 
 struct Test {

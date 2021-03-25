@@ -158,7 +158,7 @@ struct Command {
     }
 
     template <class Key, class Value>
-    bool print_arg(const std::map<Key, Value> &map) {
+    bool print_arg(const tsl::ordered_map<Key, Value> &map) {
         if (map.empty()) {
             return true;
         }

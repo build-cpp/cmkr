@@ -196,27 +196,29 @@ CMake::CMake(const std::string &path, bool build) {
 
 #undef renamed
 
-                auto optional_array = [&t](const toml::key &k, std::vector<std::string> &v) {
+                auto optional_array = [&t](const toml::key &k) {
+                    std::vector<std::string> v;
                     if (t.contains(k)) {
                         v = detail::to_string_vec(toml::find(t, k).as_array());
                     }
+                    return v;
                 };
 
-                optional_array("compile-definitions", target.compile_definitions);
-                optional_array("compile-features", target.compile_features);
-                optional_array("compile-options", target.compile_options);
-                optional_array("include-directories", target.include_directories);
-                optional_array("link-directories", target.link_directories);
-                optional_array("link-libraries", target.link_libraries);
-                optional_array("link-options", target.link_options);
-                optional_array("precompile-headers", target.precompile_headers);
+                target.compile_definitions = optional_array("compile-definitions");
+                target.compile_features = optional_array("compile-features");
+                target.compile_options = optional_array("compile-options");
+                target.include_directories = optional_array("include-directories");
+                target.link_directories = optional_array("link-directories");
+                target.link_libraries = optional_array("link-libraries");
+                target.link_options = optional_array("link-options");
+                target.precompile_headers = optional_array("precompile-headers");
 
                 if (t.contains("alias")) {
                     target.alias = toml::find(t, "alias").as_string();
                 }
 
                 if (t.contains("properties")) {
-                    using prop_map = std::map<std::string, std::string>;
+                    using prop_map = tsl::ordered_map<std::string, std::string>;
                     target.properties = toml::find<prop_map>(t, "properties");
                 }
 
