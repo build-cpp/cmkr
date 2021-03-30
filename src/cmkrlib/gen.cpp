@@ -137,6 +137,27 @@ struct Command {
         }
     }
 
+    std::string quote(const std::string &str) {
+        // Don't quote arguments that don't need quoting
+        if (str.find(' ') == std::string::npos && str.find('\"') == std::string::npos && str.find("${") == std::string::npos) {
+            return str;
+        }
+        std::string result;
+        result += "\"";
+        for (char ch : str) {
+            switch (ch) {
+            case '\\':
+            case '\"':
+                result += '\\';
+            default:
+                result += ch;
+                break;
+            }
+        }
+        result += "\"";
+        return result;
+    }
+
     const char *indent(int n) {
         for (int i = 0; i < n; i++) {
             ss << '\t';
@@ -152,7 +173,7 @@ struct Command {
 
         ss << '\n';
         for (const auto &value : vec) {
-            ss << indent(depth + 1) << value << '\n';
+            ss << indent(depth + 1) << quote(value) << '\n';
         }
         return true;
     }
@@ -165,7 +186,7 @@ struct Command {
 
         ss << '\n';
         for (const auto &itr : map) {
-            ss << indent(depth + 1) << itr.first << ' ' << itr.second << '\n';
+            ss << indent(depth + 1) << itr.first << ' ' << quote(itr.second) << '\n';
         }
         return true;
     }
@@ -196,7 +217,7 @@ struct Command {
     }
 
     template <class... Ts>
-    CommandEndl operator()(Ts &&... values) {
+    CommandEndl operator()(Ts &&...values) {
         generated = true;
         ss << indent(depth) << command << '(';
         std::initializer_list<bool>{print_arg(values)...};
@@ -228,10 +249,20 @@ int generate_cmake(const char *path, bool root) {
         };
         auto endl = [&ss]() { ss << '\n'; };
 
+        auto tolf = [](const std::string &str) {
+            std::string result;
+            for (char ch : str) {
+                if (ch != '\r') {
+                    result += ch;
+                }
+            }
+            return result;
+        };
+
         comment("This file was generated automatically by cmkr.").endl();
 
         if (!cmake.inject_before.empty()) {
-            ss << cmake.inject_before << "\n\n";
+            ss << tolf(cmake.inject_before) << "\n\n";
         }
 
         if (!cmake.include_before.empty()) {
@@ -243,7 +274,7 @@ int generate_cmake(const char *path, bool root) {
         }
 
         // TODO: make this a setting in the toml?
-        if(root) {
+        if (root) {
             comment("Regenerate CMakeLists.txt file when necessary");
             cmd("include")("cmkr.cmake", "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT").endl();
 
@@ -291,7 +322,7 @@ int generate_cmake(const char *path, bool root) {
         }
 
         if (!cmake.inject_after.empty()) {
-            ss << cmake.inject_after << "\n\n";
+            ss << tolf(cmake.inject_after) << "\n\n";
         }
 
         if (!cmake.include_after.empty()) {
@@ -429,7 +460,7 @@ int generate_cmake(const char *path, bool root) {
                 }
 
                 if (!target.inject_before.empty()) {
-                    ss << target.inject_before << "\n\n";
+                    ss << tolf(target.inject_before) << "\n\n";
                 }
 
                 if (!target.include_before.empty()) {
@@ -450,8 +481,8 @@ int generate_cmake(const char *path, bool root) {
                     cmd("add_library")(target.alias, "ALIAS", target.name);
                 }
 
-                auto target_cmd = [&](const char* command, const std::vector<std::string>& args) {
-                    if(!args.empty()) {
+                auto target_cmd = [&](const char *command, const std::vector<std::string> &args) {
+                    if (!args.empty()) {
                         cmd(command)(target.name, target_scope, args).endl();
                     }
                 };
@@ -469,7 +500,7 @@ int generate_cmake(const char *path, bool root) {
                 }
 
                 if (!target.inject_after.empty()) {
-                    ss << target.inject_after << "\n\n";
+                    ss << tolf(target.inject_after) << "\n\n";
                 }
 
                 if (!target.include_after.empty()) {
@@ -541,21 +572,20 @@ int generate_cmake(const char *path, bool root) {
 
         auto list_path = fs::path(path) / "CMakeLists.txt";
 
-        auto should_regenerate = [&list_path, &ss]()
-        {
-            if(!fs::exists(list_path))
+        auto should_regenerate = [&list_path, &ss]() {
+            if (!fs::exists(list_path))
                 return true;
 
             std::ifstream ifs(list_path, std::ios_base::binary);
-            if(!ifs.is_open()) {
+            if (!ifs.is_open()) {
                 throw std::runtime_error("Failed to read " + list_path.string());
             }
 
-            std::string data((std::istreambuf_iterator<char>(ifs)),std::istreambuf_iterator<char>());
+            std::string data((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
             return data != ss.str();
         }();
 
-        if(should_regenerate) {
+        if (should_regenerate) {
             std::ofstream ofs(list_path, std::ios_base::binary);
             if (ofs.is_open()) {
                 ofs << ss.str();

@@ -36,7 +36,7 @@ set(cmkrlib_SOURCES
 
 add_library(cmkrlib STATIC ${cmkrlib_SOURCES})
 
-source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${cmkrlib_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${cmkrlib_SOURCES})
 
 target_compile_features(cmkrlib PUBLIC
 	cxx_std_11
@@ -60,7 +60,7 @@ set(cmkr_SOURCES
 
 add_executable(cmkr ${cmkr_SOURCES})
 
-source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${cmkr_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${cmkr_SOURCES})
 
 target_link_libraries(cmkr PRIVATE
 	cmkrlib
