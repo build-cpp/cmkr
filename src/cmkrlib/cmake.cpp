@@ -222,6 +222,19 @@ CMake::CMake(const std::string &path, bool build) {
                     target.properties = toml::find<prop_map>(t, "properties");
                 }
 
+                if (t.contains("inject-before")) {
+                    target.inject_before = toml::find(t, "inject-before").as_string();
+                }
+                if (t.contains("inject-after")) {
+                    target.inject_after = toml::find(t, "inject-after").as_string();
+                }
+                if (t.contains("include-before")) {
+                    target.include_before = detail::to_string_vec(toml::find(t, "include-before").as_array());
+                }
+                if (t.contains("include-after")) {
+                    target.include_after = detail::to_string_vec(toml::find(t, "include-after").as_array());
+                }
+
                 targets.push_back(target);
             }
         }

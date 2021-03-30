@@ -48,6 +48,11 @@ struct Target {
     
     std::string alias;
     tsl::ordered_map<std::string, std::string> properties;
+
+    std::string inject_before;
+    std::string inject_after;
+    std::vector<std::string> include_before;
+    std::vector<std::string> include_after;
 };
 
 struct Test {

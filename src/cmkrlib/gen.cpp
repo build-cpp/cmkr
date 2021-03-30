@@ -428,6 +428,18 @@ int generate_cmake(const char *path, bool root) {
                     cmd("set")(target.name + "_SOURCES", sources).endl();
                 }
 
+                if (!target.inject_before.empty()) {
+                    ss << target.inject_before << "\n\n";
+                }
+
+                if (!target.include_before.empty()) {
+                    for (const auto &file : target.include_before) {
+                        // TODO: warn/error if file doesn't exist?
+                        cmd("include")(file);
+                    }
+                    endl();
+                }
+
                 cmd(add_command)(target.name, target_type, "${" + target.name + "_SOURCES}").endl();
 
                 if (!target.sources.empty()) {
@@ -454,6 +466,18 @@ int generate_cmake(const char *path, bool root) {
 
                 if (!target.properties.empty()) {
                     cmd("set_target_properties")(target.name, "PROPERTIES", target.properties).endl();
+                }
+
+                if (!target.inject_after.empty()) {
+                    ss << target.inject_after << "\n\n";
+                }
+
+                if (!target.include_after.empty()) {
+                    for (const auto &file : target.include_after) {
+                        // TODO: warn/error if file doesn't exist?
+                        cmd("include")(file);
+                    }
+                    endl();
                 }
             }
         }
