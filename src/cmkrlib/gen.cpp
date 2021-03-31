@@ -278,9 +278,11 @@ int generate_cmake(const char *path, bool root) {
             comment("Regenerate CMakeLists.txt file when necessary");
             cmd("include")("cmkr.cmake", "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT").endl();
 
+            // clang-format off
             cmd("if")("CMKR_INCLUDE_RESULT");
-            cmd("cmkr")();
+                cmd("cmkr")();
             cmd("endif")().endl();
+            // clang-format on
 
             cmd("cmake_minimum_required")("VERSION", cmake.cmake_version).endl();
 
@@ -414,7 +416,16 @@ int generate_cmake(const char *path, bool root) {
         // generate_cmake is called on these recursively later
         if (!cmake.subdirs.empty()) {
             for (const auto &dir : cmake.subdirs) {
+                // clang-format off
+                cmd("set")("CMKR_CMAKE_FOLDER", "${CMAKE_FOLDER}");
+                    cmd("if")("CMAKE_FOLDER");
+                cmd("set")("CMAKE_FOLDER", "${CMAKE_FOLDER}/" + dir);
+                cmd("else")();
+                    cmd("set")("CMAKE_FOLDER", dir);
+                cmd("endif")();
+                // clang-format on
                 cmd("add_subdirectory")(dir);
+                cmd("set")("CMAKE_FOLDER", "CMKR_CMAKE_FOLDER");
             }
             endl();
         }
