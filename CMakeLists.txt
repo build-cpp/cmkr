@@ -16,6 +16,7 @@ project(cmkr VERSION ${cmkr_PROJECT_VERSION})
 
 add_subdirectory(third_party)
 
+# Target cmkrlib
 set(cmkrlib_SOURCES
 	"src/cmkrlib/args.cpp"
 	"src/cmkrlib/build.cpp"
@@ -54,6 +55,7 @@ target_link_libraries(cmkrlib PUBLIC
 	ordered_map
 )
 
+# Target cmkr
 set(cmkr_SOURCES
 	"src/main.cpp"
 	cmake.toml
