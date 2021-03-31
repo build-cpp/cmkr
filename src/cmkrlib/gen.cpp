@@ -139,7 +139,7 @@ struct Command {
 
     std::string quote(const std::string &str) {
         // Don't quote arguments that don't need quoting
-        if (str.find(' ') == std::string::npos && str.find('\"') == std::string::npos && str.find("${") == std::string::npos) {
+        if (str.find(' ') == std::string::npos && str.find('\"') == std::string::npos && str.find('/') == std::string::npos) {
             return str;
         }
         std::string result;
@@ -201,7 +201,7 @@ struct Command {
         } else {
             ss << ' ';
         }
-        ss << value;
+        ss << quote(value);
         return true;
     }
 
@@ -212,7 +212,9 @@ struct Command {
         } else {
             ss << ' ';
         }
-        ss << value;
+        std::stringstream tmp;
+        tmp << value;
+        ss << quote(tmp.str());
         return true;
     }
 
@@ -245,7 +247,7 @@ int generate_cmake(const char *path, bool root) {
             }
             return Command(ss, indent, command);
         };
-        auto comment = [&ss](const char *comment) {
+        auto comment = [&ss](const std::string &comment) {
             ss << "# " << comment << '\n';
             return CommandEndl(ss);
         };
@@ -420,20 +422,21 @@ int generate_cmake(const char *path, bool root) {
             for (const auto &dir : cmake.subdirs) {
                 // clang-format off
                 cmd("set")("CMKR_CMAKE_FOLDER", "${CMAKE_FOLDER}");
-                    cmd("if")("CMAKE_FOLDER");
-                cmd("set")("CMAKE_FOLDER", "${CMAKE_FOLDER}/" + dir);
+                cmd("if")("CMAKE_FOLDER");
+                    cmd("set")("CMAKE_FOLDER", "${CMAKE_FOLDER}/" + dir);
                 cmd("else")();
                     cmd("set")("CMAKE_FOLDER", dir);
                 cmd("endif")();
                 // clang-format on
                 cmd("add_subdirectory")(dir);
-                cmd("set")("CMAKE_FOLDER", "CMKR_CMAKE_FOLDER");
+                cmd("set")("CMAKE_FOLDER", "${CMKR_CMAKE_FOLDER}").endl();
             }
             endl();
         }
 
         if (!cmake.targets.empty()) {
             for (const auto &target : cmake.targets) {
+                comment("Target " + target.name);
                 if (!target.cmake_before.empty()) {
                     ss << tolf(target.cmake_before) << "\n\n";
                 }

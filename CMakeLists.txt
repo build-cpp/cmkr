@@ -17,21 +17,21 @@ project(cmkr VERSION ${cmkr_PROJECT_VERSION})
 add_subdirectory(third_party)
 
 set(cmkrlib_SOURCES
-	src/cmkrlib/args.cpp
-	src/cmkrlib/build.cpp
-	src/cmkrlib/cmake.cpp
-	src/cmkrlib/error.cpp
-	src/cmkrlib/gen.cpp
-	src/cmkrlib/help.cpp
-	src/cmkrlib/cmake.hpp
-	src/cmkrlib/enum_helper.hpp
-	src/cmkrlib/fs.hpp
-	include/args.h
-	include/build.h
-	include/error.h
-	include/gen.h
-	include/help.h
-	include/literals.h
+	"src/cmkrlib/args.cpp"
+	"src/cmkrlib/build.cpp"
+	"src/cmkrlib/cmake.cpp"
+	"src/cmkrlib/error.cpp"
+	"src/cmkrlib/gen.cpp"
+	"src/cmkrlib/help.cpp"
+	"src/cmkrlib/cmake.hpp"
+	"src/cmkrlib/enum_helper.hpp"
+	"src/cmkrlib/fs.hpp"
+	"include/args.h"
+	"include/build.h"
+	"include/error.h"
+	"include/gen.h"
+	"include/help.h"
+	"include/literals.h"
 	cmake.toml
 )
 
@@ -55,7 +55,7 @@ target_link_libraries(cmkrlib PUBLIC
 )
 
 set(cmkr_SOURCES
-	src/main.cpp
+	"src/main.cpp"
 	cmake.toml
 )
 
