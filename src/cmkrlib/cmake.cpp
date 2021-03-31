@@ -17,6 +17,26 @@ std::vector<std::string> to_string_vec(const std::vector<TomlBasicValue> &vals) 
         temp.push_back(val.as_string());
     return temp;
 }
+
+template <typename EnumType>
+EnumType to_enum(const std::string &str, const std::string &help_name) {
+    EnumType value;
+    try {
+        std::stringstream ss(str);
+        ss >> enumFromString(value);
+    } catch (std::invalid_argument &) {
+        std::string supported;
+        for (const auto &s : enumStrings<EnumType>::data) {
+            if (!supported.empty()) {
+                supported += ", ";
+            }
+            supported += s;
+        }
+        throw std::runtime_error("Unknown " + help_name + "'" + str + "'! Supported types are: " + supported);
+    }
+    return value;
+}
+
 } // namespace detail
 
 CMake::CMake(const std::string &path, bool build) {
@@ -180,7 +200,7 @@ CMake::CMake(const std::string &path, bool build) {
                 const auto &t = itr.second;
                 Target target;
                 target.name = itr.first;
-                target.type = toml::find(t, "type").as_string();
+                target.type = detail::to_enum<TargetType>(toml::find(t, "type").as_string(), "target type");
 
                 target.sources = detail::to_string_vec(toml::find(t, "sources").as_array());
 

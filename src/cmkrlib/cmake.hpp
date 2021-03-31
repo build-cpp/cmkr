@@ -1,11 +1,12 @@
 #pragma once
 
+#include "enum_helper.hpp"
 #include <map>
+#include <mpark/variant.hpp>
 #include <stdexcept>
 #include <string>
-#include <vector>
-#include <mpark/variant.hpp>
 #include <tsl/ordered_map.h>
+#include <vector>
 
 namespace cmkr {
 namespace cmake {
@@ -31,9 +32,18 @@ struct Package {
     std::vector<std::string> components;
 };
 
+enum TargetType {
+    target_executable,
+    target_library,
+    target_shared,
+    target_static,
+    target_interface,
+    target_custom,
+};
+
 struct Target {
     std::string name;
-    std::string type;
+    TargetType type;
 
     // https://cmake.org/cmake/help/latest/manual/cmake-commands.7.html#project-commands
     std::vector<std::string> compile_definitions;
@@ -45,7 +55,7 @@ struct Target {
     std::vector<std::string> link_options;
     std::vector<std::string> precompile_headers;
     std::vector<std::string> sources;
-    
+
     std::string alias;
     tsl::ordered_map<std::string, std::string> properties;
 
@@ -98,3 +108,6 @@ struct CMake {
 
 } // namespace cmake
 } // namespace cmkr
+
+template <>
+const char *enumStrings<cmkr::cmake::TargetType>::data[] = {"executable", "library", "shared", "static", "internface", "custom"};

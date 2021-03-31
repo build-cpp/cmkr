@@ -233,6 +233,8 @@ int generate_cmake(const char *path, bool root) {
 
         int indent = 0;
         auto cmd = [&ss, &indent](const std::string &command) {
+            if (command.empty())
+                throw std::invalid_argument("command cannot be empty");
             if (command == "if") {
                 indent++;
                 return Command(ss, indent - 1, command);
@@ -432,24 +434,16 @@ int generate_cmake(const char *path, bool root) {
 
         if (!cmake.targets.empty()) {
             for (const auto &target : cmake.targets) {
-                std::string add_command;
-                std::string target_type;
-                std::string target_scope;
-                if (target.type == "executable") {
-                    add_command = "add_executable";
-                    target_type = "";
-                    target_scope = "PRIVATE";
-                } else if (target.type == "shared" || target.type == "static" || target.type == "interface") {
-                    add_command = "add_library";
-                    target_type = detail::to_upper(target.type);
-                    target_scope = target_type == "INTERFACE" ? target_type : "PUBLIC";
-                } else if (target.type == "library") {
-                    add_command = "add_library";
-                    target_type = "";
-                    target_scope = "PUBLIC";
-                } else {
-                    throw std::runtime_error("Unknown target type " + target.type +
-                                             "! Supported types are: executable, library, shared, static, interface");
+                if (!target.cmake_before.empty()) {
+                    ss << tolf(target.cmake_before) << "\n\n";
+                }
+
+                if (!target.include_before.empty()) {
+                    for (const auto &file : target.include_before) {
+                        // TODO: warn/error if file doesn't exist?
+                        cmd("include")(file);
+                    }
+                    endl();
                 }
 
                 if (!target.sources.empty()) {
@@ -464,22 +458,49 @@ int generate_cmake(const char *path, bool root) {
                     if (sources.empty()) {
                         throw std::runtime_error(target.name + " sources wildcard found 0 files");
                     }
-                    if (target.type != "interface") {
+                    if (target.type != cmake::target_interface) {
                         sources.push_back("cmake.toml");
                     }
                     cmd("set")(target.name + "_SOURCES", sources).endl();
                 }
 
-                if (!target.cmake_before.empty()) {
-                    ss << tolf(target.cmake_before) << "\n\n";
-                }
-
-                if (!target.include_before.empty()) {
-                    for (const auto &file : target.include_before) {
-                        // TODO: warn/error if file doesn't exist?
-                        cmd("include")(file);
-                    }
-                    endl();
+                std::string add_command;
+                std::string target_type;
+                std::string target_scope;
+                switch (target.type) {
+                case cmake::target_executable:
+                    add_command = "add_executable";
+                    target_type = "";
+                    target_scope = "PRIVATE";
+                    break;
+                case cmake::target_library:
+                    add_command = "add_library";
+                    target_type = "";
+                    target_scope = "PUBLIC";
+                    break;
+                case cmake::target_shared:
+                    add_command = "add_library";
+                    target_type = "SHARED";
+                    target_scope = "PUBLIC";
+                    break;
+                case cmake::target_static:
+                    add_command = "add_library";
+                    target_type = "STATIC";
+                    target_scope = "PUBLIC";
+                    break;
+                case cmake::target_interface:
+                    add_command = "add_library";
+                    target_type = "INTERFACE";
+                    target_scope = "INTERFACE";
+                    break;
+                case cmake::target_custom:
+                    // TODO: add proper support
+                    add_command = "add_custom_target";
+                    target_type = "";
+                    target_scope = "PUBLIC";
+                    break;
+                default:
+                    assert("Unimplemented enum value" && false);
                 }
 
                 cmd(add_command)(target.name, target_type, "${" + target.name + "_SOURCES}").endl();

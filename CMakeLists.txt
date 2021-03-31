@@ -24,6 +24,7 @@ set(cmkrlib_SOURCES
 	src/cmkrlib/gen.cpp
 	src/cmkrlib/help.cpp
 	src/cmkrlib/cmake.hpp
+	src/cmkrlib/enum_helper.hpp
 	src/cmkrlib/fs.hpp
 	include/args.h
 	include/build.h
