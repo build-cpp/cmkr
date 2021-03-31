@@ -450,6 +450,7 @@ int generate_cmake(const char *path, bool root) {
                 }
 
                 if (!target.sources.empty()) {
+                    // TODO: add duplicate checking
                     std::vector<std::string> sources;
                     for (const auto &src : target.sources) {
                         auto path = fs::path(src);
@@ -462,7 +463,10 @@ int generate_cmake(const char *path, bool root) {
                         throw std::runtime_error(target.name + " sources wildcard found 0 files");
                     }
                     if (target.type != cmake::target_interface) {
-                        sources.push_back("cmake.toml");
+                        // Do not add cmake.toml twice
+                        if (std::find(sources.begin(), sources.end(), "cmake.toml") == sources.end()) {
+                            sources.push_back("cmake.toml");
+                        }
                     }
                     cmd("set")(target.name + "_SOURCES", sources).endl();
                 }
@@ -497,9 +501,9 @@ int generate_cmake(const char *path, bool root) {
                     target_scope = "INTERFACE";
                     break;
                 case cmake::target_custom:
-                    // TODO: add proper support
+                    // TODO: add proper support, this is hacky
                     add_command = "add_custom_target";
-                    target_type = "";
+                    target_type = "SOURCES";
                     target_scope = "PUBLIC";
                     break;
                 default:
