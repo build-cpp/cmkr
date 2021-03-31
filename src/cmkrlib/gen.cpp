@@ -323,10 +323,9 @@ int generate_cmake(const char *path, bool root) {
             endl();
         }
 
-        // TODO: make this a setting in the toml?
         if (root) {
             comment("Regenerate CMakeLists.txt file when necessary");
-            cmd("include")("cmkr.cmake", "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT").endl();
+            cmd("include")(cmake.cmkr_include, "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT").endl();
 
             // clang-format off
             cmd("if")("CMKR_INCLUDE_RESULT");

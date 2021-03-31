@@ -81,6 +81,7 @@ struct Install {
 
 struct CMake {
     std::string cmake_version;
+    std::string cmkr_include;
     std::string build_dir = "build";
     std::string generator;
     std::string config;

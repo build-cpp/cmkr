@@ -55,6 +55,7 @@ CMake::CMake(const std::string &path, bool build) {
         if (toml.contains("cmake")) {
             const auto &cmake = toml::find(toml, "cmake");
             cmake_version = toml::find(cmake, "minimum").as_string();
+            cmkr_include = toml::find_or(cmake, "cmkr-include", "cmkr.cmake");
             cppflags = optional_array(cmake, "cpp-flags");
             cflags = optional_array(cmake, "c-flags");
             linkflags = optional_array(cmake, "link-flags");
