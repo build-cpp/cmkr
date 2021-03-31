@@ -1,9 +1,13 @@
 #include "cmake.hpp"
 
+#include "enum_helper.hpp"
 #include "fs.hpp"
 #include <stdexcept>
 #include <toml.hpp>
 #include <tsl/ordered_map.h>
+
+template <>
+const char *enumStrings<cmkr::cmake::TargetType>::data[] = {"executable", "library", "shared", "static", "internface", "custom"};
 
 namespace cmkr {
 namespace cmake {

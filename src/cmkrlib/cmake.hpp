@@ -1,6 +1,5 @@
 #pragma once
 
-#include "enum_helper.hpp"
 #include <map>
 #include <mpark/variant.hpp>
 #include <stdexcept>
@@ -111,6 +110,3 @@ struct CMake {
 
 } // namespace cmake
 } // namespace cmkr
-
-template <>
-const char *enumStrings<cmkr::cmake::TargetType>::data[] = {"executable", "library", "shared", "static", "internface", "custom"};
