@@ -92,6 +92,8 @@ struct CMake {
     std::vector<std::string> build_args;
     std::string project_name;
     std::string project_version;
+    std::string project_description;
+    std::vector<std::string> project_languages;
     std::string cmake_before;
     std::string cmake_after;
     std::vector<std::string> include_before;

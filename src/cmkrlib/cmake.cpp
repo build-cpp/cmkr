@@ -64,6 +64,8 @@ CMake::CMake(const std::string &path, bool build) {
             const auto &project = toml::find(toml, "project");
             project_name = toml::find(project, "name").as_string();
             project_version = toml::find_or(project, "version", "");
+            project_description = toml::find_or(project, "description", "");
+            project_languages = optional_array(project, "languages");
             cmake_before = toml::find_or(project, "cmake-before", "");
             cmake_after = toml::find_or(project, "cmake-after", "");
             include_before = optional_array(project, "include-before");

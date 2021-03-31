@@ -121,6 +121,15 @@ struct CommandEndl {
     void endl() { ss << '\n'; }
 };
 
+template <typename T>
+struct NamedArg {
+    std::string name;
+    T value;
+
+    NamedArg() = default;
+    NamedArg(std::string name, T value) : name(std::move(name)), value(std::move(value)) {}
+};
+
 // Credit: JustMagic
 struct Command {
     std::stringstream &ss;
@@ -158,11 +167,12 @@ struct Command {
         return result;
     }
 
-    const char *indent(int n) {
+    std::string indent(int n) {
+        std::string result;
         for (int i = 0; i < n; i++) {
-            ss << '\t';
+            result += '\t';
         }
-        return "";
+        return result;
     }
 
     template <class T>
@@ -202,6 +212,32 @@ struct Command {
             ss << ' ';
         }
         ss << quote(value);
+        return true;
+    }
+
+    template <class K>
+    bool print_arg(const std::pair<K, std::vector<std::string>> &kv) {
+        if (kv.second.empty()) {
+            return true;
+        }
+
+        ss << '\n';
+        ss << indent(depth + 1) << kv.first << '\n';
+        for (const auto &s : kv.second) {
+            ss << indent(depth + 2) << quote(s) << '\n';
+        }
+
+        return true;
+    }
+
+    template <class K, class V>
+    bool print_arg(const std::pair<K, V> &kv) {
+        if (kv.second.empty()) {
+            return true;
+        }
+
+        ss << indent(depth + 1) << kv.first << ' ' << quote(kv.second) << '\n';
+
         return true;
     }
 
@@ -320,11 +356,11 @@ int generate_cmake(const char *path, bool root) {
             ss << "\")\n\n";
         }
 
-        if (!cmake.project_name.empty() && !cmake.project_version.empty()) {
-            auto name = cmake.project_name;
-            auto version = cmake.project_version;
-            cmd("set")(name + "_PROJECT_VERSION", version);
-            cmd("project")(name, "VERSION", "${" + name + "_PROJECT_VERSION}").endl();
+        if (!cmake.project_name.empty()) {
+            auto languages = std::make_pair("LANGUAGES", cmake.project_languages);
+            auto version = std::make_pair("VERSION", cmake.project_version);
+            auto description = std::make_pair("DESCRIPTION", cmake.project_description);
+            cmd("project")(cmake.project_name, languages, version, description).endl();
         }
 
         if (!cmake.cmake_after.empty()) {

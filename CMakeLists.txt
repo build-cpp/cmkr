@@ -11,8 +11,12 @@ cmake_minimum_required(VERSION 2.8...3.8)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-set(cmkr_PROJECT_VERSION 0.1.3)
-project(cmkr VERSION ${cmkr_PROJECT_VERSION})
+project(cmkr
+	LANGUAGES
+		CXX
+	VERSION 0.1.3
+	DESCRIPTION "CMakeLists generator from TOML"
+)
 
 add_subdirectory(third_party)
 
