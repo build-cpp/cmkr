@@ -1,15 +1,15 @@
 include_guard()
 
 # Disable cmkr if no cmake.toml file is found
-if(NOT EXISTS ${CMAKE_CURRENT_LIST_DIR}/cmake.toml)
-    message(STATUS "[cmkr] Not found: ${CMAKE_CURRENT_LIST_DIR}/cmake.toml")
+if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cmake.toml)
+    message(STATUS "[cmkr] Not found: ${CMAKE_CURRENT_SOURCE_DIR}/cmake.toml")
     macro(cmkr)
     endmacro()
     return()
 endif()
 
 # Add a build-time dependency on the contents of cmake.toml to regenerate the CMakeLists.txt when modified
-configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake.toml ${CMAKE_CURRENT_BINARY_DIR}/cmake.toml COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake.toml ${CMAKE_CURRENT_BINARY_DIR}/cmake.toml COPYONLY)
 
 # Helper macro to execute a process (COMMAND_ERROR_IS_FATAL ANY is 3.19 and higher)
 macro(cmkr_exec)
@@ -80,12 +80,12 @@ macro(cmkr)
 
         # Generate CMakeLists.txt
         cmkr_exec(${CMKR_EXECUTABLE} gen
-            WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         )
 
         # Copy the now-generated CMakeLists.txt to CMakerLists.txt
         # This is done because you cannot include() a file you are currently in
-        set(CMKR_TEMP_FILE ${CMAKE_CURRENT_LIST_DIR}/CMakerLists.txt)
+        set(CMKR_TEMP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/CMakerLists.txt)
         configure_file(CMakeLists.txt ${CMKR_TEMP_FILE} COPYONLY)
         
         # Add the macro required for the hack at the start of the cmkr macro
