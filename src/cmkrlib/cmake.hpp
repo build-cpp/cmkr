@@ -49,8 +49,8 @@ struct Target {
     std::string alias;
     tsl::ordered_map<std::string, std::string> properties;
 
-    std::string inject_before;
-    std::string inject_after;
+    std::string cmake_before;
+    std::string cmake_after;
     std::vector<std::string> include_before;
     std::vector<std::string> include_after;
 };
@@ -82,8 +82,8 @@ struct CMake {
     std::vector<std::string> build_args;
     std::string project_name;
     std::string project_version;
-    std::string inject_before;
-    std::string inject_after;
+    std::string cmake_before;
+    std::string cmake_after;
     std::vector<std::string> include_before;
     std::vector<std::string> include_after;
     std::vector<Setting> settings;

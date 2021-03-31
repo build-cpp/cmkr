@@ -261,8 +261,8 @@ int generate_cmake(const char *path, bool root) {
 
         comment("This file was generated automatically by cmkr.").endl();
 
-        if (!cmake.inject_before.empty()) {
-            ss << tolf(cmake.inject_before) << "\n\n";
+        if (!cmake.cmake_before.empty()) {
+            ss << tolf(cmake.cmake_before) << "\n\n";
         }
 
         if (!cmake.include_before.empty()) {
@@ -321,8 +321,8 @@ int generate_cmake(const char *path, bool root) {
             cmd("project")(name, "VERSION", "${" + name + "_PROJECT_VERSION}").endl();
         }
 
-        if (!cmake.inject_after.empty()) {
-            ss << tolf(cmake.inject_after) << "\n\n";
+        if (!cmake.cmake_after.empty()) {
+            ss << tolf(cmake.cmake_after) << "\n\n";
         }
 
         if (!cmake.include_after.empty()) {
@@ -459,8 +459,8 @@ int generate_cmake(const char *path, bool root) {
                     cmd("set")(target.name + "_SOURCES", sources).endl();
                 }
 
-                if (!target.inject_before.empty()) {
-                    ss << tolf(target.inject_before) << "\n\n";
+                if (!target.cmake_before.empty()) {
+                    ss << tolf(target.cmake_before) << "\n\n";
                 }
 
                 if (!target.include_before.empty()) {
@@ -499,8 +499,8 @@ int generate_cmake(const char *path, bool root) {
                     cmd("set_target_properties")(target.name, "PROPERTIES", target.properties).endl();
                 }
 
-                if (!target.inject_after.empty()) {
-                    ss << tolf(target.inject_after) << "\n\n";
+                if (!target.cmake_after.empty()) {
+                    ss << tolf(target.cmake_after) << "\n\n";
                 }
 
                 if (!target.include_after.empty()) {

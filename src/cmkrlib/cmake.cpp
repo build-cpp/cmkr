@@ -70,11 +70,11 @@ CMake::CMake(const std::string &path, bool build) {
             const auto &project = toml::find(toml, "project");
             project_name = toml::find(project, "name").as_string();
             project_version = toml::find(project, "version").as_string();
-            if (project.contains("inject-before")) {
-                inject_before = toml::find(project, "inject-before").as_string();
+            if (project.contains("cmake-before")) {
+                cmake_before = toml::find(project, "cmake-before").as_string();
             }
-            if (project.contains("inject-after")) {
-                inject_after = toml::find(project, "inject-after").as_string();
+            if (project.contains("cmake-after")) {
+                cmake_after = toml::find(project, "cmake-after").as_string();
             }
             if (project.contains("include-before")) {
                 include_before = detail::to_string_vec(toml::find(project, "include-before").as_array());
@@ -222,11 +222,11 @@ CMake::CMake(const std::string &path, bool build) {
                     target.properties = toml::find<prop_map>(t, "properties");
                 }
 
-                if (t.contains("inject-before")) {
-                    target.inject_before = toml::find(t, "inject-before").as_string();
+                if (t.contains("cmake-before")) {
+                    target.cmake_before = toml::find(t, "cmake-before").as_string();
                 }
-                if (t.contains("inject-after")) {
-                    target.inject_after = toml::find(t, "inject-after").as_string();
+                if (t.contains("cmake-after")) {
+                    target.cmake_after = toml::find(t, "cmake-after").as_string();
                 }
                 if (t.contains("include-before")) {
                     target.include_before = detail::to_string_vec(toml::find(t, "include-before").as_array());
