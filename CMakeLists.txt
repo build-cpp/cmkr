@@ -14,8 +14,10 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 project(cmkr
 	LANGUAGES
 		CXX
-	VERSION 0.1.3
-	DESCRIPTION "CMakeLists generator from TOML"
+	VERSION
+		0.1.3
+	DESCRIPTION
+		"CMakeLists generator from TOML"
 )
 
 add_subdirectory(third_party)

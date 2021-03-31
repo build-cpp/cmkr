@@ -136,6 +136,7 @@ struct Command {
     int depth = 0;
     std::string command;
     bool first_arg = true;
+    bool had_newline = false;
     bool generated = false;
 
     Command(std::stringstream &ss, int depth, const std::string &command) : ss(ss), depth(depth), command(command) {}
@@ -181,10 +182,11 @@ struct Command {
             return true;
         }
 
-        ss << '\n';
         for (const auto &value : vec) {
-            ss << indent(depth + 1) << quote(value) << '\n';
+            ss << '\n' << indent(depth + 1) << quote(value);
         }
+        had_newline = true;
+        first_arg = false;
         return true;
     }
 
@@ -194,10 +196,12 @@ struct Command {
             return true;
         }
 
-        ss << '\n';
         for (const auto &itr : map) {
-            ss << indent(depth + 1) << itr.first << ' ' << quote(itr.second) << '\n';
+            ss << '\n' << indent(depth + 1) << itr.first;
+            ss << '\n' << indent(depth + 2) << quote(itr.second);
         }
+        had_newline = true;
+        first_arg = false;
         return true;
     }
 
@@ -209,7 +213,7 @@ struct Command {
         if (first_arg) {
             first_arg = false;
         } else {
-            ss << ' ';
+            ss << (had_newline ? '\n' : ' ');
         }
         ss << quote(value);
         return true;
@@ -221,11 +225,12 @@ struct Command {
             return true;
         }
 
-        ss << '\n';
-        ss << indent(depth + 1) << kv.first << '\n';
+        ss << '\n' << indent(depth + 1) << kv.first;
         for (const auto &s : kv.second) {
-            ss << indent(depth + 2) << quote(s) << '\n';
+            ss << '\n' << indent(depth + 2) << quote(s);
         }
+        had_newline = true;
+        first_arg = false;
 
         return true;
     }
@@ -236,7 +241,10 @@ struct Command {
             return true;
         }
 
-        ss << indent(depth + 1) << kv.first << ' ' << quote(kv.second) << '\n';
+        ss << '\n' << indent(depth + 1) << kv.first;
+        ss << '\n' << indent(depth + 2) << quote(kv.second);
+        had_newline = true;
+        first_arg = false;
 
         return true;
     }
@@ -246,7 +254,7 @@ struct Command {
         if (first_arg) {
             first_arg = false;
         } else {
-            ss << ' ';
+            ss << (had_newline ? '\n' : ' ');
         }
         std::stringstream tmp;
         tmp << value;
@@ -259,6 +267,8 @@ struct Command {
         generated = true;
         ss << indent(depth) << command << '(';
         std::initializer_list<bool>{print_arg(values)...};
+        if (had_newline)
+            ss << '\n';
         ss << ")\n";
         return CommandEndl(ss);
     }
