@@ -37,24 +37,34 @@ std::string format(const char *fmt, Args... args) {
     return temp;
 }
 
-static std::vector<std::string> expand_cmake_path(const fs::path &p) {
+static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs::path &toml_dir) {
     std::vector<std::string> temp;
-    auto stem = p.filename().stem().string();
-    auto ext = p.extension();
+
+    auto extract_suffix = [](const fs::path &base, const fs::path &full) {
+        // TODO: delet this
+        auto fullpath = full.string();
+        auto base_len = base.string().length();
+        auto delet = fullpath.substr(base_len + 1, fullpath.length() - base_len);
+        return delet;
+    };
+
+    auto stem = name.filename().stem().string();
+    auto ext = name.extension();
+
     if (stem == "*") {
-        for (const auto &f : fs::directory_iterator(p.parent_path(), fs::directory_options::follow_directory_symlink)) {
+        for (const auto &f : fs::directory_iterator(toml_dir / name.parent_path(), fs::directory_options::follow_directory_symlink)) {
             if (!f.is_directory() && f.path().extension() == ext) {
-                temp.push_back(f.path().string());
+                temp.push_back(extract_suffix(toml_dir, f));
             }
         }
     } else if (stem == "**") {
-        for (const auto &f : fs::recursive_directory_iterator(p.parent_path(), fs::directory_options::follow_directory_symlink)) {
+        for (const auto &f : fs::recursive_directory_iterator(toml_dir / name.parent_path(), fs::directory_options::follow_directory_symlink)) {
             if (!f.is_directory() && f.path().extension() == ext) {
-                temp.push_back(f.path().string());
+                temp.push_back(extract_suffix(toml_dir, f.path()));
             }
         }
     } else {
-        temp.push_back(p.string());
+        temp.push_back(name.string());
     }
     // Normalize all paths to work with CMake (it needs a / on Windows as well)
     for (auto &path : temp) {
@@ -63,12 +73,11 @@ static std::vector<std::string> expand_cmake_path(const fs::path &p) {
     return temp;
 }
 
-static std::vector<std::string> expand_cmake_paths(const std::vector<std::string> &sources) {
+static std::vector<std::string> expand_cmake_paths(const std::vector<std::string> &sources, const fs::path &toml_dir) {
     // TODO: add duplicate checking
     std::vector<std::string> result;
     for (const auto &src : sources) {
-        auto path = fs::path(src);
-        auto expanded = expand_cmake_path(path);
+        auto expanded = expand_cmake_path(src, toml_dir);
         for (const auto &f : expanded) {
             result.push_back(f);
         }
@@ -476,7 +485,7 @@ int generate_cmake(const char *path, bool root) {
             inject_cmake(target.cmake_before);
 
             if (!target.sources.empty()) {
-                auto sources = expand_cmake_paths(target.sources);
+                auto sources = expand_cmake_paths(target.sources, path);
                 if (sources.empty()) {
                     throw std::runtime_error(target.name + " sources wildcard found 0 files");
                 }
@@ -577,7 +586,7 @@ int generate_cmake(const char *path, bool root) {
             auto dirs = std::make_pair("DIRS", inst.dirs);
             std::vector<std::string> files_data;
             if (!inst.files.empty()) {
-                files_data = expand_cmake_paths(inst.files);
+                files_data = expand_cmake_paths(inst.files, path);
                 if (files_data.empty()) {
                     throw std::runtime_error("[[install]] files wildcard did not resolve to any files");
                 }
@@ -616,8 +625,9 @@ int generate_cmake(const char *path, bool root) {
     }
 
     for (const auto &sub : cmake.subdirs) {
-        if (fs::exists(fs::path(sub) / "cmake.toml"))
-            generate_cmake(sub.c_str(), false);
+        auto subpath = fs::path(path) / fs::path(sub);
+        if (fs::exists(subpath / "cmake.toml"))
+            generate_cmake(subpath.string().c_str(), false);
     }
 
     return 0;
