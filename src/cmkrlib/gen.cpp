@@ -334,8 +334,11 @@ int generate_cmake(const char *path, bool root) {
         }
     };
 
-    comment("This file was generated automatically by cmkr.").endl();
     // TODO: add link with proper documentation
+    comment("This file was generated automatically by cmkr.").endl();
+
+    comment("Create a configure-time dependency on cmake.toml to improve IDE support");
+    cmd("configure_file")("cmake.toml", "cmake.toml", "COPYONLY").endl();
 
     cmake::CMake cmake(path, false);
 

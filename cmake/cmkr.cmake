@@ -2,14 +2,11 @@ include_guard()
 
 # Disable cmkr if no cmake.toml file is found
 if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/cmake.toml)
-    message(STATUS "[cmkr] Not found: ${CMAKE_CURRENT_SOURCE_DIR}/cmake.toml")
+    message(AUTHOR_WARNING "[cmkr] Not found: ${CMAKE_CURRENT_SOURCE_DIR}/cmake.toml")
     macro(cmkr)
     endmacro()
     return()
 endif()
-
-# Add a build-time dependency on the contents of cmake.toml to regenerate the CMakeLists.txt when modified
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake.toml ${CMAKE_CURRENT_BINARY_DIR}/cmake.toml COPYONLY)
 
 # Helper macro to execute a process (COMMAND_ERROR_IS_FATAL ANY is 3.19 and higher)
 macro(cmkr_exec)
