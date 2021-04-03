@@ -330,6 +330,9 @@ int generate_cmake(const char *path, bool root) {
     };
     auto inject_cmake = [&ss, &tolf](const std::string &cmake) {
         if (!cmake.empty()) {
+            if (cmake.back() == '\"') {
+                throw std::runtime_error("Detected additional \" at the end of cmake block");
+            }
             ss << tolf(cmake) << "\n\n";
         }
     };
