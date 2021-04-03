@@ -7,7 +7,7 @@
 #include <tsl/ordered_map.h>
 
 template <>
-const char *enumStrings<cmkr::cmake::TargetType>::data[] = {"executable", "library", "shared", "static", "internface", "custom"};
+const char *enumStrings<cmkr::cmake::TargetType>::data[] = {"executable", "library", "shared", "static", "interface", "custom"};
 
 namespace cmkr {
 namespace cmake {
