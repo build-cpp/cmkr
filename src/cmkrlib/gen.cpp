@@ -542,6 +542,16 @@ int generate_cmake(const char *path, bool root) {
 
             cmd(add_command)(target.name, target_type, "${" + target.name + "_SOURCES}").endl();
 
+            // The first executable target will become the Visual Studio startup project
+            if (target.type == cmake::target_executable) {
+                cmd("get_directory_property")("CMKR_VS_STARTUP_PROJECT", "DIRECTORY", "${PROJECT_SOURCE_DIR}", "DEFINITION", "VS_STARTUP_PROJECT");
+                // clang-format off
+                cmd("if")("NOT", "CMKR_VS_STARTUP_PROJECT");
+                    cmd("set_property")("DIRECTORY", "${PROJECT_SOURCE_DIR}", "PROPERTY", "VS_STARTUP_PROJECT", target.name);
+                cmd("endif")().endl();
+                // clang-format on
+            }
+
             if (!target.sources.empty()) {
                 cmd("source_group")("TREE", "${CMAKE_CURRENT_SOURCE_DIR}", "FILES", "${" + target.name + "_SOURCES}").endl();
             }
