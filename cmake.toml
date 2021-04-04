@@ -2,11 +2,16 @@
 minimum = "2.8...3.8"
 
 [project]
+cmake-before = """
+# Hack to hide a warning during cmkr bootstrapping on Windows
+if(CMAKE_BUILD_TYPE)
+endif()
+"""
 name = "cmkr"
 version = "0.1.3"
 description = "CMakeLists generator from TOML"
 languages = ["CXX"]
-cmake-after = "add_subdirectory(third_party)"
+subdirs = ["third_party"]
 
 [target.cmkrlib]
 type = "static"

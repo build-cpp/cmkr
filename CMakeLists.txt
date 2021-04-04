@@ -1,5 +1,8 @@
 # This file was generated automatically by cmkr.
 
+# Create a configure-time dependency on cmake.toml to improve IDE support
+configure_file(cmake.toml cmake.toml COPYONLY)
+
 # Regenerate CMakeLists.txt file when necessary
 include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)
 
@@ -11,6 +14,11 @@ cmake_minimum_required(VERSION 2.8...3.8)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Hack to hide a warning during cmkr bootstrapping on Windows
+if(CMAKE_BUILD_TYPE)
+endif()
+
+
 project(cmkr
 	LANGUAGES
 		CXX
@@ -20,7 +28,15 @@ project(cmkr
 		"CMakeLists generator from TOML"
 )
 
+set(CMKR_CMAKE_FOLDER ${CMAKE_FOLDER})
+if(CMAKE_FOLDER)
+	set(CMAKE_FOLDER "${CMAKE_FOLDER}/third_party")
+else()
+	set(CMAKE_FOLDER third_party)
+endif()
 add_subdirectory(third_party)
+set(CMAKE_FOLDER ${CMKR_CMAKE_FOLDER})
+
 
 # Target cmkrlib
 set(cmkrlib_SOURCES
@@ -68,6 +84,11 @@ set(cmkr_SOURCES
 )
 
 add_executable(cmkr ${cmkr_SOURCES})
+
+get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)
+if(NOT CMKR_VS_STARTUP_PROJECT)
+	set_property(DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT cmkr)
+endif()
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${cmkr_SOURCES})
 
