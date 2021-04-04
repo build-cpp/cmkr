@@ -177,7 +177,7 @@ struct Command {
         return result;
     }
 
-    std::string indent(int n) {
+    static std::string indent(int n) {
         std::string result;
         for (int i = 0; i < n; i++) {
             result += '\t';
@@ -305,8 +305,8 @@ int generate_cmake(const char *path, bool root) {
         }
         return Command(ss, indent, command);
     };
-    auto comment = [&ss](const std::string &comment) {
-        ss << "# " << comment << '\n';
+    auto comment = [&ss, &indent](const std::string &comment) {
+        ss << Command::indent(indent) << "# " << comment << '\n';
         return CommandEndl(ss);
     };
     auto endl = [&ss]() { ss << '\n'; };
@@ -340,25 +340,35 @@ int generate_cmake(const char *path, bool root) {
     // TODO: add link with proper documentation
     comment("This file was generated automatically by cmkr.").endl();
 
-    comment("Create a configure-time dependency on cmake.toml to improve IDE support");
-    cmd("configure_file")("cmake.toml", "cmake.toml", "COPYONLY").endl();
-
     cmake::CMake cmake(path, false);
 
     if (root) {
-        comment("Regenerate CMakeLists.txt file when necessary");
-        cmd("include")(cmake.cmkr_include, "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT").endl();
-
-        // clang-format off
-        cmd("if")("CMKR_INCLUDE_RESULT");
-            cmd("cmkr")();
-        cmd("endif")().endl();
-        // clang-format on
-
         cmd("cmake_minimum_required")("VERSION", cmake.cmake_version).endl();
 
-        cmd("set_property")("GLOBAL", "PROPERTY", "USE_FOLDERS", "ON").endl();
+        comment("Regenerate CMakeLists.txt automatically in the root project");
+        cmd("set")("CMKR_ROOT_PROJECT", "OFF");
+        // clang-format off
+        cmd("if")("CMAKE_CURRENT_SOURCE_DIR", "STREQUAL", "CMAKE_SOURCE_DIR");
+            cmd("set")("CMKR_ROOT_PROJECT", "ON").endl();
+
+            comment("Bootstrap cmkr");
+            cmd("include")(cmake.cmkr_include, "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT");
+            cmd("if")("CMKR_INCLUDE_RESULT");
+                cmd("cmkr")();
+            cmd("endif")().endl();
+
+            comment("Enable folder support");
+            cmd("set_property")("GLOBAL", "PROPERTY", "USE_FOLDERS", "ON");
+        cmd("endif")().endl();
+        // clang-format on
     }
+
+    // clang-format off
+    comment("Create a configure-time dependency on cmake.toml to improve IDE support");
+    cmd("if")("CMKR_ROOT_PROJECT");
+        cmd("configure_file")("cmake.toml", "cmake.toml", "COPYONLY");
+    cmd("endif")().endl();
+    // clang-format on
 
     // TODO: remove support and replace with global compile-features
     if (!cmake.cppflags.empty()) {
@@ -471,6 +481,7 @@ int generate_cmake(const char *path, bool root) {
     if (!cmake.subdirs.empty()) {
         for (const auto &dir : cmake.subdirs) {
             // clang-format off
+            comment(dir);
             cmd("set")("CMKR_CMAKE_FOLDER", "${CMAKE_FOLDER}");
             cmd("if")("CMAKE_FOLDER");
                 cmd("set")("CMAKE_FOLDER", "${CMAKE_FOLDER}/" + dir);

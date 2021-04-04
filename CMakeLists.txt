@@ -3,15 +3,21 @@
 # Create a configure-time dependency on cmake.toml to improve IDE support
 configure_file(cmake.toml cmake.toml COPYONLY)
 
-# Regenerate CMakeLists.txt file when necessary
-include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)
-
-if(CMKR_INCLUDE_RESULT)
-	cmkr()
-endif()
-
 cmake_minimum_required(VERSION 2.8...3.8)
 
+# Regenerate CMakeLists.txt file when necessary
+set(CMKR_ROOT_PROJECT OFF)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+	set(CMKR_ROOT_PROJECT ON)
+
+	include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)
+	if(CMKR_INCLUDE_RESULT)
+		cmkr()
+	endif()
+
+endif()
+
+# Enable folder support
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Hack to hide a warning during cmkr bootstrapping on Windows
