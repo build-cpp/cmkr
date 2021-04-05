@@ -50,9 +50,9 @@ CMake::CMake(const std::string &path, bool build) {
                 throw std::runtime_error("bin-dir has been renamed to build-dir");
             }
 
-            build_dir = toml::find_or(cmake, "build-dir", "");
-            generator = toml::find_or(cmake, "generator", "");
-            config = toml::find_or(cmake, "config", "");
+            build_dir = toml::find_or(cmake, "build-dir", build_dir);
+            generator = toml::find_or(cmake, "generator", generator);
+            config = toml::find_or(cmake, "config", config);
             gen_args = optional_array(cmake, "arguments");
         }
     } else {
