@@ -1,24 +1,26 @@
 # This file was generated automatically by cmkr.
 
-# Create a configure-time dependency on cmake.toml to improve IDE support
-configure_file(cmake.toml cmake.toml COPYONLY)
-
 cmake_minimum_required(VERSION 2.8...3.8)
 
-# Regenerate CMakeLists.txt file when necessary
+# Regenerate CMakeLists.txt automatically in the root project
 set(CMKR_ROOT_PROJECT OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 	set(CMKR_ROOT_PROJECT ON)
 
+	# Bootstrap cmkr
 	include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)
 	if(CMKR_INCLUDE_RESULT)
 		cmkr()
 	endif()
 
+	# Enable folder support
+	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
 
-# Enable folder support
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+# Create a configure-time dependency on cmake.toml to improve IDE support
+if(CMKR_ROOT_PROJECT)
+	configure_file(cmake.toml cmake.toml COPYONLY)
+endif()
 
 # Hack to hide a warning during cmkr bootstrapping on Windows
 if(CMAKE_BUILD_TYPE)
@@ -34,6 +36,7 @@ project(cmkr
 		"CMakeLists generator from TOML"
 )
 
+# third_party
 set(CMKR_CMAKE_FOLDER ${CMAKE_FOLDER})
 if(CMAKE_FOLDER)
 	set(CMAKE_FOLDER "${CMAKE_FOLDER}/third_party")

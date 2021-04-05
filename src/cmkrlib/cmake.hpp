@@ -79,8 +79,9 @@ struct Install {
 };
 
 struct CMake {
-    std::string cmake_version;
-    std::string cmkr_include;
+    // This is the CMake version required to use all cmkr versions.
+    std::string cmake_version = "3.15";
+    std::string cmkr_include = "cmkr.cmake";
     std::string build_dir = "build";
     std::string generator;
     std::string config;

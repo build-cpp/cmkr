@@ -11,7 +11,7 @@ int %s() {
 
 static const char *cmake_toml = R"lit(
 [cmake]
-minimum = "3.15"
+version = "3.15"
 # subdirs = []
 # build-dir = ""
 # cpp-flags = []
