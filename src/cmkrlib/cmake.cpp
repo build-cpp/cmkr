@@ -130,9 +130,10 @@ CMake::CMake(const std::string &path, bool build) {
                 if (pkg.second.is_string()) {
                     p.version = pkg.second.as_string();
                 } else {
-                    p.version = toml::find_or(pkg.second, "version", "");
-                    p.required = toml::find_or(pkg.second, "required", false);
-                    p.components = toml::find_or(pkg.second, "components", std::vector<std::string>());
+                    p.version = toml::find_or(pkg.second, "version", p.version);
+                    p.required = toml::find_or(pkg.second, "required", p.required);
+                    p.config = toml::find_or(pkg.second, "config", p.config);
+                    p.components = toml::find_or(pkg.second, "components", p.components);
                 }
                 packages.push_back(p);
             }
@@ -186,8 +187,8 @@ CMake::CMake(const std::string &path, bool build) {
                     target.properties = toml::find<prop_map>(t, "properties");
                 }
 
-                target.cmake_before = toml::find_or(t, "cmake-before", "");
-                target.cmake_after = toml::find_or(t, "cmake-after", "");
+                target.cmake_before = toml::find_or(t, "cmake-before", target.cmake_before);
+                target.cmake_after = toml::find_or(t, "cmake-after", target.cmake_after);
                 target.include_before = optional_array(t, "include-before");
                 target.include_after = optional_array(t, "include-after");
 
@@ -216,6 +217,19 @@ CMake::CMake(const std::string &path, bool build) {
                 inst.configs = optional_array(t, "configs");
                 inst.destination = toml::find(t, "destination").as_string();
                 installs.push_back(inst);
+            }
+        }
+
+        if (toml.contains("vcpkg")) {
+            const auto &v = toml::find(toml, "vcpkg");
+            vcpkg.version = toml::find(v, "version").as_string();
+            vcpkg.packages = toml::find<decltype(vcpkg.packages)>(v, "packages");
+
+            // This allows the user to use a custom pmm version if desired
+            if (contents.count("pmm") == 0) {
+                contents["pmm"]["url"] = "https://github.com/vector-of-bool/pmm/archive/refs/tags/1.5.1.tar.gz";
+                // Hack to not execute pmm's example CMakeLists.txt
+                contents["pmm"]["SOURCE_SUBDIR"] = "pmm";
             }
         }
     }

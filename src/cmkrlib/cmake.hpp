@@ -28,7 +28,13 @@ struct Package {
     std::string name;
     std::string version;
     bool required = true;
+    bool config = true;
     std::vector<std::string> components;
+};
+
+struct Vcpkg {
+    std::string version;
+    std::vector<std::string> packages;
 };
 
 enum TargetType {
@@ -102,6 +108,7 @@ struct CMake {
     std::vector<Setting> settings;
     std::vector<Option> options;
     std::vector<Package> packages;
+    Vcpkg vcpkg;
     tsl::ordered_map<std::string, std::map<std::string, std::string>> contents;
     std::vector<Target> targets;
     std::vector<Test> tests;

@@ -231,10 +231,6 @@ struct Command {
 
     template <class K, class V>
     bool print_arg(const std::pair<K, V> &kv) {
-        std::stringstream tmp;
-        tmp << kv.second;
-        auto str = tmp.str();
-
         if (kv.second.empty()) {
             return true;
         }
@@ -242,7 +238,7 @@ struct Command {
         had_newline = true;
         print_arg(kv.first);
         depth++;
-        print_arg(str);
+        print_arg(kv.second);
         depth--;
 
         return true;
@@ -410,17 +406,6 @@ int generate_cmake(const char *path, bool root) {
     inject_includes(cmake.include_after);
     inject_cmake(cmake.cmake_after);
 
-    if (!cmake.packages.empty()) {
-        for (const auto &dep : cmake.packages) {
-            auto version = dep.version;
-            if (version == "*")
-                version.clear();
-            auto required = dep.required ? "REQUIRED" : "";
-            auto components = std::make_pair("COMPONENTS", dep.components);
-            cmd("find_package")(dep.name, version, required, components).endl();
-        }
-    }
-
     if (!cmake.contents.empty()) {
         cmd("include")("FetchContent").endl();
         for (const auto &dep : cmake.contents) {
@@ -450,7 +435,32 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
+    if (!cmake.vcpkg.version.empty()) {
+        assert("pmm is required in fetch-content for vcpkg to work" && cmake.contents.count("pmm") != 0);
+        comment("Bootstrap vcpkg");
+        cmd("include")("${pmm_SOURCE_DIR}/pmm.cmake");
+        tsl::ordered_map<std::string, std::vector<std::string>> vcpkg_args;
+        vcpkg_args["REVISION"] = { cmake.vcpkg.version };
+        vcpkg_args["REQUIRES"] = cmake.vcpkg.packages;
+        auto vcpkg = std::make_pair("VCPKG", vcpkg_args);
+        cmd("pmm")(vcpkg).endl();
+    }
+
+    if (!cmake.packages.empty()) {
+        comment("Packages");
+        for (const auto &dep : cmake.packages) {
+            auto version = dep.version;
+            if (version == "*")
+                version.clear();
+            auto required = dep.required ? "REQUIRED" : "";
+            auto config = dep.config ? "CONFIG" : "";
+            auto components = std::make_pair("COMPONENTS", dep.components);
+            cmd("find_package")(dep.name, version, required, config, components).endl();
+        }
+    }
+
     if (!cmake.options.empty()) {
+        comment("Options");
         for (const auto &opt : cmake.options) {
             cmd("option")(opt.name, opt.comment, opt.val ? "ON" : "OFF");
         }
@@ -458,6 +468,7 @@ int generate_cmake(const char *path, bool root) {
     }
 
     if (!cmake.settings.empty()) {
+        comment("Settings");
         for (const auto &set : cmake.settings) {
             std::string set_val;
             if (set.val.index() == 1) {
