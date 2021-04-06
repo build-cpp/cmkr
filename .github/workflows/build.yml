@@ -2,18 +2,18 @@ name: CMake
 
 on: [push, pull_request]
 
-env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
-
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-10.15, ubuntu-18.04]
-
+        os: [windows-2016, windows-2019, macos-10.15, ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
+    env:
+      BUILD_TYPE: Release
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Build
-      run: cmake -S. -Bbin -DCMAKE_BUILD_TYPE=$BUILD_TYPE && cmake --build bin --parallel --config $BUILD_TYPE
+      run: |
+        cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+        cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
