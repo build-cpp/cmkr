@@ -272,7 +272,7 @@ struct Command {
     CommandEndl operator()(Ts &&...values) {
         generated = true;
         ss << indent(depth) << command << '(';
-        std::initializer_list<bool>{print_arg(values)...};
+        (void)std::initializer_list<bool>{print_arg(values)...};
         if (had_newline)
             ss << '\n';
         ss << ")\n";

@@ -8,3 +8,4 @@ temp.*
 build*/
 .idea/
 cmake-build*/
+CMakeLists.txt.user
