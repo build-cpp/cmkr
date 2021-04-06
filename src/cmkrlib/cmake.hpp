@@ -21,7 +21,7 @@ struct Setting {
 struct Option {
     std::string name;
     std::string comment;
-    bool val;
+    bool val = false;
 };
 
 struct Package {
@@ -48,7 +48,7 @@ enum TargetType {
 
 struct Target {
     std::string name;
-    TargetType type;
+    TargetType type = {};
 
     // https://cmake.org/cmake/help/latest/manual/cmake-commands.7.html#project-commands
     std::vector<std::string> compile_definitions;
