@@ -70,6 +70,8 @@ static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs
     for (auto &path : temp) {
         std::replace(path.begin(), path.end(), '\\', '/');
     }
+    // Sort paths alphabetically for consistent cross-OS generation
+    std::sort(temp.begin(), temp.end());
     return temp;
 }
 

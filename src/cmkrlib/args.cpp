@@ -21,8 +21,7 @@ const char *handle_args(int argc, char **argv) {
         throw std::runtime_error(cmkr::help::message());
     std::string main_arg = args[1];
     if (main_arg == "gen") {
-        auto current_path = fs::current_path();
-        auto ret = cmkr::gen::generate_cmake(current_path.string().c_str());
+        auto ret = cmkr::gen::generate_cmake(fs::current_path().string().c_str());
         if (ret)
             return "CMake generation error!";
         return "CMake generation successful!";

@@ -23,7 +23,7 @@ int run(int argc, char **argv) {
     std::stringstream ss;
 
     if (!fs::exists("CMakeLists.txt"))
-        if (gen::generate_cmake("."))
+        if (gen::generate_cmake(fs::current_path().string().c_str()))
             throw std::runtime_error("CMake generation failure!");
 
     ss << "cmake -S. -B" << cmake.build_dir << " ";
