@@ -72,8 +72,10 @@ struct Target {
 
 struct Test {
     std::string name;
-    std::string cmd;
-    std::vector<std::string> args;
+    std::vector<std::string> configurations;
+    std::string working_directory;
+    std::string command;
+    std::vector<std::string> arguments;
 };
 
 struct Install {

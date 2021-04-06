@@ -6,6 +6,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-2016, windows-2019, macos-10.15, ubuntu-16.04, ubuntu-18.04, ubuntu-20.04]
     env:
@@ -17,3 +18,7 @@ jobs:
       run: |
         cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
         cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+    - name: Test
+      run: |
+        cd build/tests
+        ctest -C ${{ env.BUILD_TYPE }}

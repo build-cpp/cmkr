@@ -204,8 +204,10 @@ CMake::CMake(const std::string &path, bool build) {
             for (const auto &t : ts) {
                 Test test;
                 test.name = toml::find(t, "name").as_string();
-                test.cmd = toml::find(t, "type").as_string();
-                get_optional(t, "arguments", test.args);
+                get_optional(t, "configurations", test.configurations);
+                get_optional(t, "working-directory", test.working_directory);
+                test.command = toml::find(t, "command").as_string();
+                get_optional(t, "arguments", test.arguments);
                 tests.push_back(test);
             }
         }
