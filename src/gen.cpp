@@ -51,7 +51,7 @@ static std::vector<std::string> expand_cmake_path(const fs::path &p) {
         temp.push_back(p.string());
     }
     // Normalize all paths to work with CMake (it needs a / on Windows as well)
-    for(auto& path : temp) {
+    for (auto &path : temp) {
         std::replace(path.begin(), path.end(), '\\', '/');
     }
     return temp;
@@ -159,11 +159,13 @@ int generate_cmake(const char *path) {
             ss << "\n\n";
         }
 
+        std::string desc = "";
+        if (!cmake.desc.empty())
+            desc = "\n\tLANGUAGES C CXX\n\tDESCRIPTION \"" + cmake.desc + "\"";
+
         if (!cmake.proj_name.empty() && !cmake.proj_version.empty()) {
-            ss << "set(" << cmake.proj_name << "_PROJECT_VERSION " << cmake.proj_version << ")\n"
-               << "project(" << cmake.proj_name << " VERSION "
-               << "${" << cmake.proj_name << "_PROJECT_VERSION}"
-               << ")\n\n";
+            ss << "project(" << cmake.proj_name << "\n\tVERSION " << cmake.proj_version << desc
+               << "\n\t)\n\n";
         }
 
         if (!cmake.packages.empty()) {
@@ -206,7 +208,12 @@ int generate_cmake(const char *path) {
                     } else {
                         // don't change arg
                     }
-                    ss << "\t" << first_arg << " " << arg.second << "\n";
+                    if (first_arg != "GIT_REPOSITORY")
+                        ss << "\t" << first_arg << " " << arg.second << "\n";
+                    else
+                        ss << "\t" << first_arg << " " << arg.second << "\n\t"
+                           << "GIT_SHALLOW "
+                           << "ON\n";
                 }
                 ss << "\t)\n\n"
                    << "FetchContent_MakeAvailable(" << dep.first << ")\n\n";

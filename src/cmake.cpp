@@ -48,6 +48,10 @@ CMake::CMake(const std::string &path, bool build) {
             const auto &cmake = toml::find(toml, "cmake");
             cmake_version = toml::find(cmake, "minimum").as_string();
 
+            if (cmake.contains("description")) {
+                desc = toml::find(cmake, "description").as_string();
+            }
+
             if (cmake.contains("cpp-flags")) {
                 cppflags = detail::to_string_vec(toml::find(cmake, "cpp-flags").as_array());
             }
@@ -182,8 +186,8 @@ CMake::CMake(const std::string &path, bool build) {
                     b.features = detail::to_string_vec(toml::find(bin, "features").as_array());
                 }
 
-                if (bin.contains("defines")) {
-                    b.defines = detail::to_string_vec(toml::find(bin, "defines").as_array());
+                if (bin.contains("definitions")) {
+                    b.defines = detail::to_string_vec(toml::find(bin, "definitions").as_array());
                 }
 
                 if (bin.contains("alias")) {

@@ -38,7 +38,7 @@ sources = ["src/*.cpp"]
 include-dirs = ["include"]
 # alias = ""
 # features = []
-# defines = []
+# definitions = []
 # link-libs = []
 
 [[install]]

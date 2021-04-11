@@ -58,6 +58,7 @@ struct Install {
 
 struct CMake {
     std::string cmake_version = "3.15";
+    std::string desc;
     std::string bin_dir = "bin";
     std::string generator;
     std::string config;

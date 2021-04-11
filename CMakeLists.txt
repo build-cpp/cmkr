@@ -11,14 +11,18 @@ cmake_minimum_required(VERSION 3.15)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(cmkr_PROJECT_VERSION 0.1.3)
-project(cmkr VERSION ${cmkr_PROJECT_VERSION})
+project(cmkr
+	VERSION 0.1.4
+	LANGUAGES C CXX
+	DESCRIPTION "CMakeLists generator from TOML"
+	)
 
 include(FetchContent)
 
 FetchContent_Declare(
 	filesystem
 	GIT_REPOSITORY https://github.com/gulrak/filesystem
+	GIT_SHALLOW ON
 	)
 
 FetchContent_MakeAvailable(filesystem)
@@ -33,6 +37,7 @@ FetchContent_MakeAvailable(mpark_variant)
 FetchContent_Declare(
 	toml11
 	GIT_REPOSITORY https://github.com/ToruNiina/toml11
+	GIT_SHALLOW ON
 	)
 
 FetchContent_MakeAvailable(toml11)
