@@ -1,0 +1,9 @@
+[cmake]
+version = "3.5"
+
+[project]
+name = "basic"
+
+[target.basic]
+type = "executable"
+sources = ["src/basic.cpp"]

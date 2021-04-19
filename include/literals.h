@@ -1,20 +1,19 @@
 #pragma once
 
-const char *hello_world = R"lit(
+static const char *hello_world = &R"lit(
 #include <iostream>
 
 int %s() {
     std::cout << "Hello World!\n";
     return 0;
 }
+)lit"[1]; // skip initial newline
 
-)lit";
-
-const char *cmake_toml = R"lit(
+static const char *cmake_toml = &R"lit(
 [cmake]
-minimum = "3.15"
+version = "3.15"
 # subdirs = []
-# bin-dir = ""
+# build-dir = ""
 # cpp-flags = []
 # c-flags = []
 # link-flags = []
@@ -31,18 +30,17 @@ version = "0.1.0"
 
 # [options]
 
-[[bin]]
+[[target]]
 name = "%s"
 type = "%s"
 sources = ["src/*.cpp"]
-include-dirs = ["include"]
+include-directories = ["include"]
 # alias = ""
-# features = []
-# definitions = []
-# link-libs = []
+# compile-features = []
+# compile-definitions = []
+# link-libraries = []
 
 [[install]]
 %s = ["%s"]
 destination = "${CMAKE_INSTALL_PREFIX}/%s"
-
-)lit";
+)lit"[1]; // skip initial newline

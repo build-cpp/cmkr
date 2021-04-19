@@ -6,3 +6,6 @@ temp.*
 .vs
 .cache
 build*/
+.idea/
+cmake-build*/
+CMakeLists.txt.user

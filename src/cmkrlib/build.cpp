@@ -22,11 +22,10 @@ int run(int argc, char **argv) {
     }
     std::stringstream ss;
 
-    if (!fs::exists("CMakeLists.txt"))
-        if (gen::generate_cmake("."))
-            throw std::runtime_error("[cmkr] error: CMake generation failure!");
+    if (gen::generate_cmake(fs::current_path().string().c_str()))
+        throw std::runtime_error("CMake generation failure!");
 
-    ss << "cmake -S. -B" << cmake.bin_dir << " ";
+    ss << "cmake -S. -B" << cmake.build_dir << " ";
 
     if (!cmake.generator.empty()) {
         ss << "-G \"" << cmake.generator << "\" ";
@@ -39,7 +38,7 @@ int run(int argc, char **argv) {
             ss << "-D" << arg << " ";
         }
     }
-    ss << "&& cmake --build " << cmake.bin_dir << " --parallel";
+    ss << "&& cmake --build " << cmake.build_dir << " --parallel";
     if (argc > 2) {
         for (const auto &arg : cmake.build_args) {
             ss << " " << arg;
@@ -52,16 +51,16 @@ int run(int argc, char **argv) {
 int clean() {
     bool ret = false;
     cmake::CMake cmake(".", true);
-    if (fs::exists(cmake.bin_dir)) {
-        ret = fs::remove_all(cmake.bin_dir);
-        fs::create_directory(cmake.bin_dir);
+    if (fs::exists(cmake.build_dir)) {
+        ret = fs::remove_all(cmake.build_dir);
+        fs::create_directory(cmake.build_dir);
     }
     return !ret;
 }
 
 int install() {
     cmake::CMake cmake(".", false);
-    auto cmd = "cmake --install " + cmake.bin_dir;
+    auto cmd = "cmake --install " + cmake.build_dir;
     return ::system(cmd.c_str());
 }
 } // namespace build

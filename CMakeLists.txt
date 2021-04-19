@@ -1,87 +1,125 @@
 # This file was generated automatically by cmkr.
 
-# Regenerate CMakeLists.txt file when necessary
-include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)
+cmake_minimum_required(VERSION 2.8...3.8)
 
-if(CMKR_INCLUDE_RESULT)
-	cmkr()
+# Regenerate CMakeLists.txt automatically in the root project
+set(CMKR_ROOT_PROJECT OFF)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+	set(CMKR_ROOT_PROJECT ON)
+
+	# Bootstrap cmkr
+	include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)
+	if(CMKR_INCLUDE_RESULT)
+		cmkr()
+	endif()
+
+	# Enable folder support
+	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
 
-cmake_minimum_required(VERSION 3.15)
+# Create a configure-time dependency on cmake.toml to improve IDE support
+if(CMKR_ROOT_PROJECT)
+	configure_file(cmake.toml cmake.toml COPYONLY)
+endif()
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# Hack to hide a warning during cmkr bootstrapping on Windows
+if(CMAKE_BUILD_TYPE)
+endif()
+
 
 project(cmkr
-	VERSION 0.1.4
-	LANGUAGES C CXX
-	DESCRIPTION "CMakeLists generator from TOML"
-	)
+	LANGUAGES
+		CXX
+	VERSION
+		0.1.3
+	DESCRIPTION
+		"CMakeLists generator from TOML"
+)
 
-include(FetchContent)
+# third_party
+set(CMKR_CMAKE_FOLDER ${CMAKE_FOLDER})
+if(CMAKE_FOLDER)
+	set(CMAKE_FOLDER "${CMAKE_FOLDER}/third_party")
+else()
+	set(CMAKE_FOLDER third_party)
+endif()
+add_subdirectory(third_party)
+set(CMAKE_FOLDER ${CMKR_CMAKE_FOLDER})
 
-FetchContent_Declare(
-	filesystem
-	GIT_REPOSITORY https://github.com/gulrak/filesystem
-	GIT_SHALLOW ON
-	)
+# tests
+set(CMKR_CMAKE_FOLDER ${CMAKE_FOLDER})
+if(CMAKE_FOLDER)
+	set(CMAKE_FOLDER "${CMAKE_FOLDER}/tests")
+else()
+	set(CMAKE_FOLDER tests)
+endif()
+add_subdirectory(tests)
+set(CMAKE_FOLDER ${CMKR_CMAKE_FOLDER})
 
-FetchContent_MakeAvailable(filesystem)
 
-FetchContent_Declare(
-	mpark_variant
-	URL https://github.com/mpark/variant/archive/v1.4.0.tar.gz
-	)
+# Target cmkrlib
+set(cmkrlib_SOURCES
+	"src/cmkrlib/args.cpp"
+	"src/cmkrlib/build.cpp"
+	"src/cmkrlib/cmake.cpp"
+	"src/cmkrlib/error.cpp"
+	"src/cmkrlib/gen.cpp"
+	"src/cmkrlib/help.cpp"
+	"src/cmkrlib/cmake.hpp"
+	"src/cmkrlib/enum_helper.hpp"
+	"src/cmkrlib/fs.hpp"
+	"include/args.h"
+	"include/build.h"
+	"include/error.h"
+	"include/gen.h"
+	"include/help.h"
+	"include/literals.h"
+	cmake.toml
+)
 
-FetchContent_MakeAvailable(mpark_variant)
+add_library(cmkrlib STATIC ${cmkrlib_SOURCES})
 
-FetchContent_Declare(
-	toml11
-	GIT_REPOSITORY https://github.com/ToruNiina/toml11
-	GIT_SHALLOW ON
-	)
-
-FetchContent_MakeAvailable(toml11)
-
-set(CMKRLIB_SOURCES
-	src/cmake.cpp
-	src/gen.cpp
-	src/help.cpp
-	src/build.cpp
-	src/error.cpp
-	)
-
-add_library(cmkrlib STATIC ${CMKRLIB_SOURCES})
-
-target_include_directories(cmkrlib PUBLIC
-	include
-	)
-
-target_link_libraries(cmkrlib PUBLIC
-	toml11::toml11
-	ghc_filesystem
-	mpark_variant
-	)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${cmkrlib_SOURCES})
 
 target_compile_features(cmkrlib PUBLIC
 	cxx_std_11
-	)
+)
 
-set(CMKR_SOURCES
-	src/main.cpp
-	src/args.cpp
-	)
+target_include_directories(cmkrlib PUBLIC
+	include
+)
 
-add_executable(cmkr  ${CMKR_SOURCES})
+target_link_libraries(cmkrlib PUBLIC
+	toml11
+	ghc_filesystem
+	mpark_variant
+	ordered_map
+)
 
-target_link_libraries(cmkr PUBLIC
+# Target cmkr
+set(cmkr_SOURCES
+	"src/main.cpp"
+	cmake.toml
+)
+
+add_executable(cmkr ${cmkr_SOURCES})
+
+get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)
+if(NOT CMKR_VS_STARTUP_PROJECT)
+	set_property(DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT cmkr)
+endif()
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${cmkr_SOURCES})
+
+target_link_libraries(cmkr PRIVATE
 	cmkrlib
-	)
+)
 
 install(
-	TARGETS cmkr 
-	DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-	COMPONENT cmkr
-	)
-
-
-
+	TARGETS
+		cmkr
+	DESTINATION
+		"${CMAKE_INSTALL_PREFIX}/bin"
+	COMPONENT
+		cmkr
+)

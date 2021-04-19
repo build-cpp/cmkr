@@ -7,7 +7,7 @@ minimum = "3.15"
 name = "example"
 version = "0.1.0"
 
-[[bin]]
+[[target]]
 name = "example"
-type = "exe"
+type = "executable"
 sources = ["src/example.cpp"]

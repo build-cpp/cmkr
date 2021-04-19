@@ -1,29 +1,29 @@
 [cmake]
-minimum = "3.15"
-description = "CMakeLists generator from TOML"
+version = "2.8...3.8"
 
 [project]
+cmake-before = """
+# Hack to hide a warning during cmkr bootstrapping on Windows
+if(CMAKE_BUILD_TYPE)
+endif()
+"""
 name = "cmkr"
 version = "0.1.4"
+description = "CMakeLists generator from TOML"
+languages = ["CXX"]
+subdirs = ["third_party", "tests"]
 
-[fetch-content]
-toml11 = { git = "https://github.com/ToruNiina/toml11" }
-filesystem = { git = "https://github.com/gulrak/filesystem" }
-mpark_variant = { url = "https://github.com/mpark/variant/archive/v1.4.0.tar.gz" }
-
-[[bin]]
-name = "cmkrlib"
+[target.cmkrlib]
 type = "static"
-sources = ["src/cmake.cpp", "src/gen.cpp", "src/help.cpp", "src/build.cpp", "src/error.cpp"]
-include-dirs = ["include"]
-features = ["cxx_std_11"]
-link-libs = ["toml11::toml11", "ghc_filesystem", "mpark_variant"]
+sources = ["src/cmkrlib/*.cpp", "src/cmkrlib/*.hpp", "include/*.h"]
+include-directories = ["include"]
+compile-features = ["cxx_std_11"]
+link-libraries = ["toml11", "ghc_filesystem", "mpark_variant", "ordered_map"]
 
-[[bin]]
-name = "cmkr"
-type = "exe"
-sources = ["src/main.cpp", "src/args.cpp"]
-link-libs = ["cmkrlib"]
+[target.cmkr]
+type = "executable"
+sources = ["src/main.cpp"]
+link-libraries = ["cmkrlib"]
 
 [[install]]
 targets = ["cmkr"]

@@ -9,16 +9,19 @@ endif()
 
 cmake_minimum_required(VERSION 3.15)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(example_PROJECT_VERSION 0.1.0)
 project(example VERSION ${example_PROJECT_VERSION})
 
 set(EXAMPLE_SOURCES
 	src/example.cpp
-	)
+	cmake.toml
+)
 
-add_executable(example  ${EXAMPLE_SOURCES})
+add_executable(example ${EXAMPLE_SOURCES})
+
+source_group(TREE ${PROJECT_SOURCE_DIR} FILES ${EXAMPLE_SOURCES})
 
 
 
