@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.1.4 - 2021-04-11
+- Use `GIT_SHALLOW ON` by default when getting git dependencies.
+- Add cmake.description field.
+- Change bin.defines to bin.definitions.
+
 ## 0.1.3 - 2020-11-27
 - Support building with C++11.
 - @mrexodia implemented CMake integration and bootstrapping.

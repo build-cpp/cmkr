@@ -35,7 +35,8 @@ minimum = "3.15"
 
 [project]
 name = "cmkr"
-version = "0.1.3"
+version = "0.1.4"
+description = "CMakeLists generator from TOML"
 
 [fetch-content]
 toml11 = { git = "https://github.com/ToruNiina/toml11" }
@@ -65,6 +66,7 @@ Currently supported fields:
 ```toml
 [cmake] # required for top-level project
 minimum = "3.15" # required
+description = "" # optional
 subdirs = [] # optional
 build-dir = "build" # optional
 cpp-flags = [] # optional
