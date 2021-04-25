@@ -186,8 +186,21 @@ CMake::CMake(const std::string &path, bool build) {
                 }
 
                 if (t.contains("properties")) {
-                    using prop_map = tsl::ordered_map<std::string, std::string>;
-                    target.properties = toml::find<prop_map>(t, "properties");
+                    const auto &props = toml::find(t, "properties").as_table();
+                    for (const auto &propKv : props) {
+                        if (propKv.second.is_array()) {
+                            std::string property_list;
+                            for (const auto &list_val : propKv.second.as_array()) {
+                                if (!property_list.empty()) {
+                                    property_list += ';';
+                                }
+                                property_list += list_val.as_string();
+                            }
+                            target.properties[propKv.first] = property_list;
+                        } else {
+                            target.properties[propKv.first] = propKv.second.as_string();
+                        }
+                    }
                 }
 
                 get_optional(t, "cmake-before", target.cmake_before);
