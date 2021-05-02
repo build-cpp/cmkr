@@ -34,6 +34,26 @@ static EnumType to_enum(const std::string &str, const std::string &help_name) {
 }
 
 template <typename T>
+static void get_optional(const TomlBasicValue &v, const toml::key &ky, T &destination);
+
+template <typename T>
+static void get_optional(const TomlBasicValue &v, const toml::key &ky, Condition<T> &destination) {
+    // TODO: this algorithm in O(n) over the amount of keys, kinda bad
+    const auto &table = v.as_table();
+    for (const auto &itr : table) {
+        const auto &key = itr.first;
+        const auto &value = itr.second;
+        if (value.is_table()) {
+            if (value.contains(ky)) {
+                destination[key] = toml::find<T>(value, ky);
+            }
+        } else if (key == ky) {
+            destination[""] = toml::find<T>(v, ky);
+        }
+    }
+}
+
+template <typename T>
 static void get_optional(const TomlBasicValue &v, const toml::key &ky, T &destination) {
     if (v.contains(ky)) {
         destination = toml::find<T>(v, ky);
@@ -235,6 +255,19 @@ CMake::CMake(const std::string &path, bool build) {
                 contents["pmm"]["url"] = "https://github.com/vector-of-bool/pmm/archive/refs/tags/1.5.1.tar.gz";
                 // Hack to not execute pmm's example CMakeLists.txt
                 contents["pmm"]["SOURCE_SUBDIR"] = "pmm";
+            }
+        }
+
+        // Reasonable default conditions (you can override these if you desire)
+        conditions["win32"] = conditions["windows"] = conditions["win"] = "WIN32";
+        conditions["macos"] = conditions["macosx"] = conditions["osx"] = conditions["mac"] = R"cond("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")cond";
+        conditions["unix"] = "UNIX";
+        conditions["linux"] = R"cond("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")cond";
+
+        if (toml.contains("conditions")) {
+            auto conds = toml::find<decltype(conditions)>(toml, "conditions");
+            for (const auto &cond : conds) {
+                conditions[cond.first] = cond.second;
             }
         }
     }

@@ -46,28 +46,33 @@ enum TargetType {
     target_custom,
 };
 
+template <typename T>
+using Condition = tsl::ordered_map<std::string, T>;
+
+using ConditionVector = Condition<std::vector<std::string>>;
+
 struct Target {
     std::string name;
     TargetType type = {};
 
     // https://cmake.org/cmake/help/latest/manual/cmake-commands.7.html#project-commands
-    std::vector<std::string> compile_definitions;
-    std::vector<std::string> compile_features;
-    std::vector<std::string> compile_options;
-    std::vector<std::string> include_directories;
-    std::vector<std::string> link_directories;
-    std::vector<std::string> link_libraries;
-    std::vector<std::string> link_options;
-    std::vector<std::string> precompile_headers;
-    std::vector<std::string> sources;
+    ConditionVector compile_definitions;
+    ConditionVector compile_features;
+    ConditionVector compile_options;
+    ConditionVector include_directories;
+    ConditionVector link_directories;
+    ConditionVector link_libraries;
+    ConditionVector link_options;
+    ConditionVector precompile_headers;
+    ConditionVector sources;
 
     std::string alias;
     tsl::ordered_map<std::string, std::string> properties;
 
-    std::string cmake_before;
-    std::string cmake_after;
-    std::vector<std::string> include_before;
-    std::vector<std::string> include_after;
+    Condition<std::string> cmake_before;
+    Condition<std::string> cmake_after;
+    ConditionVector include_before;
+    ConditionVector include_after;
 };
 
 struct Test {
@@ -103,10 +108,10 @@ struct CMake {
     std::string project_version;
     std::string project_description;
     std::vector<std::string> project_languages;
-    std::string cmake_before;
-    std::string cmake_after;
-    std::vector<std::string> include_before;
-    std::vector<std::string> include_after;
+    Condition<std::string> cmake_before;
+    Condition<std::string> cmake_after;
+    ConditionVector include_before;
+    ConditionVector include_after;
     std::vector<Setting> settings;
     std::vector<Option> options;
     std::vector<Package> packages;
@@ -115,6 +120,8 @@ struct CMake {
     std::vector<Target> targets;
     std::vector<Test> tests;
     std::vector<Install> installs;
+    tsl::ordered_map<std::string, std::string> conditions;
+
     CMake(const std::string &path, bool build);
 };
 

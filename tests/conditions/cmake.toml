@@ -1,0 +1,17 @@
+[project]
+name = "conditions"
+cmake-after = "set(CUSTOM ON)"
+
+[conditions]
+custom = "CUSTOM"
+
+[target.example]
+type = "executable"
+sources = ["src/main.cpp"]
+win32.sources = ["src/win32.cpp"]
+cmake-after = "message(STATUS cmake-after)"
+win32.cmake-after = "message(STATUS win32-after)"
+unix.cmake-after = "message(STATUS unix-after)"
+macos.cmake-after = "message(STATUS macos-after)"
+custom.cmake-after = "message(STATUS custom-after)"
+linux.cmake-after = "message(STATUS linux-after)"

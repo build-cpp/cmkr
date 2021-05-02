@@ -3,3 +3,9 @@ name = "basic"
 command = "$<TARGET_FILE:cmkr>"
 working-directory = "${CMAKE_CURRENT_LIST_DIR}/basic"
 arguments = ["build"]
+
+[[test]]
+name = "conditions"
+command = "$<TARGET_FILE:cmkr>"
+working-directory = "${CMAKE_CURRENT_LIST_DIR}/conditions"
+arguments = ["build"]

@@ -79,4 +79,3 @@ Header-only library. Equivalent to [add_library(name INTERFACE)](https://cmake.o
 ## Roadmap
 
 - Support more cmake fields.
-- Support conditional cmake args somehow!
