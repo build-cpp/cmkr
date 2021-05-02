@@ -160,7 +160,8 @@ struct Command {
 
     std::string quote(const std::string &str) {
         // Don't quote arguments that don't need quoting
-        if (str.find(' ') == std::string::npos && str.find('\"') == std::string::npos && str.find('/') == std::string::npos) {
+        if (str.find(' ') == std::string::npos && str.find('\"') == std::string::npos && str.find('/') == std::string::npos &&
+            str.find(';') == std::string::npos) {
             return str;
         }
         std::string result;
@@ -442,7 +443,7 @@ int generate_cmake(const char *path, bool root) {
         comment("Bootstrap vcpkg");
         cmd("include")("${pmm_SOURCE_DIR}/pmm.cmake");
         tsl::ordered_map<std::string, std::vector<std::string>> vcpkg_args;
-        vcpkg_args["REVISION"] = { cmake.vcpkg.version };
+        vcpkg_args["REVISION"] = {cmake.vcpkg.version};
         vcpkg_args["REQUIRES"] = cmake.vcpkg.packages;
         auto vcpkg = std::make_pair("VCPKG", vcpkg_args);
         cmd("pmm")(vcpkg).endl();
