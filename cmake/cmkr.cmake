@@ -1,8 +1,10 @@
 include_guard()
 
 # Change these defaults to point to your infrastructure if desired
-set(CMKR_REPO "https://github.com/MoAlyousef/cmkr" CACHE STRING "cmkr git repository")
-set(CMKR_TAG "archive_84f6b39f" CACHE STRING "cmkr git tag (this needs to be available forever)")
+set(CMKR_REPO "https://github.com/MoAlyousef/cmkr" CACHE STRING "cmkr git repository" FORCE)
+set(CMKR_TAG "archive_7b7b2603" CACHE STRING "cmkr git tag (this needs to be available forever)" FORCE)
+
+# Set these from the command line to customize for development/debugging purposes
 set(CMKR_EXECUTABLE "" CACHE FILEPATH "cmkr executable")
 set(CMKR_SKIP_GENERATION OFF CACHE BOOL "skip automatic cmkr generation")
 
@@ -45,7 +47,14 @@ else()
 endif()
 
 # Use cached cmkr if found
-set(CMKR_CACHED_EXECUTABLE "${CMAKE_CURRENT_BINARY_DIR}/_cmkr/bin/${CMKR_EXECUTABLE_NAME}")
+set(CMKR_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/_cmkr_${CMKR_TAG}")
+set(CMKR_CACHED_EXECUTABLE "${CMKR_DIRECTORY}/bin/${CMKR_EXECUTABLE_NAME}")
+
+if(NOT CMKR_CACHED_EXECUTABLE STREQUAL CMKR_EXECUTABLE AND CMKR_EXECUTABLE MATCHES "^${CMAKE_CURRENT_BINARY_DIR}/_cmkr")
+    message(AUTHOR_WARNING "[cmkr] Upgrading '${CMKR_EXECUTABLE}' to '${CMKR_CACHED_EXECUTABLE}'")
+    unset(CMKR_EXECUTABLE CACHE)
+endif()
+
 if(CMKR_EXECUTABLE AND EXISTS "${CMKR_EXECUTABLE}")
     message(VERBOSE "[cmkr] Found cmkr: '${CMKR_EXECUTABLE}'")
 elseif(CMKR_EXECUTABLE AND NOT CMKR_EXECUTABLE STREQUAL CMKR_CACHED_EXECUTABLE)
@@ -55,7 +64,6 @@ else()
     message(VERBOSE "[cmkr] Bootstrapping '${CMKR_EXECUTABLE}'")
     
     message(STATUS "[cmkr] Fetching cmkr...")
-    set(CMKR_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/_cmkr")
     if(EXISTS "${CMKR_DIRECTORY}")
         cmkr_exec("${CMAKE_COMMAND}" -E rm -rf "${CMKR_DIRECTORY}")
     endif()
