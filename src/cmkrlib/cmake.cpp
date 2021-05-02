@@ -159,19 +159,6 @@ CMake::CMake(const std::string &path, bool build) {
                 target.type = to_enum<TargetType>(toml::find(t, "type").as_string(), "target type");
 
                 get_optional(t, "sources", target.sources);
-
-#define renamed(from, to)                                                                                                                            \
-    if (t.contains(from)) {                                                                                                                          \
-        throw std::runtime_error(from "has been renamed to " to);                                                                                    \
-    }
-
-                renamed("include-dirs", "include-directories");
-                renamed("link-libs", "link-libraries");
-                renamed("defines", "compile-definitions");
-                renamed("features", "compile-features");
-
-#undef renamed
-
                 get_optional(t, "compile-definitions", target.compile_definitions);
                 get_optional(t, "compile-features", target.compile_features);
                 get_optional(t, "compile-options", target.compile_options);

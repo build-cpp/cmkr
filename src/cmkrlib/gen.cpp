@@ -41,7 +41,6 @@ static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs
     std::vector<std::string> temp;
 
     auto extract_suffix = [](const fs::path &base, const fs::path &full) {
-        // TODO: delet this
         auto fullpath = full.string();
         auto base_len = base.string().length();
         auto delet = fullpath.substr(base_len + 1, fullpath.length() - base_len);
@@ -321,7 +320,9 @@ int generate_cmake(const char *path, bool root) {
     auto inject_includes = [&cmd, &endl](const std::vector<std::string> &includes) {
         if (!includes.empty()) {
             for (const auto &file : includes) {
-                // TODO: warn/error if file doesn't exist?
+                if (!fs::is_regular_file(file)) {
+                    throw std::runtime_error("Include '" + file + "' does not exist");
+                }
                 cmd("include")(file);
             }
             endl();
