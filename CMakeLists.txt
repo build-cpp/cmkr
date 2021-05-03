@@ -23,10 +23,6 @@ if(CMKR_ROOT_PROJECT)
 	configure_file(cmake.toml cmake.toml COPYONLY)
 endif()
 
-# Hack to hide a warning during cmkr bootstrapping on Windows
-if(CMAKE_BUILD_TYPE)
-endif()
-
 project(cmkr
 	LANGUAGES
 		CXX
