@@ -1,7 +1,7 @@
-#include "build.h"
+#include "build.hpp"
 #include "cmake.hpp"
-#include "error.h"
-#include "gen.h"
+#include "error.hpp"
+#include "gen.hpp"
 
 #include "fs.hpp"
 #include <sstream>

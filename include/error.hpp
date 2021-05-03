@@ -1,6 +1,5 @@
 #pragma once
 
-#ifdef __cplusplus
 namespace cmkr {
 namespace error {
 
@@ -25,11 +24,4 @@ struct Status {
 } // namespace error
 } // namespace cmkr
 
-extern "C" {
-#endif
-
 const char *cmkr_error_status_string(int);
-
-#ifdef __cplusplus
-}
-#endif

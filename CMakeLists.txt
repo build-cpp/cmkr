@@ -53,55 +53,26 @@ add_subdirectory(tests)
 set(CMAKE_FOLDER ${CMKR_CMAKE_FOLDER})
 
 
-# Target cmkrlib
-unset(cmkrlib_SOURCES)
-
-list(APPEND cmkrlib_SOURCES
-	"src/cmkrlib/args.cpp"
-	"src/cmkrlib/build.cpp"
-	"src/cmkrlib/cmake.cpp"
-	"src/cmkrlib/error.cpp"
-	"src/cmkrlib/gen.cpp"
-	"src/cmkrlib/help.cpp"
-	"src/cmkrlib/cmake.hpp"
-	"src/cmkrlib/enum_helper.hpp"
-	"src/cmkrlib/fs.hpp"
-	"include/args.h"
-	"include/build.h"
-	"include/error.h"
-	"include/gen.h"
-	"include/help.h"
-	"include/literals.h"
-)
-
-list(APPEND cmkrlib_SOURCES
-	cmake.toml
-)
-
-add_library(cmkrlib STATIC ${cmkrlib_SOURCES})
-
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${cmkrlib_SOURCES})
-
-target_compile_features(cmkrlib PUBLIC
-	cxx_std_11
-)
-
-target_include_directories(cmkrlib PUBLIC
-	include
-)
-
-target_link_libraries(cmkrlib PUBLIC
-	toml11
-	ghc_filesystem
-	mpark_variant
-	ordered_map
-)
-
 # Target cmkr
 unset(cmkr_SOURCES)
 
 list(APPEND cmkr_SOURCES
+	"src/args.cpp"
+	"src/build.cpp"
+	"src/cmake.cpp"
+	"src/error.cpp"
+	"src/gen.cpp"
+	"src/help.cpp"
 	"src/main.cpp"
+	"include/args.hpp"
+	"include/build.hpp"
+	"include/cmake.hpp"
+	"include/enum_helper.hpp"
+	"include/error.hpp"
+	"include/fs.hpp"
+	"include/gen.hpp"
+	"include/help.hpp"
+	"include/literals.hpp"
 )
 
 list(APPEND cmkr_SOURCES
@@ -117,8 +88,19 @@ endif()
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${cmkr_SOURCES})
 
+target_compile_features(cmkr PRIVATE
+	cxx_std_11
+)
+
+target_include_directories(cmkr PRIVATE
+	include
+)
+
 target_link_libraries(cmkr PRIVATE
-	cmkrlib
+	toml11
+	ghc_filesystem
+	mpark_variant
+	ordered_map
 )
 
 install(

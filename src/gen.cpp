@@ -1,7 +1,7 @@
-#include "gen.h"
+#include "gen.hpp"
 #include "cmake.hpp"
-#include "error.h"
-#include "literals.h"
+#include "error.hpp"
+#include "literals.hpp"
 
 #include "fs.hpp"
 #include <cassert>
