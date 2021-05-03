@@ -19,8 +19,14 @@ jobs:
 
     - name: Build
       run: |
-        cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+        cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} "-DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install"
         cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+        cmake --install build --config ${{ env.BUILD_TYPE }}
+
+    - name: Check if cmkr was run
+      run: |
+        ./install/bin/cmkr gen
+        git diff --exit-code
 
     - name: Test
       run: |
