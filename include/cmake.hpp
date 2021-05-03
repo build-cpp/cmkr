@@ -98,7 +98,7 @@ struct CMake {
     std::string build_dir = "build";
     std::string generator;
     std::string config;
-    std::vector<std::string> subdirs;
+    Condition<std::vector<std::string>> subdirs;
     std::vector<std::string> cppflags;
     std::vector<std::string> cflags;
     std::vector<std::string> linkflags;

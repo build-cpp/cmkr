@@ -390,7 +390,9 @@ struct Generator {
                     cmd("if")(RawArg(cmake.conditions[condition]));
                 }
 
-                fn(condition, itr.second);
+                if (!itr.second.empty()) {
+                    fn(condition, itr.second);
+                }
 
                 if (!condition.empty()) {
                     cmd("endif")();
@@ -573,19 +575,22 @@ int generate_cmake(const char *path, bool root) {
 
     // generate_cmake is called on the subdirectories recursively later
     if (!cmake.subdirs.empty()) {
-        for (const auto &dir : cmake.subdirs) {
-            // clang-format off
-            comment(dir);
-            cmd("set")("CMKR_CMAKE_FOLDER", "${CMAKE_FOLDER}");
-            cmd("if")("CMAKE_FOLDER");
-                cmd("set")("CMAKE_FOLDER", "${CMAKE_FOLDER}/" + dir);
-            cmd("else")();
-                cmd("set")("CMAKE_FOLDER", dir);
-            cmd("endif")();
-            // clang-format on
-            cmd("add_subdirectory")(dir);
-            cmd("set")("CMAKE_FOLDER", "${CMKR_CMAKE_FOLDER}").endl();
-        }
+        gen.handle_condition(cmake.subdirs, [&](const std::string &, const std::vector<std::string> &subdirs) {
+            for (const auto &dir : subdirs) {
+                // clang-format off
+                comment(dir);
+                cmd("set")("CMKR_CMAKE_FOLDER", "${CMAKE_FOLDER}");
+                cmd("if")("CMAKE_FOLDER");
+                    cmd("set")("CMAKE_FOLDER", "${CMAKE_FOLDER}/" + dir);
+                cmd("else")();
+                    cmd("set")("CMAKE_FOLDER", dir);
+                cmd("endif")();
+                // clang-format on
+
+                cmd("add_subdirectory")(dir);
+                cmd("set")("CMAKE_FOLDER", "${CMKR_CMAKE_FOLDER}").endl();
+            }
+        });
         endl();
     }
 
@@ -755,10 +760,12 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
-    for (const auto &sub : cmake.subdirs) {
-        auto subpath = fs::path(path) / fs::path(sub);
-        if (fs::exists(subpath / "cmake.toml"))
-            generate_cmake(subpath.string().c_str(), false);
+    for (const auto &itr : cmake.subdirs) {
+        for (const auto &sub : itr.second) {
+            auto subpath = fs::path(path) / fs::path(sub);
+            if (fs::exists(subpath / "cmake.toml"))
+                generate_cmake(subpath.string().c_str(), false);
+        }
     }
 
     return 0;
