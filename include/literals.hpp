@@ -31,7 +31,6 @@ version = "0.1.0"
 # [options]
 
 [target.%s]
-name = "%s"
 type = "%s"
 sources = ["src/*.cpp"]
 include-directories = ["include"]
