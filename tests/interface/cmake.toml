@@ -1,0 +1,11 @@
+[project]
+name = "interface"
+
+[target.mylib]
+type = "interface"
+include-directories = ["include"]
+
+[target.example]
+type = "executable"
+sources = ["src/main.cpp"]
+link-libraries = ["mylib"]

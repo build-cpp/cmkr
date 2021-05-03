@@ -28,3 +28,13 @@ add_test(
 		build
 )
 
+add_test(
+	NAME
+		interface
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/interface"
+	COMMAND
+		$<TARGET_FILE:cmkr>
+		build
+)
+
