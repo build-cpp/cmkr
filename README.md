@@ -1,23 +1,12 @@
 # cmkr
 
-cmkr, pronounced "cmaker", is A CMakeLists.txt generator from TOML.
+cmkr, pronounced "cmaker", is a modern build system based on CMake and TOML. It was originally created by [Mohammed Alyousef](https://github.com/MoAlyousef).
 
-See the [cmkr topic](https://github.com/topics/cmkr) for examples. Feel free to add the `cmkr` topic to your projects if you used cmkr!
+**NOTE**: The documentation is currently a work-in-progress due to breaking changes since `0.1.4`. For examples you can check the [cmkr GitHub topic](https://github.com/topics/cmkr) and the [tests](https://github.com/build-cpp/cmkr/tree/main/tests).
 
-## Building
+## Getting started
 
-cmkr requires a C++11 compiler, cmake >= 3.15.
-
-```
-git clone https://github.com/moalyousef/cmkr
-cd cmkr
-cmake -Bbin
-cmake --build bin --parallel
-```
-
-## Usage
-
-cmkr parses cmake.toml files (using toml11 by Toru Niina) at the project directory. A basic hello world format with the minimum required fields:
+`cmkr` parses `cmake.toml` files and generates a modern, idomatic `CMakeLists.txt` for you. A basic hello world format with the minimum required fields:
 
 ```toml
 [cmake]
@@ -32,9 +21,20 @@ type = "executable"
 sources = ["src/main.cpp"]
 ```
 
-**NOTE**: The documentation is currently a work-in-progress due to breaking changes since `0.1.4`. For examples you can check the [cmkr topic](https://github.com/topics/cmkr).
+## Building
 
-The cmkr executable can be run from the command-line:
+`cmkr` requires a C++11 compiler and CMake >= ~3.x (exact minimum version is not yet specified). C++11 was picked to allow the broadest possible set of compilers to bootstrap `cmkr`.
+
+```sh
+git clone https://github.com/moalyousef/cmkr
+cd cmkr
+cmake -Bbin
+cmake --build bin --parallel
+```
+
+## Command line
+
+The `cmkr` executable can be run from the command-line:
 
 ```
 Usage: cmkr [arguments]
@@ -48,34 +48,8 @@ arguments:
     version                                              Current cmkr version.
 ```
 
-The build command invokes cmake and the default build-system on your platform (unless a generator is specified), it also accepts extra cmake build arguments:
+The build command invokes `cmake` and the default build-system on your platform (unless a generator is specified), it also accepts extra build arguments:
 
-```
+```sh
 cmkr build --config Release 
 ```
-
-## Binary types
-
-### executable
-
-Executable binary. Equivalent to [add_executable(name)](https://cmake.org/cmake/help/latest/command/add_executable.html).
-
-### library
-
-Library, can be static or shared depending on the BUILD_SHARED_LIBS variable. Equivalent to [add_library()](https://cmake.org/cmake/help/latest/command/add_library.html).
-
-### static
-
-Static library/archive. Equivalent to [add_library(name STATIC)](https://cmake.org/cmake/help/latest/command/add_library.html).
-
-### shared
-
-Shared/dynamic library. Equivalent to [add_library(name SHARED)](https://cmake.org/cmake/help/latest/command/add_library.html).
-
-### interface
-
-Header-only library. Equivalent to [add_library(name INTERFACE)](https://cmake.org/cmake/help/latest/command/add_library.html).
-
-## Roadmap
-
-- Support more cmake fields.
