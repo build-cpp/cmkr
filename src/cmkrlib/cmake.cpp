@@ -259,10 +259,11 @@ CMake::CMake(const std::string &path, bool build) {
         }
 
         // Reasonable default conditions (you can override these if you desire)
-        conditions["win32"] = conditions["windows"] = conditions["win"] = "WIN32";
-        conditions["macos"] = conditions["macosx"] = conditions["osx"] = conditions["mac"] = R"cond("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")cond";
-        conditions["unix"] = "UNIX";
-        conditions["linux"] = R"cond("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")cond";
+        conditions["windows"] = R"cmake(WIN32)cmake";
+        conditions["macos"] = R"cmake("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")cmake";
+        conditions["unix"] = R"cmake(UNIX)cmake";
+        conditions["bsd"] = R"cmake("${CMAKE_SYSTEM_NAME}" MATCHES "BSD")cmake";
+        conditions["linux"] = conditions["lunix"] = R"cmake("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")cmake";
 
         if (toml.contains("conditions")) {
             auto conds = toml::find<decltype(conditions)>(toml, "conditions");
