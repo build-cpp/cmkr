@@ -1,7 +1,7 @@
-#include "build.h"
+#include "build.hpp"
 #include "cmake.hpp"
-#include "error.h"
-#include "gen.h"
+#include "error.hpp"
+#include "gen.hpp"
 
 #include "fs.hpp"
 #include <sstream>
@@ -16,7 +16,7 @@ namespace build {
 int run(int argc, char **argv) {
     cmake::CMake cmake(".", true);
     if (argc > 2) {
-        for (size_t i = 2; i < argc; ++i) {
+        for (int i = 2; i < argc; ++i) {
             cmake.build_args.push_back(argv[i]);
         }
     }

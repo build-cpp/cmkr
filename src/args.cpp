@@ -1,7 +1,7 @@
-#include "args.h"
-#include "build.h"
-#include "gen.h"
-#include "help.h"
+#include "args.hpp"
+#include "build.hpp"
+#include "gen.hpp"
+#include "help.hpp"
 
 #include "fs.hpp"
 #include <exception>

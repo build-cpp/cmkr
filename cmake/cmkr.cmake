@@ -78,6 +78,7 @@ else()
     )
     message(STATUS "[cmkr] Building cmkr...")
     cmkr_exec("${CMAKE_COMMAND}"
+        --no-warn-unused-cli
         "${CMKR_DIRECTORY}"
         "-B${CMKR_DIRECTORY}/build"
         "-DCMAKE_BUILD_TYPE=Release"
