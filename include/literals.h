@@ -30,7 +30,7 @@ version = "0.1.0"
 
 # [options]
 
-[[target]]
+[target.%s]
 name = "%s"
 type = "%s"
 sources = ["src/*.cpp"]

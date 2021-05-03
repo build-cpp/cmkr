@@ -113,7 +113,7 @@ int generate_project(const char *str) {
                                  "! Supported types are: executable, library, shared, static, interface");
     }
 
-    const auto tomlbuf = format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str, installed.c_str(), target.c_str(), dest.c_str());
+    const auto tomlbuf = format(cmake_toml, dir_name.c_str(), dir_name.c_str(), dir_name.c_str(), str, installed.c_str(), target.c_str(), dest.c_str());
 
     if (strcmp(str, "interface")) {
         std::ofstream ofs("src/main.cpp");
