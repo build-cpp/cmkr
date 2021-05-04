@@ -390,7 +390,9 @@ struct Generator {
                     cmd("if")(RawArg(cmake.conditions[condition]));
                 }
 
-                fn(condition, itr.second);
+                if (!itr.second.empty()) {
+                    fn(condition, itr.second);
+                }
 
                 if (!condition.empty()) {
                     cmd("endif")();
@@ -573,25 +575,30 @@ int generate_cmake(const char *path, bool root) {
 
     // generate_cmake is called on the subdirectories recursively later
     if (!cmake.subdirs.empty()) {
-        for (const auto &dir : cmake.subdirs) {
-            // clang-format off
-            comment(dir);
-            cmd("set")("CMKR_CMAKE_FOLDER", "${CMAKE_FOLDER}");
-            cmd("if")("CMAKE_FOLDER");
-                cmd("set")("CMAKE_FOLDER", "${CMAKE_FOLDER}/" + dir);
-            cmd("else")();
-                cmd("set")("CMAKE_FOLDER", dir);
-            cmd("endif")();
-            // clang-format on
-            cmd("add_subdirectory")(dir);
-            cmd("set")("CMAKE_FOLDER", "${CMKR_CMAKE_FOLDER}").endl();
-        }
+        gen.handle_condition(cmake.subdirs, [&](const std::string &, const std::vector<std::string> &subdirs) {
+            for (const auto &dir : subdirs) {
+                // clang-format off
+                comment(dir);
+                cmd("set")("CMKR_CMAKE_FOLDER", "${CMAKE_FOLDER}");
+                cmd("if")("CMAKE_FOLDER");
+                    cmd("set")("CMAKE_FOLDER", "${CMAKE_FOLDER}/" + dir);
+                cmd("else")();
+                    cmd("set")("CMAKE_FOLDER", dir);
+                cmd("endif")();
+                // clang-format on
+
+                cmd("add_subdirectory")(dir);
+                cmd("set")("CMAKE_FOLDER", "${CMKR_CMAKE_FOLDER}").endl();
+            }
+        });
         endl();
     }
 
     if (!cmake.targets.empty()) {
         for (const auto &target : cmake.targets) {
             comment("Target " + target.name);
+            cmd("set")("CMKR_TARGET", target.name);
+
             gen.handle_condition(target.include_before,
                                  [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
             gen.handle_condition(target.cmake_before, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
@@ -599,7 +606,7 @@ int generate_cmake(const char *path, bool root) {
             auto sources_var = target.name + "_SOURCES";
 
             bool added_toml = false;
-            cmd("unset")(sources_var).endl();
+            cmd("set")(sources_var, RawArg("\"\"")).endl();
             gen.handle_condition(target.sources, [&](const std::string &condition, const std::vector<std::string> &condition_sources) {
                 auto sources = expand_cmake_paths(condition_sources, path);
                 if (sources.empty()) {
@@ -616,6 +623,7 @@ int generate_cmake(const char *path, bool root) {
             if (!added_toml && target.type != cmake::target_interface) {
                 cmd("list")("APPEND", sources_var, std::vector<std::string>{"cmake.toml"}).endl();
             }
+            cmd("set")("CMKR_SOURCES", "${" + sources_var + "}");
 
             std::string add_command;
             std::string target_type;
@@ -656,7 +664,13 @@ int generate_cmake(const char *path, bool root) {
                 assert("Unimplemented enum value" && false);
             }
 
-            cmd(add_command)(target.name, target_type, "${" + target.name + "_SOURCES}").endl();
+            cmd(add_command)(target.name, target_type).endl();
+
+            // clang-format off
+            cmd("if")(sources_var);
+                cmd("target_sources")(target.name, target.type == cmake::target_interface ? "INTERFACE" : "PRIVATE", "${" + sources_var + "}");
+            cmd("endif")().endl();
+            // clang-format on
 
             // The first executable target will become the Visual Studio startup project
             if (target.type == cmake::target_executable) {
@@ -696,6 +710,9 @@ int generate_cmake(const char *path, bool root) {
             gen.handle_condition(target.include_after,
                                  [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
             gen.handle_condition(target.cmake_after, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
+
+            cmd("unset")("CMKR_TARGET");
+            cmd("unset")("CMKR_SOURCES");
         }
     }
 
@@ -755,10 +772,12 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
-    for (const auto &sub : cmake.subdirs) {
-        auto subpath = fs::path(path) / fs::path(sub);
-        if (fs::exists(subpath / "cmake.toml"))
-            generate_cmake(subpath.string().c_str(), false);
+    for (const auto &itr : cmake.subdirs) {
+        for (const auto &sub : itr.second) {
+            auto subpath = fs::path(path) / fs::path(sub);
+            if (fs::exists(subpath / "cmake.toml"))
+                generate_cmake(subpath.string().c_str(), false);
+        }
     }
 
     return 0;

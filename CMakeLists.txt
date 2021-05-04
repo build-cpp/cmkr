@@ -53,8 +53,10 @@ add_subdirectory(tests)
 set(CMAKE_FOLDER ${CMKR_CMAKE_FOLDER})
 
 
+
 # Target cmkr
-unset(cmkr_SOURCES)
+set(CMKR_TARGET cmkr)
+set(cmkr_SOURCES "")
 
 list(APPEND cmkr_SOURCES
 	"src/args.cpp"
@@ -79,7 +81,12 @@ list(APPEND cmkr_SOURCES
 	cmake.toml
 )
 
-add_executable(cmkr ${cmkr_SOURCES})
+set(CMKR_SOURCES ${cmkr_SOURCES})
+add_executable(cmkr)
+
+if(cmkr_SOURCES)
+	target_sources(cmkr PRIVATE ${cmkr_SOURCES})
+endif()
 
 get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)
 if(NOT CMKR_VS_STARTUP_PROJECT)
@@ -103,6 +110,8 @@ target_link_libraries(cmkr PRIVATE
 	ordered_map
 )
 
+unset(CMKR_TARGET)
+unset(CMKR_SOURCES)
 install(
 	TARGETS
 		cmkr
