@@ -39,6 +39,6 @@ arguments:
 
 The build command invokes cmake and the default build-system on your platform (unless a generator is specified), it also accepts extra cmake build arguments:
 
-```
+```sh
 cmkr build --config Release 
 ```
