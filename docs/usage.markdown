@@ -4,6 +4,8 @@ title: Usage
 permalink: /usage/
 ---
 
+## Usage
+
 cmkr parses cmake.toml files (using toml11 by Toru Niina) at the project directory. A basic hello world format with the minimum required fields:
 
 ```toml
