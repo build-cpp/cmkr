@@ -1,7 +1,7 @@
 ---
-layout: page
+layout: default
 title: Import content from existing folders
-permalink: /examples/quickstart
+permalink: /examples/import-from-folder
 parent: Examples
 nav_order: 4
 ---

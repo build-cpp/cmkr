@@ -1,9 +1,9 @@
 ---
-layout: page
+layout: default
 title: Quickstart
 permalink: /examples/quickstart
 parent: Examples
-nav_order: 0
+nav_order: 1
 ---
 
 # Quickstart

@@ -1,5 +1,5 @@
 ---
-layout: page
+layout: default
 title: Examples
 permalink: /examples/
 nav_order: 4

@@ -1,7 +1,7 @@
 ---
-layout: page
+layout: default
 title: Import content from Github
-permalink: /examples/quickstart
+permalink: /examples/import-from-git
 parent: Examples
 nav_order: 2
 ---

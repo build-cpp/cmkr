@@ -1,9 +1,9 @@
 ---
-layout: page
+layout: default
 title: Changing C/C++ version
-permalink: /examples/quickstart
+permalink: /examples/cpp-version-change
 parent: Examples
-nav_order: 1
+nav_order: 3
 ---
 
 # Changing C/C++ version
