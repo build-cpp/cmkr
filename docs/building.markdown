@@ -2,6 +2,7 @@
 layout: page
 title: Building
 permalink: /building/
+nav_order: 1
 ---
 
 # Building
