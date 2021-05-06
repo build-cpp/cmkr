@@ -4,7 +4,7 @@ title: Building
 permalink: /building/
 ---
 
-## Building
+# Building
 
 cmkr requires a C++11 compiler, cmake >= 3.15.
 
