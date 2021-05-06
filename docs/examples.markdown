@@ -4,7 +4,25 @@ title: Examples
 permalink: /examples/
 ---
 
-### Changing C++/C version
+# Examples
+
+## Quickstart
+
+Smallest possible start point you can have using cmkr 
+
+```toml
+[cmake]
+version = "3.15"
+
+[project]
+name = "hello-world"
+
+[target.hello-world]
+type = "executable"
+sources = [ "src/*.cpp" ]
+```
+
+## Changing C++/C version
 
 Simple example changing C++ to version 20 and C standard to the version 11
 
@@ -14,7 +32,7 @@ type = "executable"
 compile-features = [ "cxx_std_20", "c_std_11" ]
 ```
 
-### Import from another Git repository
+## Import from another Git repository
 
 Importing an existing project called Zydis to my project
 
@@ -29,7 +47,7 @@ type = "executable"
 link-libraries = ["zydis"]
 ```
 
-### Import from another folder
+## Import from another folder
 
 Importing an existing project called Zydis to my project
 
