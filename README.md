@@ -51,3 +51,4 @@ arguments:
 - https://github.com/Tessil/ordered-map
 - https://github.com/ToruNiina/toml11
 - https://github.com/mpark/variant
+- https://www.svgrepo.com/svg/192268/hammer
