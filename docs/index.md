@@ -6,9 +6,7 @@ nav_order: 0
 
 # Index
 
-`cmkr`, pronounced "cmaker", is a modern build system based on [CMake](https://cmake.org/) and [TOML](https://toml.io). It was originally created by [Mohammed Alyousef](https://github.com/MoAlyousef).
-
-**NOTE**: The documentation is currently a work-in-progress due to breaking changes since `0.1.4`. For examples you can check the [cmkr GitHub topic](https://github.com/topics/cmkr) and the [tests](https://github.com/build-cpp/cmkr/tree/main/tests).
+[cmkr](https://github.com/build-cpp/cmkr), pronounced "cmaker", is a modern build system based on [CMake](https://cmake.org/) and [TOML](https://toml.io). It was originally created by [Mohammed Alyousef](https://github.com/MoAlyousef).
 
 `cmkr` parses `cmake.toml` files and generates a modern, idiomatic `CMakeLists.txt` for you. A minimal example:
 
