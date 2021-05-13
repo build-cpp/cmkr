@@ -2,8 +2,6 @@
 
 `cmkr`, pronounced "cmaker", is a modern build system based on [CMake](https://cmake.org/) and [TOML](https://toml.io). It was originally created by [Mohammed Alyousef](https://github.com/MoAlyousef).
 
-**NOTE**: The documentation is currently a work-in-progress due to breaking changes since `0.1.4`. For examples you can check the [cmkr GitHub topic](https://github.com/topics/cmkr) and the [tests](https://github.com/build-cpp/cmkr/tree/main/tests).
-
 `cmkr` parses `cmake.toml` files and generates a modern, idiomatic `CMakeLists.txt` for you. A minimal example:
 
 ```toml
@@ -27,7 +25,7 @@ cmake -B build
 cmake --build build
 ```
 
-Alternatively you can check out the [cmkr topic](https://github.com/topics/cmkr) or the [build-cpp organization](https://github.com/build-cpp) for more examples and templates.
+Alternatively you can check out the [cmkr topic](https://github.com/topics/cmkr), the [build-cpp organization](https://github.com/build-cpp) or the [tests](https://github.com/build-cpp/cmkr/tree/main/tests) for more examples and templates. You can also check out the [documentation](https://build-cpp.github.io/cmkr).
 
 ## Command line
 
