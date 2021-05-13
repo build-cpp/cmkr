@@ -1,40 +1,37 @@
 # cmkr
 
-cmkr, pronounced "cmaker", is a modern build system based on CMake and TOML. It was originally created by [Mohammed Alyousef](https://github.com/MoAlyousef).
+`cmkr`, pronounced "cmaker", is a modern build system based on [CMake](https://cmake.org/) and [TOML](https://toml.io). It was originally created by [Mohammed Alyousef](https://github.com/MoAlyousef).
 
 **NOTE**: The documentation is currently a work-in-progress due to breaking changes since `0.1.4`. For examples you can check the [cmkr GitHub topic](https://github.com/topics/cmkr) and the [tests](https://github.com/build-cpp/cmkr/tree/main/tests).
 
-## Getting started
-
-`cmkr` parses `cmake.toml` files and generates a modern, idomatic `CMakeLists.txt` for you. A basic hello world format with the minimum required fields:
+`cmkr` parses `cmake.toml` files and generates a modern, idiomatic `CMakeLists.txt` for you. A minimal example:
 
 ```toml
-[cmake]
-minimum = "3.15"
-
 [project]
-name = "app"
-version = "0.1.0"
+name = "cmkr_for_beginners"
+description = "A minimal cmkr project."
 
-[target.app]
+[target.hello_world]
 type = "executable"
 sources = ["src/main.cpp"]
 ```
 
-## Building
+`cmkr` can bootstrap itself from CMake and consumers of your project do not need to install anything to use it.
 
-`cmkr` requires a C++11 compiler and CMake >= ~3.x (exact minimum version is not yet specified). C++11 was picked to allow the broadest possible set of compilers to bootstrap `cmkr`.
+## Getting started
+
+The easiest way to get started is to use the [cmkr_for_beginners](https://github.com/build-cpp/cmkr_for_beginners) template repository. Either open it in [Gitpod](https://gitpod.io/#https://github.com/build-cpp/cmkr_for_beginners), or clone the repository and run:
 
 ```sh
-git clone https://github.com/moalyousef/cmkr
-cd cmkr
-cmake -Bbin
-cmake --build bin --parallel
+cmake -B build
+cmake --build build
 ```
+
+Alternatively you can check out the [cmkr topic](https://github.com/topics/cmkr) or the [build-cpp organization](https://github.com/build-cpp) for more examples and templates.
 
 ## Command line
 
-The `cmkr` executable can be run from the command-line:
+Optionally you can install `cmkr` in your `PATH` and use it as a utility from the command line:
 
 ```
 Usage: cmkr [arguments]
@@ -48,8 +45,9 @@ arguments:
     version                                              Current cmkr version.
 ```
 
-The build command invokes `cmake` and the default build-system on your platform (unless a generator is specified), it also accepts extra build arguments:
+## Credits
 
-```sh
-cmkr build --config Release 
-```
+- https://github.com/gulrak/filesystem
+- https://github.com/Tessil/ordered-map
+- https://github.com/ToruNiina/toml11
+- https://github.com/mpark/variant
