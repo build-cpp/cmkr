@@ -16,7 +16,7 @@ type = "executable"
 sources = ["src/main.cpp"]
 ```
 
-`cmkr` can bootstrap itself from CMake and consumers of your project do not need to install anything to use it.
+`cmkr` can bootstrap itself from CMake and consumers of your project do not need to install anything to work with it.
 
 ## Getting started
 
