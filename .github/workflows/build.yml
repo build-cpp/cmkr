@@ -19,9 +19,9 @@ jobs:
 
     - name: Build
       run: |
-        cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} "-DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install"
+        cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
         cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
-        cmake --install build --config ${{ env.BUILD_TYPE }}
+        cmake --install build --prefix ./install --config ${{ env.BUILD_TYPE }}
 
     - name: Check if cmkr was run
       run: |
@@ -32,3 +32,29 @@ jobs:
       run: |
         cd build/tests
         ctest -C ${{ env.BUILD_TYPE }}
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ github.event.repository.name }}-${{ matrix.os }}
+        path: install/bin/*
+
+    - name: Get lowercase OS name
+      id: osname
+      uses: ASzc/change-string-case-action@v1
+      with:
+        string: ${{ runner.os }}
+
+    - name: Compress artifacts
+      uses: papeloto/action-zip@v1
+      with:
+        files: install/bin/
+        dest: ${{ github.event.repository.name }}-${{ steps.osname.outputs.lowercase }}.zip
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: ${{ github.event.repository.name }}-${{ steps.osname.outputs.lowercase }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
