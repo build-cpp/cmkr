@@ -17,4 +17,4 @@ link-libraries = ["toml11", "ghc_filesystem", "mpark_variant", "ordered_map"]
 
 [[install]]
 targets = ["cmkr"]
-destination = "${CMAKE_INSTALL_PREFIX}/bin"
+destination = "bin"

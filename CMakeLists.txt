@@ -116,7 +116,7 @@ install(
 	TARGETS
 		cmkr
 	DESTINATION
-		"${CMAKE_INSTALL_PREFIX}/bin"
+		bin
 	COMPONENT
 		cmkr
 )
