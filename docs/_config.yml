@@ -4,7 +4,7 @@ plugins:
   - jekyll-remote-theme
 
 # Automatically deduce dark theme preference https://github.com/pmarsceill/just-the-docs/pull/464
-remote_theme: pdmosses/just-the-docs@light-switch
+remote_theme: build-cpp/just-the-docs@light-switch
 search_enabled: true
 color_scheme: light-or-dark
 heading_anchors: true
