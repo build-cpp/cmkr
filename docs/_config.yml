@@ -3,7 +3,19 @@ title: cmkr
 plugins:
   - jekyll-remote-theme
 
-# Build settings
-# theme: just-the-docs
-remote_theme: pmarsceill/just-the-docs
+# Automatically deduce dark theme preference https://github.com/pmarsceill/just-the-docs/pull/464
+remote_theme: pdmosses/just-the-docs@light-switch
 search_enabled: true
+color_scheme: light-or-dark
+heading_anchors: true
+aux_links:
+  "cmkr":
+    - "https://github.com/build-cpp/cmkr"
+aux_links_new_tab: true
+
+gh_edit_link: true
+gh_edit_link_text: "Edit this page on GitHub."
+gh_edit_repository: "https://github.com/build-cpp/cmkr"
+gh_edit_branch: "main"
+gh_edit_view_mode: "edit"
+gh_edit_source: docs
