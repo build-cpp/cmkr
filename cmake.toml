@@ -7,6 +7,13 @@ version = "0.1.4"
 description = "CMakeLists generator from TOML"
 languages = ["CXX"]
 subdirs = ["third_party", "tests"]
+include-after = ["cmake/generate_documentation.cmake"]
+
+[target.cmkr_generate_documentation]
+type = "interface"
+cmake-after = """
+generate_documentation()
+"""
 
 [target.cmkr]
 type = "executable"

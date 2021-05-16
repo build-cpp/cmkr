@@ -32,6 +32,8 @@ project(cmkr
 		"CMakeLists generator from TOML"
 )
 
+include("cmake/generate_documentation.cmake")
+
 # third_party
 set(CMKR_CMAKE_FOLDER ${CMAKE_FOLDER})
 if(CMAKE_FOLDER)
@@ -54,6 +56,21 @@ set(CMAKE_FOLDER ${CMKR_CMAKE_FOLDER})
 
 
 
+# Target cmkr_generate_documentation
+set(CMKR_TARGET cmkr_generate_documentation)
+set(cmkr_generate_documentation_SOURCES "")
+
+set(CMKR_SOURCES ${cmkr_generate_documentation_SOURCES})
+add_library(cmkr_generate_documentation INTERFACE)
+
+if(cmkr_generate_documentation_SOURCES)
+	target_sources(cmkr_generate_documentation INTERFACE ${cmkr_generate_documentation_SOURCES})
+endif()
+
+generate_documentation()
+
+unset(CMKR_TARGET)
+unset(CMKR_SOURCES)
 # Target cmkr
 set(CMKR_TARGET cmkr)
 set(cmkr_SOURCES "")

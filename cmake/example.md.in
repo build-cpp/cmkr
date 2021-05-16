@@ -1,0 +1,20 @@
+---
+# Automatically generated from tests/@EXAMPLE_PERMALINK@/cmake.toml - DO NOT EDIT
+layout: default
+title: @EXAMPLE_TITLE@
+permalink: /examples/@EXAMPLE_PERMALINK@
+parent: Examples
+nav_order: @EXAMPLE_INDEX@
+---
+
+# @EXAMPLE_TITLE@
+
+@EXAMPLE_HEADER@
+
+```toml
+@EXAMPLE_TOML@
+```
+
+@EXAMPLE_FOOTER@
+
+<sup><sub>This page was automatically generated from [tests/@EXAMPLE_PERMALINK@/cmake.toml](https://github.com/build-cpp/cmkr/tree/main/tests/@EXAMPLE_PERMALINK@/cmake.toml).</sub></sup>

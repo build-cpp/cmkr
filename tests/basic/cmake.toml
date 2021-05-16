@@ -1,9 +1,11 @@
-[cmake]
-version = "3.5"
+# A minimal `cmake.toml` project:
 
 [project]
 name = "basic"
+description = "Minimal example"
 
 [target.basic]
 type = "executable"
 sources = ["src/basic.cpp"]
+
+# Declares an executable target called `basic` with `src/basic.cpp` as a source file. Equivalent to CMake's [add_executable](https://cmake.org/cmake/help/latest/command/add_executable.html)`(basic src/basic.cpp)`.

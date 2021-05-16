@@ -83,6 +83,7 @@ else()
         "-B${CMKR_DIRECTORY}/build"
         "-DCMAKE_BUILD_TYPE=Release"
         "-DCMAKE_INSTALL_PREFIX=${CMKR_DIRECTORY}"
+        "-DCMKR_GENERATE_DOCUMENTATION=OFF"
     )
     cmkr_exec("${CMAKE_COMMAND}"
         --build "${CMKR_DIRECTORY}/build"

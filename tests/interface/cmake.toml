@@ -1,5 +1,6 @@
 [project]
 name = "interface"
+description = "Header-only library"
 
 [target.mylib]
 type = "interface"
