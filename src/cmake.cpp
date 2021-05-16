@@ -55,6 +55,7 @@ static void get_optional(const TomlBasicValue &v, const toml::key &ky, Condition
 
 template <typename T>
 static void get_optional(const TomlBasicValue &v, const toml::key &ky, T &destination) {
+    // TODO: this currently doesn't allow you to get an optional map<string, X>
     if (v.contains(ky)) {
         destination = toml::find<T>(v, ky);
     }
@@ -163,7 +164,9 @@ CMake::CMake(const std::string &path, bool build) {
         }
 
         // TODO: refactor to std::vector<Content> instead of this hacky thing?
-        get_optional(toml, "fetch-content", contents);
+        if (toml.contains("fetch-content")) {
+            contents = toml::find<decltype(contents)>(toml, "fetch-content");
+        }
 
         if (toml.contains("bin")) {
             throw std::runtime_error("[[bin]] has been renamed to [[target]]");
