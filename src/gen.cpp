@@ -721,7 +721,11 @@ int generate_cmake(const char *path, bool root) {
         for (const auto &test : cmake.tests) {
             auto name = std::make_pair("NAME", test.name);
             auto configurations = std::make_pair("CONFIGURATIONS", test.configurations);
-            auto working_directory = std::make_pair("WORKING_DIRECTORY", test.working_directory);
+            auto dir = test.working_directory;
+            if (fs::is_directory(fs::path(path) / dir)) {
+                dir = "${CMAKE_CURRENT_LIST_DIR}/" + dir;
+            }
+            auto working_directory = std::make_pair("WORKING_DIRECTORY", dir);
             auto command = std::make_pair("COMMAND", test.command);
             auto arguments = std::make_pair("", test.arguments);
             cmd("add_test")(name, configurations, working_directory, command, arguments).endl();

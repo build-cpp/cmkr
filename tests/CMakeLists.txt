@@ -12,7 +12,7 @@ add_test(
 	NAME
 		basic
 	WORKING_DIRECTORY
-		basic
+		"${CMAKE_CURRENT_LIST_DIR}/basic"
 	COMMAND
 		$<TARGET_FILE:cmkr>
 		build
@@ -22,7 +22,7 @@ add_test(
 	NAME
 		interface
 	WORKING_DIRECTORY
-		interface
+		"${CMAKE_CURRENT_LIST_DIR}/interface"
 	COMMAND
 		$<TARGET_FILE:cmkr>
 		build
@@ -32,7 +32,7 @@ add_test(
 	NAME
 		fetch-content
 	WORKING_DIRECTORY
-		fetch-content
+		"${CMAKE_CURRENT_LIST_DIR}/fetch-content"
 	COMMAND
 		$<TARGET_FILE:cmkr>
 		build
@@ -42,7 +42,7 @@ add_test(
 	NAME
 		conditions
 	WORKING_DIRECTORY
-		conditions
+		"${CMAKE_CURRENT_LIST_DIR}/conditions"
 	COMMAND
 		$<TARGET_FILE:cmkr>
 		build
