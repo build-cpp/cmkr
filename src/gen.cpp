@@ -701,6 +701,7 @@ int generate_cmake(const char *path, bool root) {
             target_cmd("target_include_directories", target.include_directories);
             target_cmd("target_link_directories", target.link_directories);
             target_cmd("target_link_libraries", target.link_libraries);
+            target_cmd("target_link_options", target.link_options);
             target_cmd("target_precompile_headers", target.precompile_headers);
 
             if (!target.properties.empty()) {
