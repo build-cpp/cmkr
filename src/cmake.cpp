@@ -181,6 +181,7 @@ CMake::CMake(const std::string &path, bool build) {
                 target.name = itr.first;
                 target.type = to_enum<TargetType>(toml::find(t, "type").as_string(), "target type");
 
+                get_optional(t, "headers", target.headers);
                 get_optional(t, "sources", target.sources);
                 get_optional(t, "compile-definitions", target.compile_definitions);
                 get_optional(t, "compile-features", target.compile_features);
@@ -250,15 +251,7 @@ CMake::CMake(const std::string &path, bool build) {
 
         if (toml.contains("vcpkg")) {
             const auto &v = toml::find(toml, "vcpkg");
-            vcpkg.version = toml::find(v, "version").as_string();
             vcpkg.packages = toml::find<decltype(vcpkg.packages)>(v, "packages");
-
-            // This allows the user to use a custom pmm version if desired
-            if (contents.count("pmm") == 0) {
-                contents["pmm"]["url"] = "https://github.com/vector-of-bool/pmm/archive/refs/tags/1.5.1.tar.gz";
-                // Hack to not execute pmm's example CMakeLists.txt
-                contents["pmm"]["SOURCE_SUBDIR"] = "pmm";
-            }
         }
 
         // Reasonable default conditions (you can override these if you desire)

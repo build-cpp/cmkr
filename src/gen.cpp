@@ -8,6 +8,8 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <iomanip>
+#include <nlohmann/json.hpp>
 #include <new>
 #include <sstream>
 #include <stdexcept>
@@ -294,7 +296,7 @@ struct Command {
     }
 
     template <class... Ts>
-    CommandEndl operator()(Ts &&...values) {
+    CommandEndl operator()(Ts &&... values) {
         generated = true;
         ss << indent(depth) << command << '(';
         (void)std::initializer_list<bool>{print_arg(values)...};
@@ -520,15 +522,20 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
-    if (!cmake.vcpkg.version.empty()) {
-        assert("pmm is required in fetch-content for vcpkg to work" && cmake.contents.count("pmm") != 0);
-        comment("Bootstrap vcpkg");
-        cmd("include")("${pmm_SOURCE_DIR}/pmm.cmake");
-        tsl::ordered_map<std::string, std::vector<std::string>> vcpkg_args;
-        vcpkg_args["REVISION"] = {cmake.vcpkg.version};
-        vcpkg_args["REQUIRES"] = cmake.vcpkg.packages;
-        auto vcpkg = std::make_pair("VCPKG", vcpkg_args);
-        cmd("pmm")(vcpkg).endl();
+    if (!cmake.vcpkg.packages.empty()) {
+        cmd("include")("FetchContent");
+        cmd("message")("STATUS \"Fetching vcpkg...\"");
+        cmd("FetchContent_Declare")("vcpkg\n\tURL\thttps://github.com/microsoft/vcpkg/archive/refs/tags/2021.05.12.tar.gz");
+        cmd("FetchContent_MakeAvailable")("vcpkg");
+        cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
+        using namespace nlohmann;
+        json j;
+        j["$schema"] = "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json";
+        j["name"] = cmake.project_name;
+        j["version"] = cmake.project_version;
+        j["dependencies"] = cmake.vcpkg.packages;
+        std::ofstream ofs("vcpkg.json");
+        ofs << std::setw(4) << j << std::endl;
     }
 
     if (!cmake.packages.empty()) {
@@ -603,7 +610,20 @@ int generate_cmake(const char *path, bool root) {
                                  [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
             gen.handle_condition(target.cmake_before, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
 
+            auto headers_var = target.name + "_HEADERS";
             auto sources_var = target.name + "_SOURCES";
+
+            if (!target.headers.empty()) {
+                cmd("set")(headers_var, RawArg("\"\"")).endl();
+                gen.handle_condition(target.headers, [&](const std::string &condition, const std::vector<std::string> &condition_headers) {
+                    auto headers = expand_cmake_paths(condition_headers, path);
+                    if (headers.empty()) {
+                        auto header_key = condition.empty() ? "headers" : (condition + ".headers");
+                        throw std::runtime_error(target.name + " " + header_key + " wildcard found 0 files");
+                    }
+                    cmd("list")("APPEND", headers_var, headers);
+                });
+            }
 
             bool added_toml = false;
             cmd("set")(sources_var, RawArg("\"\"")).endl();
@@ -682,8 +702,12 @@ int generate_cmake(const char *path, bool root) {
                 // clang-format on
             }
 
+            if (!target.headers.empty()) {
+                cmd("source_group")("TREE", "${CMAKE_CURRENT_SOURCE_DIR}", "FILES", "${" + headers_var + "}").endl();
+            }
+
             if (!target.sources.empty()) {
-                cmd("source_group")("TREE", "${CMAKE_CURRENT_SOURCE_DIR}", "FILES", "${" + target.name + "_SOURCES}").endl();
+                cmd("source_group")("TREE", "${CMAKE_CURRENT_SOURCE_DIR}", "FILES", "${" + sources_var + "}").endl();
             }
 
             if (!target.alias.empty()) {
