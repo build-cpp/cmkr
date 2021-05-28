@@ -533,11 +533,15 @@ int generate_cmake(const char *path, bool root) {
         j["$schema"] = "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json";
         j["name"] = cmake.project_name;
         if (cmake.project_version.empty())
-            throw std::runtime_error("vcpkg manifest mode requires that the project have a version string");
+            throw std::runtime_error("vcpkg manifest mode requires that the project have a version string!");
         j["version"] = cmake.project_version;
         j["dependencies"] = cmake.vcpkg.packages;
         std::ofstream ofs("vcpkg.json");
+        if (!ofs) {
+            throw std::runtime_error("Failed to create a vcpkg.json manifest file!");
+        }
         ofs << std::setw(4) << j << std::endl;
+        ofs.close();
     }
 
     if (!cmake.packages.empty()) {
