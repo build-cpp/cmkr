@@ -9,8 +9,8 @@
 #include <cstring>
 #include <fstream>
 #include <iomanip>
-#include <nlohmann/json.hpp>
 #include <new>
+#include <nlohmann/json.hpp>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -524,14 +524,16 @@ int generate_cmake(const char *path, bool root) {
 
     if (!cmake.vcpkg.packages.empty()) {
         cmd("include")("FetchContent");
-        cmd("message")("STATUS \"Fetching vcpkg...\"");
-        cmd("FetchContent_Declare")("vcpkg\n\tURL\thttps://github.com/microsoft/vcpkg/archive/refs/tags/2021.05.12.tar.gz");
+        cmd("message")("STATUS", "Fetching vcpkg...");
+        cmd("FetchContent_Declare")("vcpkg", "https://github.com/microsoft/vcpkg/archive/refs/tags/2021.05.12.tar.gz");
         cmd("FetchContent_MakeAvailable")("vcpkg");
         cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
         using namespace nlohmann;
         json j;
         j["$schema"] = "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json";
         j["name"] = cmake.project_name;
+        if (!cmake.project_version.empty())
+            throw std::runtime_error("vcpkg manifest mode requires that the project have a version string");
         j["version"] = cmake.project_version;
         j["dependencies"] = cmake.vcpkg.packages;
         std::ofstream ofs("vcpkg.json");
