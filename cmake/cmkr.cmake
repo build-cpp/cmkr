@@ -9,7 +9,7 @@ set(CMKR_EXECUTABLE "" CACHE FILEPATH "cmkr executable")
 set(CMKR_SKIP_GENERATION OFF CACHE BOOL "skip automatic cmkr generation")
 
 # Disable cmkr if generation is disabled
-if(CMKR_SKIP_GENERATION)
+if(DEFINED ENV{CI} OR CMKR_SKIP_GENERATION)
     message(STATUS "[cmkr] Skipping automatic cmkr generation")
     macro(cmkr)
     endmacro()
@@ -132,10 +132,15 @@ macro(cmkr)
 
         file(SHA256 "${CMAKE_CURRENT_LIST_FILE}" CMKR_LIST_FILE_SHA256_POST)
 
+        # Delete the temporary file if it was left for some reason
+        set(CMKR_TEMP_FILE "${CMAKE_CURRENT_SOURCE_DIR}/CMakerLists.txt")
+        if(EXISTS "${CMKR_TEMP_FILE}")
+            file(REMOVE "${CMKR_TEMP_FILE}")
+        endif()
+
         if(NOT CMKR_LIST_FILE_SHA256_PRE STREQUAL CMKR_LIST_FILE_SHA256_POST)
             # Copy the now-generated CMakeLists.txt to CMakerLists.txt
             # This is done because you cannot include() a file you are currently in
-            set(CMKR_TEMP_FILE "${CMAKE_CURRENT_SOURCE_DIR}/CMakerLists.txt")
             configure_file(CMakeLists.txt "${CMKR_TEMP_FILE}" COPYONLY)
             
             # Add the macro required for the hack at the start of the cmkr macro
