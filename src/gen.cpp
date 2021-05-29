@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <new>
 #include <nlohmann/json.hpp>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -522,26 +523,35 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
-    if (!cmake.vcpkg.packages.empty()) {
-        cmd("include")("FetchContent");
-        cmd("message")("STATUS", "Fetching vcpkg...");
-        cmd("FetchContent_Declare")("vcpkg", "URL", "https://github.com/microsoft/vcpkg/archive/refs/tags/2021.05.12.tar.gz");
-        cmd("FetchContent_MakeAvailable")("vcpkg");
-        cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
+    if (!cmake.vcpkg.packages.empty() && !cmake.vcpkg.url.empty()) {
+        auto vcpkg_escape_identifier = [](const std::string &name) -> std::string {
+            const std::regex ok("[a-z0-9]+(-[a-z0-9]+)*");
+            const std::regex reserved("prn|aux|nul|con|lpt[1-9]|com[1-9]|core|default");
+            std::cmatch m;
+            if (!std::regex_match(name.c_str(), m, reserved) && std::regex_match(name.c_str(), m, ok)) {
+                return name;
+            } else {
+                // should probably throw!
+                return "project-name";
+            }
+        };
         using namespace nlohmann;
         json j;
         j["$schema"] = "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json";
-        j["name"] = cmake.project_name;
-        if (cmake.project_version.empty())
-            throw std::runtime_error("vcpkg manifest mode requires that the project have a version string!");
-        j["version"] = cmake.project_version;
+        j["name"] = vcpkg_escape_identifier(cmake.project_name);
+        if (!cmake.project_version.empty())
+            j["version"] = cmake.project_version;
         j["dependencies"] = cmake.vcpkg.packages;
+        cmd("include")("FetchContent");
+        cmd("message")("STATUS", "Fetching vcpkg...");
+        cmd("FetchContent_Declare")("vcpkg", "URL", cmake.vcpkg.url);
+        cmd("FetchContent_MakeAvailable")("vcpkg");
+        cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
         std::ofstream ofs("vcpkg.json");
         if (!ofs) {
             throw std::runtime_error("Failed to create a vcpkg.json manifest file!");
         }
-        ofs << std::setw(4) << j << std::endl;
-        ofs.close();
+        ofs << std::setw(2) << j << std::endl;
     }
 
     if (!cmake.packages.empty()) {
@@ -616,20 +626,7 @@ int generate_cmake(const char *path, bool root) {
                                  [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
             gen.handle_condition(target.cmake_before, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
 
-            auto headers_var = target.name + "_HEADERS";
             auto sources_var = target.name + "_SOURCES";
-
-            if (!target.headers.empty()) {
-                cmd("set")(headers_var, RawArg("\"\"")).endl();
-                gen.handle_condition(target.headers, [&](const std::string &condition, const std::vector<std::string> &condition_headers) {
-                    auto headers = expand_cmake_paths(condition_headers, path);
-                    if (headers.empty()) {
-                        auto header_key = condition.empty() ? "headers" : (condition + ".headers");
-                        throw std::runtime_error(target.name + " " + header_key + " wildcard found 0 files");
-                    }
-                    cmd("list")("APPEND", headers_var, headers);
-                });
-            }
 
             bool added_toml = false;
             cmd("set")(sources_var, RawArg("\"\"")).endl();
@@ -706,10 +703,6 @@ int generate_cmake(const char *path, bool root) {
                     cmd("set_property")("DIRECTORY", "${PROJECT_SOURCE_DIR}", "PROPERTY", "VS_STARTUP_PROJECT", target.name);
                 cmd("endif")().endl();
                 // clang-format on
-            }
-
-            if (!target.headers.empty()) {
-                cmd("source_group")("TREE", "${CMAKE_CURRENT_SOURCE_DIR}", "FILES", "${" + headers_var + "}").endl();
             }
 
             if (!target.sources.empty()) {

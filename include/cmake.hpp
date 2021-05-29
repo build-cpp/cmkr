@@ -33,6 +33,7 @@ struct Package {
 };
 
 struct Vcpkg {
+    std::string url;
     std::vector<std::string> packages;
 };
 

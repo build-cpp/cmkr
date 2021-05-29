@@ -192,6 +192,12 @@ CMake::CMake(const std::string &path, bool build) {
                 get_optional(t, "link-options", target.link_options);
                 get_optional(t, "precompile-headers", target.precompile_headers);
 
+                if (!target.headers.empty()) {
+                    auto &sources = target.sources.nth(0).value();
+                    const auto &headers = target.headers.nth(0)->second;
+                    sources.insert(sources.end(), headers.begin(), headers.end());
+                }
+
                 if (t.contains("alias")) {
                     target.alias = toml::find(t, "alias").as_string();
                 }
@@ -251,6 +257,7 @@ CMake::CMake(const std::string &path, bool build) {
 
         if (toml.contains("vcpkg")) {
             const auto &v = toml::find(toml, "vcpkg");
+            vcpkg.url = toml::find(v, "url").as_string();
             vcpkg.packages = toml::find<decltype(vcpkg.packages)>(v, "packages");
         }
 
