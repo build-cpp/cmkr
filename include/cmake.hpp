@@ -34,6 +34,7 @@ struct Package {
 
 struct Vcpkg {
     std::string version;
+    std::string url;
     std::vector<std::string> packages;
 };
 
@@ -64,6 +65,7 @@ struct Target {
     ConditionVector link_libraries;
     ConditionVector link_options;
     ConditionVector precompile_headers;
+    ConditionVector headers;
     ConditionVector sources;
 
     std::string alias;

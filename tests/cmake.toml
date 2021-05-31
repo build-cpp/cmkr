@@ -21,3 +21,9 @@ name = "conditions"
 command = "$<TARGET_FILE:cmkr>"
 working-directory = "conditions"
 arguments = ["build"]
+
+[[test]]
+name = "vcpkg"
+command = "$<TARGET_FILE:cmkr>"
+working-directory = "vcpkg"
+arguments = ["build"]

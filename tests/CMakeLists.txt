@@ -48,3 +48,13 @@ add_test(
 		build
 )
 
+add_test(
+	NAME
+		vcpkg
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/vcpkg"
+	COMMAND
+		$<TARGET_FILE:cmkr>
+		build
+)
+

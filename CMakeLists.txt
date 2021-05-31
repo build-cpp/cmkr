@@ -125,6 +125,7 @@ target_link_libraries(cmkr PRIVATE
 	ghc_filesystem
 	mpark_variant
 	ordered_map
+	nlohmann_json
 )
 
 unset(CMKR_TARGET)

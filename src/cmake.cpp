@@ -181,6 +181,7 @@ CMake::CMake(const std::string &path, bool build) {
                 target.name = itr.first;
                 target.type = to_enum<TargetType>(toml::find(t, "type").as_string(), "target type");
 
+                get_optional(t, "headers", target.headers);
                 get_optional(t, "sources", target.sources);
                 get_optional(t, "compile-definitions", target.compile_definitions);
                 get_optional(t, "compile-features", target.compile_features);
@@ -190,6 +191,12 @@ CMake::CMake(const std::string &path, bool build) {
                 get_optional(t, "link-libraries", target.link_libraries);
                 get_optional(t, "link-options", target.link_options);
                 get_optional(t, "precompile-headers", target.precompile_headers);
+
+                if (!target.headers.empty()) {
+                    auto &sources = target.sources.nth(0).value();
+                    const auto &headers = target.headers.nth(0)->second;
+                    sources.insert(sources.end(), headers.begin(), headers.end());
+                }
 
                 if (t.contains("alias")) {
                     target.alias = toml::find(t, "alias").as_string();
@@ -250,15 +257,9 @@ CMake::CMake(const std::string &path, bool build) {
 
         if (toml.contains("vcpkg")) {
             const auto &v = toml::find(toml, "vcpkg");
-            vcpkg.version = toml::find(v, "version").as_string();
+            get_optional(v, "url", vcpkg.url);
+            get_optional(v, "version", vcpkg.version);
             vcpkg.packages = toml::find<decltype(vcpkg.packages)>(v, "packages");
-
-            // This allows the user to use a custom pmm version if desired
-            if (contents.count("pmm") == 0) {
-                contents["pmm"]["url"] = "https://github.com/vector-of-bool/pmm/archive/refs/tags/1.5.1.tar.gz";
-                // Hack to not execute pmm's example CMakeLists.txt
-                contents["pmm"]["SOURCE_SUBDIR"] = "pmm";
-            }
         }
 
         // Reasonable default conditions (you can override these if you desire)
