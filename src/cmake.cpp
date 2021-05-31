@@ -257,7 +257,8 @@ CMake::CMake(const std::string &path, bool build) {
 
         if (toml.contains("vcpkg")) {
             const auto &v = toml::find(toml, "vcpkg");
-            vcpkg.url = toml::find(v, "url").as_string();
+            get_optional(v, "url", vcpkg.url);
+            get_optional(v, "version", vcpkg.version);
             vcpkg.packages = toml::find<decltype(vcpkg.packages)>(v, "packages");
         }
 
