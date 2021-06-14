@@ -219,19 +219,33 @@ CMake::CMake(const std::string &path, bool build) {
                 }
 
                 if (t.contains("properties")) {
-                    const auto &props = toml::find(t, "properties").as_table();
-                    for (const auto &propKv : props) {
-                        if (propKv.second.is_array()) {
+                    auto store_property = [&target](const toml::key &k, const TomlBasicValue &v, const std::string &condition) {
+                        if (v.is_array()) {
                             std::string property_list;
-                            for (const auto &list_val : propKv.second.as_array()) {
+                            for (const auto &list_val : v.as_array()) {
                                 if (!property_list.empty()) {
                                     property_list += ';';
                                 }
                                 property_list += list_val.as_string();
                             }
-                            target.properties[propKv.first] = property_list;
+                            target.properties[condition][k] = property_list;
+                        } else if (v.is_boolean()) {
+                            target.properties[condition][k] = v.as_boolean() ? "ON" : "OFF";
                         } else {
-                            target.properties[propKv.first] = propKv.second.as_string();
+                            target.properties[condition][k] = v.as_string();
+                        }
+                    };
+
+                    const auto &props = toml::find(t, "properties").as_table();
+                    for (const auto &propKv : props) {
+                        const auto &k = propKv.first;
+                        const auto &v = propKv.second;
+                        if (v.is_table()) {
+                            for (const auto &condKv : v.as_table()) {
+                                store_property(condKv.first, condKv.second, k);
+                            }
+                        } else {
+                            store_property(k, v, "");
                         }
                     }
                 }

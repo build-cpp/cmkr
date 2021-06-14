@@ -85,7 +85,7 @@ struct Target {
     ConditionVector private_precompile_headers;
 
     std::string alias;
-    tsl::ordered_map<std::string, std::string> properties;
+    Condition<tsl::ordered_map<std::string, std::string>> properties;
 
     Condition<std::string> cmake_before;
     Condition<std::string> cmake_after;
