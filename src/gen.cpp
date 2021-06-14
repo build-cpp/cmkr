@@ -780,7 +780,9 @@ int generate_cmake(const char *path, bool root) {
             target_cmd("target_precompile_headers", target.private_precompile_headers, "PRIVATE");
 
             if (!target.properties.empty()) {
-                cmd("set_target_properties")(target.name, "PROPERTIES", target.properties).endl();
+                gen.handle_condition(target.properties, [&](const std::string &, const tsl::ordered_map<std::string, std::string> &properties) {
+                    cmd("set_target_properties")(target.name, "PROPERTIES", properties);
+                });
             }
 
             gen.handle_condition(target.include_after,
