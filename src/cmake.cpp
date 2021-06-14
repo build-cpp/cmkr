@@ -183,14 +183,30 @@ CMake::CMake(const std::string &path, bool build) {
 
                 get_optional(t, "headers", target.headers);
                 get_optional(t, "sources", target.sources);
+
                 get_optional(t, "compile-definitions", target.compile_definitions);
+                get_optional(t, "private-compile-definitions", target.private_compile_definitions);
+
                 get_optional(t, "compile-features", target.compile_features);
+                get_optional(t, "private-compile-features", target.private_compile_features);
+
                 get_optional(t, "compile-options", target.compile_options);
+                get_optional(t, "private-compile-options", target.private_compile_options);
+
                 get_optional(t, "include-directories", target.include_directories);
+                get_optional(t, "private-include-directories", target.private_include_directories);
+
                 get_optional(t, "link-directories", target.link_directories);
+                get_optional(t, "private-link-directories", target.private_link_directories);
+
                 get_optional(t, "link-libraries", target.link_libraries);
+                get_optional(t, "private-link-libraries", target.private_link_libraries);
+
                 get_optional(t, "link-options", target.link_options);
+                get_optional(t, "private-link-options", target.private_link_options);
+
                 get_optional(t, "precompile-headers", target.precompile_headers);
+                get_optional(t, "private-precompile-headers", target.private_precompile_headers);
 
                 if (!target.headers.empty()) {
                     auto &sources = target.sources.nth(0).value();

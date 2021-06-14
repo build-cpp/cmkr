@@ -568,6 +568,7 @@ int generate_cmake(const char *path, bool root) {
             cmd("FetchContent_MakeAvailable")("vcpkg");
             cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
         cmd("endif")();
+        endl();
         // clang-format on
 
         // Generate vcpkg.json
@@ -749,19 +750,34 @@ int generate_cmake(const char *path, bool root) {
                 cmd("add_library")(target.alias, "ALIAS", target.name);
             }
 
-            auto target_cmd = [&](const char *command, const cmake::ConditionVector &cargs) {
-                gen.handle_condition(
-                    cargs, [&](const std::string &, const std::vector<std::string> &args) { cmd(command)(target.name, target_scope, args); });
+            auto target_cmd = [&](const char *command, const cmake::ConditionVector &cargs, const std::string &scope) {
+                gen.handle_condition(cargs,
+                                     [&](const std::string &, const std::vector<std::string> &args) { cmd(command)(target.name, scope, args); });
             };
 
-            target_cmd("target_compile_definitions", target.compile_definitions);
-            target_cmd("target_compile_features", target.compile_features);
-            target_cmd("target_compile_options", target.compile_options);
-            target_cmd("target_include_directories", target.include_directories);
-            target_cmd("target_link_directories", target.link_directories);
-            target_cmd("target_link_libraries", target.link_libraries);
-            target_cmd("target_link_options", target.link_options);
-            target_cmd("target_precompile_headers", target.precompile_headers);
+            target_cmd("target_compile_definitions", target.compile_definitions, target_scope);
+            target_cmd("target_compile_definitions", target.private_compile_definitions, "PRIVATE");
+
+            target_cmd("target_compile_features", target.compile_features, target_scope);
+            target_cmd("target_compile_features", target.private_compile_features, "PRIVATE");
+
+            target_cmd("target_compile_options", target.compile_options, target_scope);
+            target_cmd("target_compile_options", target.private_compile_options, "PRIVATE");
+
+            target_cmd("target_include_directories", target.include_directories, target_scope);
+            target_cmd("target_include_directories", target.private_include_directories, "PRIVATE");
+
+            target_cmd("target_link_directories", target.link_directories, target_scope);
+            target_cmd("target_link_directories", target.private_link_directories, "PRIVATE");
+
+            target_cmd("target_link_libraries", target.link_libraries, target_scope);
+            target_cmd("target_link_libraries", target.private_link_libraries, "PRIVATE");
+
+            target_cmd("target_link_options", target.link_options, target_scope);
+            target_cmd("target_link_options", target.private_link_options, "PRIVATE");
+
+            target_cmd("target_precompile_headers", target.precompile_headers, target_scope);
+            target_cmd("target_precompile_headers", target.private_precompile_headers, "PRIVATE");
 
             if (!target.properties.empty()) {
                 cmd("set_target_properties")(target.name, "PROPERTIES", target.properties).endl();
@@ -773,6 +789,7 @@ int generate_cmake(const char *path, bool root) {
 
             cmd("unset")("CMKR_TARGET");
             cmd("unset")("CMKR_SOURCES");
+            endl();
         }
     }
 

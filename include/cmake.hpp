@@ -56,17 +56,33 @@ struct Target {
     std::string name;
     TargetType type = {};
 
-    // https://cmake.org/cmake/help/latest/manual/cmake-commands.7.html#project-commands
-    ConditionVector compile_definitions;
-    ConditionVector compile_features;
-    ConditionVector compile_options;
-    ConditionVector include_directories;
-    ConditionVector link_directories;
-    ConditionVector link_libraries;
-    ConditionVector link_options;
-    ConditionVector precompile_headers;
     ConditionVector headers;
     ConditionVector sources;
+
+    // https://cmake.org/cmake/help/latest/manual/cmake-commands.7.html#project-commands
+    ConditionVector compile_definitions;
+    ConditionVector private_compile_definitions;
+
+    ConditionVector compile_features;
+    ConditionVector private_compile_features;
+
+    ConditionVector compile_options;
+    ConditionVector private_compile_options;
+
+    ConditionVector include_directories;
+    ConditionVector private_include_directories;
+
+    ConditionVector link_directories;
+    ConditionVector private_link_directories;
+
+    ConditionVector link_libraries;
+    ConditionVector private_link_libraries;
+
+    ConditionVector link_options;
+    ConditionVector private_link_options;
+
+    ConditionVector precompile_headers;
+    ConditionVector private_precompile_headers;
 
     std::string alias;
     tsl::ordered_map<std::string, std::string> properties;
