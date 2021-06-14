@@ -71,6 +71,7 @@ generate_documentation()
 
 unset(CMKR_TARGET)
 unset(CMKR_SOURCES)
+
 # Target cmkr
 set(CMKR_TARGET cmkr)
 set(cmkr_SOURCES "")
@@ -130,6 +131,7 @@ target_link_libraries(cmkr PRIVATE
 
 unset(CMKR_TARGET)
 unset(CMKR_SOURCES)
+
 install(
 	TARGETS
 		cmkr
