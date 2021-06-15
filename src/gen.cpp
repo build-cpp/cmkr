@@ -158,8 +158,10 @@ struct Command {
     bool first_arg = true;
     bool had_newline = false;
     bool generated = false;
+    std::string post_comment;
 
-    Command(std::stringstream &ss, int depth, const std::string &command) : ss(ss), depth(depth), command(command) {}
+    Command(std::stringstream &ss, int depth, std::string command, std::string post_comment)
+        : ss(ss), depth(depth), command(std::move(command)), post_comment(std::move(post_comment)) {}
 
     ~Command() {
         if (!generated) {
@@ -303,7 +305,11 @@ struct Command {
         (void)std::initializer_list<bool>{print_arg(values)...};
         if (had_newline)
             ss << '\n' << indent(depth);
-        ss << ")\n";
+        ss << ")";
+        if (!post_comment.empty()) {
+            ss << " # " << post_comment;
+        }
+        ss << "\n";
         return CommandEndl(ss);
     }
 };
@@ -326,18 +332,18 @@ struct Generator {
     std::stringstream ss;
     int indent = 0;
 
-    Command cmd(const std::string &command) {
+    Command cmd(const std::string &command, const std::string &post_comment = "") {
         if (command.empty())
             throw std::invalid_argument("command cannot be empty");
         if (command == "if") {
             indent++;
-            return Command(ss, indent - 1, command);
+            return Command(ss, indent - 1, command, post_comment);
         } else if (command == "else" || command == "elseif") {
-            return Command(ss, indent - 1, command);
+            return Command(ss, indent - 1, command, post_comment);
         } else if (command == "endif") {
             indent--;
         }
-        return Command(ss, indent, command);
+        return Command(ss, indent, command, post_comment);
     }
 
     CommandEndl comment(const std::string &comment) {
@@ -390,7 +396,7 @@ struct Generator {
                         // TODO: somehow print line number information here?
                         throw std::runtime_error("Unknown condition '" + condition + "'");
                     }
-                    cmd("if")(RawArg(cmake.conditions[condition]));
+                    cmd("if", condition)(RawArg(cmake.conditions[condition]));
                 }
 
                 if (!itr.second.empty()) {
@@ -441,7 +447,7 @@ int generate_cmake(const char *path, bool root) {
 
     // Helper lambdas for more convenient CMake generation
     auto &ss = gen.ss;
-    auto cmd = [&gen](const std::string &comment) { return gen.cmd(comment); };
+    auto cmd = [&gen](const std::string &command) { return gen.cmd(command); };
     auto comment = [&gen](const std::string &comment) { return gen.comment(comment); };
     auto endl = [&gen]() { gen.endl(); };
     auto inject_includes = [&gen](const std::vector<std::string> &includes) { gen.inject_includes(includes); };
@@ -657,6 +663,15 @@ int generate_cmake(const char *path, bool root) {
     if (!cmake.targets.empty()) {
         for (const auto &target : cmake.targets) {
             comment("Target " + target.name);
+
+            if (!target.condition.empty()) {
+                const auto &condition = target.condition;
+                if (cmake.conditions.count(condition) == 0) {
+                    throw std::runtime_error("Unknown condition '" + condition + "' for [target." + target.name + "]");
+                }
+                gen.cmd("if", condition)(RawArg(cmake.conditions[condition]));
+            }
+
             cmd("set")("CMKR_TARGET", target.name);
 
             gen.handle_condition(target.include_before,
@@ -791,6 +806,11 @@ int generate_cmake(const char *path, bool root) {
 
             cmd("unset")("CMKR_TARGET");
             cmd("unset")("CMKR_SOURCES");
+
+            if (!target.condition.empty()) {
+                cmd("endif")();
+            }
+
             endl();
         }
     }

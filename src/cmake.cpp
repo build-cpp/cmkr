@@ -214,6 +214,10 @@ CMake::CMake(const std::string &path, bool build) {
                     sources.insert(sources.end(), headers.begin(), headers.end());
                 }
 
+                if (t.contains("condition")) {
+                    target.condition = toml::find(t, "condition").as_string();
+                }
+
                 if (t.contains("alias")) {
                     target.alias = toml::find(t, "alias").as_string();
                 }
