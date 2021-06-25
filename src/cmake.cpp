@@ -7,10 +7,10 @@
 #include <tsl/ordered_map.h>
 
 template <>
-const char *enumStrings<cmkr::cmake::TargetType>::data[] = {"executable", "library", "shared", "static", "interface", "custom"};
+const char *enumStrings<cmkr::parser::TargetType>::data[] = {"executable", "library", "shared", "static", "interface", "custom"};
 
 namespace cmkr {
-namespace cmake {
+namespace parser {
 
 using TomlBasicValue = toml::basic_value<toml::preserve_comments, tsl::ordered_map, std::vector>;
 
@@ -61,7 +61,7 @@ static void get_optional(const TomlBasicValue &v, const toml::key &ky, T &destin
     }
 }
 
-CMake::CMake(const std::string &path, bool build) {
+Project::Project(const std::string &path, bool build) {
     if (!fs::exists(fs::path(path) / "cmake.toml")) {
         throw std::runtime_error("No cmake.toml was found!");
     }
@@ -311,5 +311,5 @@ CMake::CMake(const std::string &path, bool build) {
         }
     }
 }
-} // namespace cmake
+} // namespace parser
 } // namespace cmkr

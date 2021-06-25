@@ -325,10 +325,10 @@ static std::string tolf(const std::string &str) {
 };
 
 struct Generator {
-    Generator(cmake::CMake &cmake) : cmake(cmake) {}
+    Generator(parser::Project &project) : project(project) {}
     Generator(const Generator &) = delete;
 
-    cmake::CMake &cmake;
+    parser::Project &project;
     std::stringstream ss;
     int indent = 0;
 
@@ -387,16 +387,16 @@ struct Generator {
     }
 
     template <typename T, typename Lambda>
-    void handle_condition(const cmake::Condition<T> &value, const Lambda &fn) {
+    void handle_condition(const parser::Condition<T> &value, const Lambda &fn) {
         if (!value.empty()) {
             for (const auto &itr : value) {
                 const auto &condition = itr.first;
                 if (!condition.empty()) {
-                    if (cmake.conditions.count(condition) == 0) {
+                    if (project.conditions.count(condition) == 0) {
                         // TODO: somehow print line number information here?
                         throw std::runtime_error("Unknown condition '" + condition + "'");
                     }
-                    cmd("if", condition)(RawArg(cmake.conditions[condition]));
+                    cmd("if", condition)(RawArg(project.conditions[condition]));
                 }
 
                 if (!itr.second.empty()) {
@@ -442,8 +442,8 @@ int generate_cmake(const char *path, bool root) {
         throw std::runtime_error("No cmake.toml found!");
     }
 
-    cmake::CMake cmake(path, false);
-    Generator gen(cmake);
+    parser::Project project(path, false);
+    Generator gen(project);
 
     // Helper lambdas for more convenient CMake generation
     auto &ss = gen.ss;
@@ -459,7 +459,7 @@ int generate_cmake(const char *path, bool root) {
     endl();
 
     if (root) {
-        cmd("cmake_minimum_required")("VERSION", cmake.cmake_version).endl();
+        cmd("cmake_minimum_required")("VERSION", project.cmake_version).endl();
 
         comment("Regenerate CMakeLists.txt automatically in the root project");
         cmd("set")("CMKR_ROOT_PROJECT", "OFF");
@@ -468,7 +468,7 @@ int generate_cmake(const char *path, bool root) {
             cmd("set")("CMKR_ROOT_PROJECT", "ON").endl();
 
             comment("Bootstrap cmkr");
-            cmd("include")(cmake.cmkr_include, "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT");
+            cmd("include")(project.cmkr_include, "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT");
             cmd("if")("CMKR_INCLUDE_RESULT");
                 cmd("cmkr")();
             cmd("endif")().endl();
@@ -487,48 +487,48 @@ int generate_cmake(const char *path, bool root) {
     // clang-format on
 
     // TODO: remove support and replace with global compile-features
-    if (!cmake.cppflags.empty()) {
+    if (!project.cppflags.empty()) {
         ss << "set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} \"";
-        for (const auto &flag : cmake.cppflags) {
+        for (const auto &flag : project.cppflags) {
             ss << flag << " ";
         }
         ss << "\")\n\n";
     }
 
     // TODO: remove support and replace with global compile-features
-    if (!cmake.cflags.empty()) {
+    if (!project.cflags.empty()) {
         ss << "set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} \"";
-        for (const auto &flag : cmake.cflags) {
+        for (const auto &flag : project.cflags) {
             ss << flag << " ";
         }
         ss << "\")\n\n";
     }
 
     // TODO: remove support and replace with global linker-flags
-    if (!cmake.linkflags.empty()) {
+    if (!project.linkflags.empty()) {
         ss << "set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} \"";
-        for (const auto &flag : cmake.linkflags) {
+        for (const auto &flag : project.linkflags) {
             ss << flag << " ";
         }
         ss << "\")\n\n";
     }
 
-    gen.handle_condition(cmake.include_before, [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
-    gen.handle_condition(cmake.cmake_before, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
+    gen.handle_condition(project.include_before, [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
+    gen.handle_condition(project.cmake_before, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
 
-    if (!cmake.project_name.empty()) {
-        auto languages = std::make_pair("LANGUAGES", cmake.project_languages);
-        auto version = std::make_pair("VERSION", cmake.project_version);
-        auto description = std::make_pair("DESCRIPTION", cmake.project_description);
-        cmd("project")(cmake.project_name, languages, version, description).endl();
+    if (!project.project_name.empty()) {
+        auto languages = std::make_pair("LANGUAGES", project.project_languages);
+        auto version = std::make_pair("VERSION", project.project_version);
+        auto description = std::make_pair("DESCRIPTION", project.project_description);
+        cmd("project")(project.project_name, languages, version, description).endl();
     }
 
-    gen.handle_condition(cmake.include_after, [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
-    gen.handle_condition(cmake.cmake_after, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
+    gen.handle_condition(project.include_after, [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
+    gen.handle_condition(project.cmake_after, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
 
-    if (!cmake.contents.empty()) {
+    if (!project.contents.empty()) {
         cmd("include")("FetchContent").endl();
-        for (const auto &dep : cmake.contents) {
+        for (const auto &dep : project.contents) {
             cmd("message")("STATUS", "Fetching " + dep.first + "...");
             ss << "FetchContent_Declare(\n\t" << dep.first << "\n";
             for (const auto &arg : dep.second) {
@@ -555,14 +555,14 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
-    if (!cmake.vcpkg.packages.empty()) {
+    if (!project.vcpkg.packages.empty()) {
         // Allow the user to specify a url or derive it from the version
-        auto url = cmake.vcpkg.url;
+        auto url = project.vcpkg.url;
         if (url.empty()) {
-            if (cmake.vcpkg.version.empty()) {
+            if (project.vcpkg.version.empty()) {
                 throw std::runtime_error("You need either [vcpkg].version or [vcpkg].url");
             }
-            url = "https://github.com/microsoft/vcpkg/archive/refs/tags/" + cmake.vcpkg.version + ".tar.gz";
+            url = "https://github.com/microsoft/vcpkg/archive/refs/tags/" + project.vcpkg.version + ".tar.gz";
         }
 
         // CMake to bootstrap vcpkg and download the packages
@@ -583,11 +583,11 @@ int generate_cmake(const char *path, bool root) {
         j["$cmkr"] = "This file is automatically generated from cmake.toml - DO NOT EDIT";
         j["$cmkr-url"] = cmkr_url;
         j["$schema"] = "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json";
-        j["name"] = vcpkg_escape_identifier(cmake.project_name);
-        j["version-string"] = cmake.project_version;
-        j["dependencies"] = cmake.vcpkg.packages;
-        if (!cmake.project_description.empty()) {
-            j["description"] = cmake.project_description;
+        j["name"] = vcpkg_escape_identifier(project.project_name);
+        j["version-string"] = project.project_version;
+        j["dependencies"] = project.vcpkg.packages;
+        if (!project.project_description.empty()) {
+            j["description"] = project.project_description;
         }
 
         std::ofstream ofs("vcpkg.json");
@@ -597,9 +597,9 @@ int generate_cmake(const char *path, bool root) {
         ofs << std::setw(2) << j << std::endl;
     }
 
-    if (!cmake.packages.empty()) {
+    if (!project.packages.empty()) {
         comment("Packages");
-        for (const auto &dep : cmake.packages) {
+        for (const auto &dep : project.packages) {
             auto version = dep.version;
             if (version == "*")
                 version.clear();
@@ -610,17 +610,17 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
-    if (!cmake.options.empty()) {
+    if (!project.options.empty()) {
         comment("Options");
-        for (const auto &opt : cmake.options) {
+        for (const auto &opt : project.options) {
             cmd("option")(opt.name, opt.comment, opt.val ? "ON" : "OFF");
         }
         endl();
     }
 
-    if (!cmake.settings.empty()) {
+    if (!project.settings.empty()) {
         comment("Settings");
-        for (const auto &set : cmake.settings) {
+        for (const auto &set : project.settings) {
             std::string set_val;
             if (set.val.index() == 1) {
                 set_val = mpark::get<1>(set.val);
@@ -640,8 +640,8 @@ int generate_cmake(const char *path, bool root) {
     }
 
     // generate_cmake is called on the subdirectories recursively later
-    if (!cmake.subdirs.empty()) {
-        gen.handle_condition(cmake.subdirs, [&](const std::string &, const std::vector<std::string> &subdirs) {
+    if (!project.subdirs.empty()) {
+        gen.handle_condition(project.subdirs, [&](const std::string &, const std::vector<std::string> &subdirs) {
             for (const auto &dir : subdirs) {
                 // clang-format off
                 comment(dir);
@@ -660,16 +660,16 @@ int generate_cmake(const char *path, bool root) {
         endl();
     }
 
-    if (!cmake.targets.empty()) {
-        for (const auto &target : cmake.targets) {
+    if (!project.targets.empty()) {
+        for (const auto &target : project.targets) {
             comment("Target " + target.name);
 
             if (!target.condition.empty()) {
                 const auto &condition = target.condition;
-                if (cmake.conditions.count(condition) == 0) {
+                if (project.conditions.count(condition) == 0) {
                     throw std::runtime_error("Unknown condition '" + condition + "' for [target." + target.name + "]");
                 }
-                gen.cmd("if", condition)(RawArg(cmake.conditions[condition]));
+                gen.cmd("if", condition)(RawArg(project.conditions[condition]));
             }
 
             cmd("set")("CMKR_TARGET", target.name);
@@ -695,7 +695,7 @@ int generate_cmake(const char *path, bool root) {
                 cmd("list")("APPEND", sources_var, sources);
             });
 
-            if (!added_toml && target.type != cmake::target_interface) {
+            if (!added_toml && target.type != parser::target_interface) {
                 cmd("list")("APPEND", sources_var, std::vector<std::string>{"cmake.toml"}).endl();
             }
             cmd("set")("CMKR_SOURCES", "${" + sources_var + "}");
@@ -704,32 +704,32 @@ int generate_cmake(const char *path, bool root) {
             std::string target_type;
             std::string target_scope;
             switch (target.type) {
-            case cmake::target_executable:
+            case parser::target_executable:
                 add_command = "add_executable";
                 target_type = "";
                 target_scope = "PRIVATE";
                 break;
-            case cmake::target_library:
+            case parser::target_library:
                 add_command = "add_library";
                 target_type = "";
                 target_scope = "PUBLIC";
                 break;
-            case cmake::target_shared:
+            case parser::target_shared:
                 add_command = "add_library";
                 target_type = "SHARED";
                 target_scope = "PUBLIC";
                 break;
-            case cmake::target_static:
+            case parser::target_static:
                 add_command = "add_library";
                 target_type = "STATIC";
                 target_scope = "PUBLIC";
                 break;
-            case cmake::target_interface:
+            case parser::target_interface:
                 add_command = "add_library";
                 target_type = "INTERFACE";
                 target_scope = "INTERFACE";
                 break;
-            case cmake::target_custom:
+            case parser::target_custom:
                 // TODO: add proper support, this is hacky
                 add_command = "add_custom_target";
                 target_type = "SOURCES";
@@ -743,12 +743,12 @@ int generate_cmake(const char *path, bool root) {
 
             // clang-format off
             cmd("if")(sources_var);
-                cmd("target_sources")(target.name, target.type == cmake::target_interface ? "INTERFACE" : "PRIVATE", "${" + sources_var + "}");
+                cmd("target_sources")(target.name, target.type == parser::target_interface ? "INTERFACE" : "PRIVATE", "${" + sources_var + "}");
             cmd("endif")().endl();
             // clang-format on
 
             // The first executable target will become the Visual Studio startup project
-            if (target.type == cmake::target_executable) {
+            if (target.type == parser::target_executable) {
                 cmd("get_directory_property")("CMKR_VS_STARTUP_PROJECT", "DIRECTORY", "${PROJECT_SOURCE_DIR}", "DEFINITION", "VS_STARTUP_PROJECT");
                 // clang-format off
                 cmd("if")("NOT", "CMKR_VS_STARTUP_PROJECT");
@@ -765,7 +765,7 @@ int generate_cmake(const char *path, bool root) {
                 cmd("add_library")(target.alias, "ALIAS", target.name);
             }
 
-            auto target_cmd = [&](const char *command, const cmake::ConditionVector &cargs, const std::string &scope) {
+            auto target_cmd = [&](const char *command, const parser::ConditionVector &cargs, const std::string &scope) {
                 gen.handle_condition(cargs,
                                      [&](const std::string &, const std::vector<std::string> &args) { cmd(command)(target.name, scope, args); });
             };
@@ -815,9 +815,9 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
-    if (!cmake.tests.empty()) {
+    if (!project.tests.empty()) {
         cmd("enable_testing")().endl();
-        for (const auto &test : cmake.tests) {
+        for (const auto &test : project.tests) {
             auto name = std::make_pair("NAME", test.name);
             auto configurations = std::make_pair("CONFIGURATIONS", test.configurations);
             auto dir = test.working_directory;
@@ -831,8 +831,8 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
-    if (!cmake.installs.empty()) {
-        for (const auto &inst : cmake.installs) {
+    if (!project.installs.empty()) {
+        for (const auto &inst : project.installs) {
             auto targets = std::make_pair("TARGETS", inst.targets);
             auto dirs = std::make_pair("DIRS", inst.dirs);
             std::vector<std::string> files_data;
@@ -875,7 +875,7 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
-    for (const auto &itr : cmake.subdirs) {
+    for (const auto &itr : project.subdirs) {
         for (const auto &sub : itr.second) {
             auto subpath = fs::path(path) / fs::path(sub);
             if (fs::exists(subpath / "cmake.toml"))

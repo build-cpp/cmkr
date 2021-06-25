@@ -8,7 +8,7 @@
 #include <vector>
 
 namespace cmkr {
-namespace cmake {
+namespace parser {
 
 struct Setting {
     std::string name;
@@ -110,7 +110,7 @@ struct Install {
     std::string destination;
 };
 
-struct CMake {
+struct Project {
     // This is the CMake version required to use all cmkr versions.
     std::string cmake_version = "3.15";
     std::string cmkr_include = "cmkr.cmake";
@@ -141,8 +141,8 @@ struct CMake {
     std::vector<Install> installs;
     tsl::ordered_map<std::string, std::string> conditions;
 
-    CMake(const std::string &path, bool build);
+    Project(const std::string &path, bool build);
 };
 
-} // namespace cmake
+} // namespace parser
 } // namespace cmkr

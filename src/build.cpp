@@ -14,10 +14,10 @@ namespace cmkr {
 namespace build {
 
 int run(int argc, char **argv) {
-    cmake::CMake cmake(".", true);
+    parser::Project project(".", true);
     if (argc > 2) {
         for (int i = 2; i < argc; ++i) {
-            cmake.build_args.push_back(argv[i]);
+            project.build_args.push_back(argv[i]);
         }
     }
     std::stringstream ss;
@@ -25,22 +25,22 @@ int run(int argc, char **argv) {
     if (gen::generate_cmake(fs::current_path().string().c_str()))
         throw std::runtime_error("CMake generation failure!");
 
-    ss << "cmake -S. -B" << cmake.build_dir << " ";
+    ss << "cmake -S. -B" << project.build_dir << " ";
 
-    if (!cmake.generator.empty()) {
-        ss << "-G \"" << cmake.generator << "\" ";
+    if (!project.generator.empty()) {
+        ss << "-G \"" << project.generator << "\" ";
     }
-    if (!cmake.config.empty()) {
-        ss << "-DCMAKE_BUILD_TYPE=" << cmake.config << " ";
+    if (!project.config.empty()) {
+        ss << "-DCMAKE_BUILD_TYPE=" << project.config << " ";
     }
-    if (!cmake.gen_args.empty()) {
-        for (const auto &arg : cmake.gen_args) {
+    if (!project.gen_args.empty()) {
+        for (const auto &arg : project.gen_args) {
             ss << "-D" << arg << " ";
         }
     }
-    ss << "&& cmake --build " << cmake.build_dir << " --parallel";
+    ss << "&& cmake --build " << project.build_dir << " --parallel";
     if (argc > 2) {
-        for (const auto &arg : cmake.build_args) {
+        for (const auto &arg : project.build_args) {
             ss << " " << arg;
         }
     }
@@ -50,17 +50,17 @@ int run(int argc, char **argv) {
 
 int clean() {
     bool ret = false;
-    cmake::CMake cmake(".", true);
-    if (fs::exists(cmake.build_dir)) {
-        ret = fs::remove_all(cmake.build_dir);
-        fs::create_directory(cmake.build_dir);
+    parser::Project project(".", true);
+    if (fs::exists(project.build_dir)) {
+        ret = fs::remove_all(project.build_dir);
+        fs::create_directory(project.build_dir);
     }
     return !ret;
 }
 
 int install() {
-    cmake::CMake cmake(".", false);
-    auto cmd = "cmake --install " + cmake.build_dir;
+    parser::Project project(".", false);
+    auto cmd = "cmake --install " + project.build_dir;
     return ::system(cmd.c_str());
 }
 } // namespace build
