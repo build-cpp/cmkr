@@ -77,22 +77,22 @@ set(CMKR_TARGET cmkr)
 set(cmkr_SOURCES "")
 
 list(APPEND cmkr_SOURCES
-	"src/args.cpp"
+	"src/arguments.cpp"
 	"src/build.cpp"
-	"src/cmake.cpp"
+	"src/cmake_generator.cpp"
 	"src/error.cpp"
-	"src/gen.cpp"
 	"src/help.cpp"
 	"src/main.cpp"
-	"include/args.hpp"
+	"src/project_parser.cpp"
+	"include/arguments.hpp"
 	"include/build.hpp"
-	"include/cmake.hpp"
+	"include/cmake_generator.hpp"
 	"include/enum_helper.hpp"
 	"include/error.hpp"
 	"include/fs.hpp"
-	"include/gen.hpp"
 	"include/help.hpp"
 	"include/literals.hpp"
+	"include/project_parser.hpp"
 )
 
 list(APPEND cmkr_SOURCES

@@ -1,7 +1,7 @@
 #include "build.hpp"
-#include "cmake.hpp"
+#include "project_parser.hpp"
 #include "error.hpp"
-#include "gen.hpp"
+#include "cmake_generator.hpp"
 
 #include "fs.hpp"
 #include <sstream>

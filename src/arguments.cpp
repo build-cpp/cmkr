@@ -1,6 +1,6 @@
-#include "args.hpp"
+#include "arguments.hpp"
 #include "build.hpp"
-#include "gen.hpp"
+#include "cmake_generator.hpp"
 #include "help.hpp"
 
 #include "fs.hpp"

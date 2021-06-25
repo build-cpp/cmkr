@@ -1,5 +1,5 @@
-#include "gen.hpp"
-#include "cmake.hpp"
+#include "cmake_generator.hpp"
+#include "project_parser.hpp"
 #include "error.hpp"
 #include "literals.hpp"
 
