@@ -906,7 +906,7 @@ int generate_cmake(const char *path, bool root) {
         fs::path subpath;
         for (const auto &p : sub) {
             subpath /= p;
-            if (parser::is_root_path(subpath.string())) {
+            if (parser::is_root_path((path / subpath).string())) {
                 return;
             }
         }
