@@ -412,6 +412,13 @@ struct Generator {
     }
 };
 
+static bool vcpkg_valid_identifier(const std::string &name) {
+    const std::regex reserved("prn|aux|nul|con|lpt[1-9]|com[1-9]|core|default");
+    const std::regex ok("[a-z0-9]+(-[a-z0-9]+)*");
+    std::cmatch m;
+    return !std::regex_match(name.c_str(), m, reserved) && std::regex_match(name.c_str(), m, ok);
+}
+
 static std::string vcpkg_escape_identifier(const std::string &name) {
     // Do a reasonable effort to escape the project name for use with vcpkg
     std::string escaped;
@@ -427,14 +434,10 @@ static std::string vcpkg_escape_identifier(const std::string &name) {
         escaped += std::tolower(ch);
     }
 
-    const std::regex reserved("prn|aux|nul|con|lpt[1-9]|com[1-9]|core|default");
-    const std::regex ok("[a-z0-9]+(-[a-z0-9]+)*");
-    std::cmatch m;
-    if (!std::regex_match(escaped.c_str(), m, reserved) && std::regex_match(escaped.c_str(), m, ok)) {
-        return escaped;
-    } else {
+    if (!vcpkg_valid_identifier(escaped)) {
         throw std::runtime_error("The escaped project name '" + escaped + "' is not usable with [vcpkg]");
     }
+    return escaped;
 }
 
 int generate_cmake(const char *path, bool root) {
@@ -563,6 +566,13 @@ int generate_cmake(const char *path, bool root) {
                 throw std::runtime_error("You need either [vcpkg].version or [vcpkg].url");
             }
             url = "https://github.com/microsoft/vcpkg/archive/refs/tags/" + project.vcpkg.version + ".tar.gz";
+        }
+
+        // Show a nicer error than vcpkg when specifying an invalid package name
+        for (const auto &package : project.vcpkg.packages) {
+            if (!vcpkg_valid_identifier(package)) {
+                throw std::runtime_error("Invalid [vcpkg].packages name '" + package + "' (needs to be lowercase alphanumeric)");
+            }
         }
 
         // CMake to bootstrap vcpkg and download the packages
