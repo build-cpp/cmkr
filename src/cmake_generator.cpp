@@ -1,7 +1,7 @@
 #include "cmake_generator.hpp"
-#include "project_parser.hpp"
 #include "error.hpp"
 #include "literals.hpp"
+#include "project_parser.hpp"
 
 #include "fs.hpp"
 #include <cassert>
@@ -639,25 +639,51 @@ int generate_cmake(const char *path, bool root) {
         endl();
     }
 
-    // generate_cmake is called on the subdirectories recursively later
-    if (!project.subdirs.empty()) {
-        gen.handle_condition(project.subdirs, [&](const std::string &, const std::vector<std::string> &subdirs) {
-            for (const auto &dir : subdirs) {
-                // clang-format off
-                comment(dir);
-                cmd("set")("CMKR_CMAKE_FOLDER", "${CMAKE_FOLDER}");
-                cmd("if")("CMAKE_FOLDER");
-                    cmd("set")("CMAKE_FOLDER", "${CMAKE_FOLDER}/" + dir);
-                cmd("else")();
-                    cmd("set")("CMAKE_FOLDER", dir);
-                cmd("endif")();
-                // clang-format on
+    auto add_subdir = [&](const std::string &dir) {
+        // clang-format off
+        comment(dir);
+        cmd("set")("CMKR_CMAKE_FOLDER", "${CMAKE_FOLDER}");
+        cmd("if")("CMAKE_FOLDER");
+            cmd("set")("CMAKE_FOLDER", "${CMAKE_FOLDER}/" + dir);
+        cmd("else")();
+            cmd("set")("CMAKE_FOLDER", dir);
+        cmd("endif")();
+        // clang-format on
 
-                cmd("add_subdirectory")(dir);
-                cmd("set")("CMAKE_FOLDER", "${CMKR_CMAKE_FOLDER}").endl();
+        cmd("add_subdirectory")(dir);
+        cmd("set")("CMAKE_FOLDER", "${CMKR_CMAKE_FOLDER}").endl();
+    };
+
+    // generate_cmake is called on the subdirectories recursively later
+    if (!project.project_subdirs.empty()) {
+        gen.handle_condition(project.project_subdirs, [&](const std::string &, const std::vector<std::string> &subdirs) {
+            for (const auto &dir : subdirs) {
+                add_subdir(dir);
             }
         });
         endl();
+    }
+    for (const auto &subdir : project.subdirs) {
+        if (!subdir.condition.empty()) {
+            const auto &condition = subdir.condition;
+            if (project.conditions.count(condition) == 0) {
+                throw std::runtime_error("Unknown condition '" + condition + "' for [subdir." + subdir.name + "]");
+            }
+            gen.cmd("if", condition)(RawArg(project.conditions[condition]));
+        }
+
+        gen.handle_condition(subdir.include_before,
+                             [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
+        gen.handle_condition(subdir.cmake_before, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
+
+        add_subdir(subdir.name);
+
+        gen.handle_condition(subdir.include_after, [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
+        gen.handle_condition(subdir.cmake_after, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
+
+        if (!subdir.condition.empty()) {
+            cmd("endif")();
+        }
     }
 
     if (!project.targets.empty()) {
@@ -875,12 +901,28 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
-    for (const auto &itr : project.subdirs) {
-        for (const auto &sub : itr.second) {
-            auto subpath = fs::path(path) / fs::path(sub);
-            if (fs::exists(subpath / "cmake.toml"))
-                generate_cmake(subpath.string().c_str(), false);
+    auto generate_subdir = [path](const fs::path &sub) {
+        // Skip generating for subdirectories that have a cmake.toml with a [project] in it
+        fs::path subpath;
+        for (const auto &p : sub) {
+            subpath /= p;
+            if (parser::is_root_path(subpath.string())) {
+                return;
+            }
         }
+
+        subpath = path / sub;
+        if (fs::exists(subpath / "cmake.toml")) {
+            generate_cmake(subpath.string().c_str(), false);
+        }
+    };
+    for (const auto &itr : project.project_subdirs) {
+        for (const auto &sub : itr.second) {
+            generate_subdir(sub);
+        }
+    }
+    for (const auto &subdir : project.subdirs) {
+        generate_subdir(subdir.name);
     }
 
     return 0;

@@ -110,6 +110,15 @@ struct Install {
     std::string destination;
 };
 
+struct Subdir {
+    std::string name;
+    std::string condition;
+    Condition<std::string> cmake_before;
+    Condition<std::string> cmake_after;
+    ConditionVector include_before;
+    ConditionVector include_after;
+};
+
 struct Project {
     // This is the CMake version required to use all cmkr versions.
     std::string cmake_version = "3.15";
@@ -117,7 +126,7 @@ struct Project {
     std::string build_dir = "build";
     std::string generator;
     std::string config;
-    Condition<std::vector<std::string>> subdirs;
+    Condition<std::vector<std::string>> project_subdirs;
     std::vector<std::string> cppflags;
     std::vector<std::string> cflags;
     std::vector<std::string> linkflags;
@@ -140,9 +149,12 @@ struct Project {
     std::vector<Test> tests;
     std::vector<Install> installs;
     tsl::ordered_map<std::string, std::string> conditions;
+    std::vector<Subdir> subdirs;
 
     Project(const std::string &path, bool build);
 };
+
+bool is_root_path(const std::string &path);
 
 } // namespace parser
 } // namespace cmkr

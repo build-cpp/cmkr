@@ -62,10 +62,11 @@ static void get_optional(const TomlBasicValue &v, const toml::key &ky, T &destin
 }
 
 Project::Project(const std::string &path, bool build) {
-    if (!fs::exists(fs::path(path) / "cmake.toml")) {
+    const auto toml_path = fs::path(path) / "cmake.toml";
+    if (!fs::exists(toml_path)) {
         throw std::runtime_error("No cmake.toml was found!");
     }
-    const auto toml = toml::parse<toml::preserve_comments, tsl::ordered_map, std::vector>((fs::path(path) / "cmake.toml").string());
+    const auto toml = toml::parse<toml::preserve_comments, tsl::ordered_map, std::vector>(toml_path.string());
     if (build) {
         if (toml.contains("cmake")) {
             const auto &cmake = toml::find(toml, "cmake");
@@ -99,7 +100,21 @@ Project::Project(const std::string &path, bool build) {
             get_optional(project, "cmake-after", cmake_after);
             get_optional(project, "include-before", include_before);
             get_optional(project, "include-after", include_after);
-            get_optional(project, "subdirs", subdirs);
+            get_optional(project, "subdirs", project_subdirs);
+        }
+
+        if (toml.contains("subdir")) {
+            const auto &subs = toml::find(toml, "subdir").as_table();
+            for (const auto &sub : subs) {
+                Subdir subdir;
+                subdir.name = sub.first;
+                get_optional(sub.second, "condition", subdir.condition);
+                get_optional(sub.second, "cmake-before", subdir.cmake_before);
+                get_optional(sub.second, "cmake-after", subdir.cmake_after);
+                get_optional(sub.second, "include-before", subdir.include_before);
+                get_optional(sub.second, "include-after", subdir.include_after);
+                subdirs.push_back(subdir);
+            }
         }
 
         if (toml.contains("settings")) {
@@ -311,5 +326,15 @@ Project::Project(const std::string &path, bool build) {
         }
     }
 }
+
+bool is_root_path(const std::string &path) {
+    const auto toml_path = fs::path(path) / "cmake.toml";
+    if (!fs::exists(toml_path)) {
+        return false;
+    }
+    const auto toml = toml::parse<toml::preserve_comments, tsl::ordered_map, std::vector>(toml_path.string());
+    return toml.contains("project");
+}
+
 } // namespace parser
 } // namespace cmkr
