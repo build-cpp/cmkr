@@ -1,0 +1,35 @@
+---
+# Automatically generated from tests/globbing/cmake.toml - DO NOT EDIT
+layout: default
+title: Globbing sources
+permalink: /examples/globbing
+parent: Examples
+nav_order: 6
+---
+
+# Globbing sources
+
+
+
+```toml
+[project]
+name = "globbing"
+description = "Globbing sources"
+
+# Recursively glob in the mylib/ folder
+[target.mylib]
+type = "static"
+alias = "mylib::mylib"
+sources = ["mylib/**.hpp", "mylib/**.cpp"]
+include-directories = ["mylib/include"]
+
+# Single-folder glob in example/src/
+[target.example]
+type = "executable"
+sources = ["example/src/*.cpp"]
+link-libraries = ["mylib::mylib"]
+```
+
+As you can see in the example above you can use `**.ext` to glob recursively and `*.ext` to glob non-recursively. This **does not** generate `file(GLOB ...)` commands, but instead globs when cmkr is run. Files are sorted to give deterministic results regardless of the platform used.
+
+<sup><sub>This page was automatically generated from [tests/globbing/cmake.toml](https://github.com/build-cpp/cmkr/tree/main/tests/globbing/cmake.toml).</sub></sup>

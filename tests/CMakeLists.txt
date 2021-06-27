@@ -58,3 +58,23 @@ add_test(
 		build
 )
 
+add_test(
+	NAME
+		cxx-standard
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/cxx-standard"
+	COMMAND
+		$<TARGET_FILE:cmkr>
+		build
+)
+
+add_test(
+	NAME
+		globbing
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/globbing"
+	COMMAND
+		$<TARGET_FILE:cmkr>
+		build
+)
+

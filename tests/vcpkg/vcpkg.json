@@ -5,7 +5,7 @@
   "dependencies": [
     "fmt"
   ],
-  "description": "Example of using vcpkg",
+  "description": "Dependencies from vcpkg",
   "name": "vcpkg",
   "version-string": ""
 }

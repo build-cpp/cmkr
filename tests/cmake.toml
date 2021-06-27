@@ -27,3 +27,15 @@ name = "vcpkg"
 command = "$<TARGET_FILE:cmkr>"
 working-directory = "vcpkg"
 arguments = ["build"]
+
+[[test]]
+name = "cxx-standard"
+command = "$<TARGET_FILE:cmkr>"
+working-directory = "cxx-standard"
+arguments = ["build"]
+
+[[test]]
+name = "globbing"
+command = "$<TARGET_FILE:cmkr>"
+working-directory = "globbing"
+arguments = ["build"]
