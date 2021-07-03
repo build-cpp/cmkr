@@ -1,7 +1,6 @@
 #include "cmake_generator.hpp"
 #include "error.hpp"
 #include "literals.hpp"
-#include "project_parser.hpp"
 
 #include "fs.hpp"
 #include <cassert>
@@ -440,12 +439,12 @@ static std::string vcpkg_escape_identifier(const std::string &name) {
     return escaped;
 }
 
-int generate_cmake(const char *path, bool root) {
+int generate_cmake(const char *path, const parser::Project *parent_project) {
     if (!fs::exists(fs::path(path) / "cmake.toml")) {
         throw std::runtime_error("No cmake.toml found!");
     }
 
-    parser::Project project(path, false);
+    parser::Project project(parent_project, path, false);
     Generator gen(project);
 
     // Helper lambdas for more convenient CMake generation
@@ -461,7 +460,8 @@ int generate_cmake(const char *path, bool root) {
     comment("See " + cmkr_url + " for more information");
     endl();
 
-    if (root) {
+    // Root project doesn't have a parent
+    if (parent_project == nullptr) {
         cmd("cmake_minimum_required")("VERSION", project.cmake_version).endl();
 
         if (!project.allow_in_tree) {
@@ -919,7 +919,7 @@ int generate_cmake(const char *path, bool root) {
         }
     }
 
-    auto generate_subdir = [path](const fs::path &sub) {
+    auto generate_subdir = [path, &project](const fs::path &sub) {
         // Skip generating for subdirectories that have a cmake.toml with a [project] in it
         fs::path subpath;
         for (const auto &p : sub) {
@@ -931,7 +931,7 @@ int generate_cmake(const char *path, bool root) {
 
         subpath = path / sub;
         if (fs::exists(subpath / "cmake.toml")) {
-            generate_cmake(subpath.string().c_str(), false);
+            generate_cmake(subpath.string().c_str(), &project);
         }
     };
     for (const auto &itr : project.project_subdirs) {

@@ -1,7 +1,7 @@
 #include "build.hpp"
-#include "project_parser.hpp"
-#include "error.hpp"
 #include "cmake_generator.hpp"
+#include "error.hpp"
+#include "project_parser.hpp"
 
 #include "fs.hpp"
 #include <sstream>
@@ -14,7 +14,7 @@ namespace cmkr {
 namespace build {
 
 int run(int argc, char **argv) {
-    parser::Project project(".", true);
+    parser::Project project(nullptr, ".", true);
     if (argc > 2) {
         for (int i = 2; i < argc; ++i) {
             project.build_args.push_back(argv[i]);
@@ -50,7 +50,7 @@ int run(int argc, char **argv) {
 
 int clean() {
     bool ret = false;
-    parser::Project project(".", true);
+    parser::Project project(nullptr, ".", true);
     if (fs::exists(project.build_dir)) {
         ret = fs::remove_all(project.build_dir);
         fs::create_directory(project.build_dir);
@@ -59,7 +59,7 @@ int clean() {
 }
 
 int install() {
-    parser::Project project(".", false);
+    parser::Project project(nullptr, ".", false);
     auto cmd = "cmake --install " + project.build_dir;
     return ::system(cmd.c_str());
 }

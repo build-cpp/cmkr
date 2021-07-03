@@ -152,7 +152,7 @@ struct Project {
     tsl::ordered_map<std::string, std::string> conditions;
     std::vector<Subdir> subdirs;
 
-    Project(const std::string &path, bool build);
+    Project(const Project *parent, const std::string &path, bool build);
 };
 
 bool is_root_path(const std::string &path);
