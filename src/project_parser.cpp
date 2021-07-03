@@ -314,10 +314,13 @@ Project::Project(const std::string &path, bool build) {
 
         // Reasonable default conditions (you can override these if you desire)
         conditions["windows"] = R"cmake(WIN32)cmake";
-        conditions["macos"] = R"cmake("${CMAKE_SYSTEM_NAME}" MATCHES "Darwin")cmake";
+        conditions["macos"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "Darwin")cmake";
         conditions["unix"] = R"cmake(UNIX)cmake";
-        conditions["bsd"] = R"cmake("${CMAKE_SYSTEM_NAME}" MATCHES "BSD")cmake";
-        conditions["linux"] = conditions["lunix"] = R"cmake("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")cmake";
+        conditions["bsd"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "BSD")cmake";
+        conditions["linux"] = conditions["lunix"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "Linux")cmake";
+        conditions["gcc"] = R"cmake(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")cmake";
+        conditions["clang"] = R"cmake(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID MATCHES "Clang")cmake";
+        conditions["msvc"] = R"cmake(MSVC)cmake";
 
         if (toml.contains("conditions")) {
             auto conds = toml::find<decltype(conditions)>(toml, "conditions");
