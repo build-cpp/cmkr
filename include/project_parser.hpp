@@ -126,6 +126,7 @@ struct Project {
     std::string build_dir = "build";
     std::string generator;
     std::string config;
+    bool allow_in_tree = false;
     Condition<std::vector<std::string>> project_subdirs;
     std::vector<std::string> cppflags;
     std::vector<std::string> cflags;

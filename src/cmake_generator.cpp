@@ -464,6 +464,14 @@ int generate_cmake(const char *path, bool root) {
     if (root) {
         cmd("cmake_minimum_required")("VERSION", project.cmake_version).endl();
 
+        if (!project.allow_in_tree) {
+            // clang-format off
+            cmd("if")("CMAKE_SOURCE_DIR", "STREQUAL", "CMAKE_BINARY_DIR");
+                cmd("message")("FATAL_ERROR", "In-tree builds are not supported. Run CMake from a separate directory: cmake -B build");
+            cmd("endif")().endl();
+            // clang-format on
+        }
+
         comment("Regenerate CMakeLists.txt automatically in the root project");
         cmd("set")("CMKR_ROOT_PROJECT", "OFF");
         // clang-format off

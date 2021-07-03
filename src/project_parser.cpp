@@ -79,6 +79,7 @@ Project::Project(const std::string &path, bool build) {
             get_optional(cmake, "generator", generator);
             get_optional(cmake, "config", config);
             get_optional(cmake, "arguments", gen_args);
+            get_optional(cmake, "allow-in-tree", allow_in_tree);
         }
     } else {
         if (toml.contains("cmake")) {
