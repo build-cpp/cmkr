@@ -5,7 +5,7 @@ permalink: /getting-started/
 nav_order: 1
 ---
 
-## Getting started
+# Getting started
 
 The easiest way to get started is to use the [cmkr_for_beginners](https://github.com/build-cpp/cmkr_for_beginners) template repository. Either open it in [Gitpod](https://gitpod.io/#https://github.com/build-cpp/cmkr_for_beginners), or clone the repository and run:
 

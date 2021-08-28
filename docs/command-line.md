@@ -5,7 +5,7 @@ permalink: /command-line/
 nav_order: 2
 ---
 
-## Command line
+# Command line
 
 Optionally you can install `cmkr` in your `PATH` and use it as a utility from the command line:
 
