@@ -1,5 +1,6 @@
 [cmake]
 version = "2.8...3.8"
+cmkr-include = false
 
 [project]
 name = "cmkr"
@@ -7,7 +8,10 @@ version = "0.1.4"
 description = "CMakeLists generator from TOML"
 languages = ["CXX"]
 subdirs = ["third_party", "tests"]
-include-after = ["cmake/generate_documentation.cmake"]
+include-after = [
+    "cmake/generate_documentation.cmake",
+    "cmake/generate_resources.cmake"
+]
 
 [target.cmkr_generate_documentation]
 type = "interface"
@@ -17,10 +21,25 @@ generate_documentation()
 
 [target.cmkr]
 type = "executable"
-sources = ["src/*.cpp", "include/*.hpp"]
-include-directories = ["include"]
+sources = [
+    "src/*.cpp",
+    "include/*.hpp",
+    "cmake/cmkr.cmake",
+]
+include-directories = [
+    "include",
+]
 compile-features = ["cxx_std_11"]
-link-libraries = ["toml11", "ghc_filesystem", "mpark_variant", "ordered_map", "nlohmann_json"]
+link-libraries = [
+    "toml11",
+    "ghc_filesystem",
+    "mpark_variant",
+    "ordered_map",
+    "nlohmann_json"
+]
+cmake-after = """
+generate_resources(${CMKR_TARGET})
+"""
 
 [[install]]
 targets = ["cmkr"]

@@ -1,6 +1,7 @@
 #include "cmake_generator.hpp"
 #include "error.hpp"
 #include "literals.hpp"
+#include <resources/cmkr.h>
 
 #include "fs.hpp"
 #include <cassert>
@@ -478,16 +479,28 @@ int generate_cmake(const char *path, const parser::Project *parent_project) {
         cmd("if")("CMAKE_CURRENT_SOURCE_DIR", "STREQUAL", "CMAKE_SOURCE_DIR");
             cmd("set")("CMKR_ROOT_PROJECT", "ON").endl();
 
-            comment("Bootstrap cmkr");
-            cmd("include")(project.cmkr_include, "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT");
-            cmd("if")("CMKR_INCLUDE_RESULT");
-                cmd("cmkr")();
-            cmd("endif")().endl();
+            if (!project.cmkr_include.empty()) {
+                comment("Bootstrap cmkr");
+                cmd("include")(project.cmkr_include, "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT");
+                cmd("if")("CMKR_INCLUDE_RESULT");
+                    cmd("cmkr")();
+                cmd("endif")().endl();
+            }
 
             comment("Enable folder support");
             cmd("set_property")("GLOBAL", "PROPERTY", "USE_FOLDERS", "ON");
         cmd("endif")().endl();
         // clang-format on
+
+        fs::path cmkr_include(project.cmkr_include);
+        if (!project.cmkr_include.empty() && !fs::exists(cmkr_include) && cmkr_include.is_relative()) {
+            fs::create_directories(cmkr_include.parent_path());
+            std::ofstream ofs(cmkr_include.string(), std::ios::binary);
+            if (!ofs) {
+                throw std::runtime_error("Failed to create " + project.cmkr_include);
+            }
+            ofs.write(resources::cmkr, strlen(resources::cmkr));
+        }
     }
 
     // clang-format off

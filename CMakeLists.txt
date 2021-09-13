@@ -12,12 +12,6 @@ set(CMKR_ROOT_PROJECT OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 	set(CMKR_ROOT_PROJECT ON)
 
-	# Bootstrap cmkr
-	include(cmkr.cmake OPTIONAL RESULT_VARIABLE CMKR_INCLUDE_RESULT)
-	if(CMKR_INCLUDE_RESULT)
-		cmkr()
-	endif()
-
 	# Enable folder support
 	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
@@ -37,6 +31,7 @@ project(cmkr
 )
 
 include("cmake/generate_documentation.cmake")
+include("cmake/generate_resources.cmake")
 
 # third_party
 set(CMKR_CMAKE_FOLDER ${CMAKE_FOLDER})
@@ -97,6 +92,7 @@ list(APPEND cmkr_SOURCES
 	"include/help.hpp"
 	"include/literals.hpp"
 	"include/project_parser.hpp"
+	"cmake/cmkr.cmake"
 )
 
 list(APPEND cmkr_SOURCES
@@ -132,6 +128,8 @@ target_link_libraries(cmkr PRIVATE
 	ordered_map
 	nlohmann_json
 )
+
+generate_resources(${CMKR_TARGET})
 
 unset(CMKR_TARGET)
 unset(CMKR_SOURCES)

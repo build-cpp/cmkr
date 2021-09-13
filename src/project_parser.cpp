@@ -85,7 +85,15 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         if (toml.contains("cmake")) {
             const auto &cmake = toml::find(toml, "cmake");
             cmake_version = toml::find(cmake, "version").as_string();
-            get_optional(cmake, "cmkr-include", cmkr_include);
+            if (cmake.contains("cmkr-include")) {
+                const auto &cmkr_include_kv = toml::find(cmake, "cmkr-include");
+                if (cmkr_include_kv.is_string()) {
+                    cmkr_include = cmkr_include_kv.as_string();
+                } else {
+                    // Allow disabling this feature with cmkr-include = false
+                    cmkr_include = "";
+                }
+            }
             get_optional(cmake, "cpp-flags", cppflags);
             get_optional(cmake, "c-flags", cflags);
             get_optional(cmake, "link-flags", linkflags);

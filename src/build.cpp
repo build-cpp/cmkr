@@ -25,7 +25,7 @@ int run(int argc, char **argv) {
     if (gen::generate_cmake(fs::current_path().string().c_str()))
         throw std::runtime_error("CMake generation failure!");
 
-    ss << "cmake -S. -B" << project.build_dir << " ";
+    ss << "cmake -S. -DCMKR_SKIP_GENERATION=ON -B" << project.build_dir << " ";
 
     if (!project.generator.empty()) {
         ss << "-G \"" << project.generator << "\" ";
