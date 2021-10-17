@@ -36,6 +36,9 @@ const char *handle_args(int argc, char **argv) {
         auto ret = cmkr::gen::generate_project(type.c_str());
         if (ret)
             return "Initialization failure!";
+        ret = cmkr::gen::generate_cmake(fs::current_path().string().c_str());
+        if (ret)
+            return "CMake generation error!";
         return "Directory initialized!";
     } else if (main_arg == "build") {
         auto ret = build::run(argc, argv);
