@@ -1,7 +1,7 @@
 #include "cmake_generator.hpp"
 #include "error.hpp"
 #include "literals.hpp"
-#include <resources/cmkr.h>
+#include <resources/cmkr.hpp>
 
 #include "fs.hpp"
 #include <cassert>

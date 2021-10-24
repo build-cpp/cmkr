@@ -2,15 +2,16 @@ include_guard()
 
 # Change these defaults to point to your infrastructure if desired
 set(CMKR_REPO "https://github.com/build-cpp/cmkr" CACHE STRING "cmkr git repository" FORCE)
-set(CMKR_TAG "archive_9e1fa5dc" CACHE STRING "cmkr git tag (this needs to be available forever)" FORCE)
+set(CMKR_TAG "archive_a718dfd6" CACHE STRING "cmkr git tag (this needs to be available forever)" FORCE)
 
 # Set these from the command line to customize for development/debugging purposes
 set(CMKR_EXECUTABLE "" CACHE FILEPATH "cmkr executable")
 set(CMKR_SKIP_GENERATION OFF CACHE BOOL "skip automatic cmkr generation")
 
 # Disable cmkr if generation is disabled
-if(DEFINED ENV{CI} OR CMKR_SKIP_GENERATION)
+if(DEFINED ENV{CI} OR CMKR_SKIP_GENERATION OR CMKR_BUILD_SKIP_GENERATION)
     message(STATUS "[cmkr] Skipping automatic cmkr generation")
+    unset(CMKR_BUILD_SKIP_GENERATION CACHE)
     macro(cmkr)
     endmacro()
     return()

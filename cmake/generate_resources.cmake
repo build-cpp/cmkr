@@ -7,13 +7,12 @@ function(generate_resources target)
     foreach(SOURCE ${TARGET_SOURCES})
         if(SOURCE MATCHES ".cmake$")
             get_filename_component(RESOURCE_NAME "${SOURCE}" NAME_WE)
-            set(RESOURCE_HEADER "include/resources/${RESOURCE_NAME}.h")
-            configure_file("${SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}/${RESOURCE_HEADER}")
-            file(READ "${CMAKE_CURRENT_BINARY_DIR}/${RESOURCE_HEADER}" RESOURCE_CONTENTS)
-            file(GENERATE
-                OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${RESOURCE_HEADER}"
-                CONTENT "namespace cmkr {\nnamespace resources {\nstatic const char* ${RESOURCE_NAME} = R\"RESOURCE(${RESOURCE_CONTENTS})RESOURCE\";\n}\n}"
-            )
+            set(RESOURCE_HEADER "include/resources/${RESOURCE_NAME}.hpp")
+            # Add configure-time dependency on the source file
+            configure_file("${SOURCE}" "${RESOURCE_HEADER}" COPYONLY)
+            # Generate the actual resource into the header
+            file(READ "${SOURCE}" RESOURCE_CONTENTS)
+            configure_file("${PROJECT_SOURCE_DIR}/cmake/resource.hpp.in" "${RESOURCE_HEADER}" @ONLY)
             message(STATUS "[cmkr] Generated ${RESOURCE_HEADER}")
         endif()
     endforeach()

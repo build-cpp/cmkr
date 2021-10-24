@@ -1,0 +1,7 @@
+namespace cmkr {
+namespace resources {
+
+static const char* @RESOURCE_NAME@ = R"RESOURCE(@RESOURCE_CONTENTS@)RESOURCE";
+
+}
+}
