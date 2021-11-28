@@ -1,5 +1,9 @@
 include_guard()
 
+if(CMAKE_SCRIPT_MODE_FILE)
+    message(FATAL_ERROR "Running cmkr.cmake as a script is unsupported. To build your project try: cmake -B build")
+endif()
+
 # Change these defaults to point to your infrastructure if desired
 set(CMKR_REPO "https://github.com/build-cpp/cmkr" CACHE STRING "cmkr git repository" FORCE)
 set(CMKR_TAG "archive_7c7144b1" CACHE STRING "cmkr git tag (this needs to be available forever)" FORCE)
