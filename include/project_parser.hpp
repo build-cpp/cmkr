@@ -28,7 +28,7 @@ struct Package {
     std::string name;
     std::string version;
     bool required = true;
-    bool config = true;
+    bool config = false;
     std::vector<std::string> components;
 };
 
