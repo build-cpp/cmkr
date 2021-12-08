@@ -39,10 +39,26 @@ include-after = ["cmake/after-project.cmake"]
 
 ## Conditions
 
+You can specify your own conditions and use them in any `condition` field:
+
 ```toml
 [conditions]
 arch64 = "CMAKE_SIZEOF_VOID_P EQUALS 8"
 arch32 = "CMAKE_SIZEOF_VOID_P EQUALS 4"
+```
+
+This will make the `arch64` and `arch32` conditions available with their respective CMake expressions. The following conditions are predefined (you can override them if you desire):
+
+```toml
+[conditions]
+windows = "WIN32"
+macos = "CMAKE_SYSTEM_NAME MATCHES \"Darwin\""
+unix = "UNIX"
+bsd = "CMAKE_SYSTEM_NAME MATCHES \"BSD\""
+linux = "CMAKE_SYSTEM_NAME MATCHES \"Linux\""
+gcc = "CMAKE_CXX_COMPILER_ID STREQUAL \"GNU\" OR CMAKE_C_COMPILER_ID STREQUAL \"GNU\""
+clang = "CMAKE_CXX_COMPILER_ID MATCHES \"Clang\" OR CMAKE_C_COMPILER_ID MATCHES \"Clang\""
+msvc = "MSVC"
 ```
 
 ## Subdirectories
@@ -69,7 +85,7 @@ url = "https://github.com/microsoft/vcpkg/archive/refs/tags/2021.05.12.tar.gz"
 packages = ["fmt", "zlib"]
 ```
 
-The vcpkg `version` will automatically generate the `url` from the official repository. For a custom registry you can specify your own `url` (and omit the `version`).
+The vcpkg `version` will automatically generate the `url` from the [official repository](https://github.com/microsoft/vcpkg/releases). For a custom registry you can specify your own `url` (and omit the `version`). You can browse available packages on [vcpkg.io](https://vcpkg.io/en/packages.html).
 
 ## Packages
 
