@@ -81,7 +81,7 @@ else()
         ${CMKR_REPO}
         "${CMKR_DIRECTORY}"
     )
-    message(STATUS "[cmkr] Building cmkr...")
+    message(STATUS "[cmkr] Building cmkr (using system compiler)...")
     cmkr_exec("${CMAKE_COMMAND}"
         --no-warn-unused-cli
         "${CMKR_DIRECTORY}"
