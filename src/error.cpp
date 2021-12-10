@@ -20,6 +20,6 @@ static const char *err_string[] = {
 };
 
 const char *cmkr_error_status(int i) {
-    assert(i >= 0 && i < 5);
+    assert(i >= 0 && i < (sizeof(err_string) / sizeof(*(err_string))));
     return err_string[i];
 }
