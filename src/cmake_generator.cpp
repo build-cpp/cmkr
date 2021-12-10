@@ -494,7 +494,9 @@ int generate_cmake(const char *path, const parser::Project *parent_project) {
 
         fs::path cmkr_include(project.cmkr_include);
         if (!project.cmkr_include.empty() && !fs::exists(cmkr_include) && cmkr_include.is_relative()) {
-            fs::create_directories(cmkr_include.parent_path());
+            if (!cmkr_include.parent_path().empty()) {
+                fs::create_directories(cmkr_include.parent_path());
+            }
             std::ofstream ofs(cmkr_include.string(), std::ios::binary);
             if (!ofs) {
                 throw std::runtime_error("Failed to create " + project.cmkr_include);
