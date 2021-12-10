@@ -14,8 +14,9 @@ Status::Code Status::code() const noexcept { return ec_; }
 } // namespace error
 } // namespace cmkr
 
-const char *err_string[] = {
-    "Success", "Runtime error", "Initialization error", "CMake generation error", "Build error",
+// strings for cmkr::error::Status::Code
+static const char *err_string[] = {
+    "Success", "Runtime error", "Initialization error", "CMake generation error", "Build error", "Clean error", "Install error",
 };
 
 const char *cmkr_error_status(int i) {
