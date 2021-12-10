@@ -5,9 +5,9 @@
 
 #include "fs.hpp"
 #include <sstream>
-#include <stddef.h>
+#include <cstddef>
 #include <stdexcept>
-#include <stdlib.h>
+#include <cstdlib>
 #include <system_error>
 
 namespace cmkr {

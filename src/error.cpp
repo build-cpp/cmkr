@@ -1,6 +1,6 @@
 #include "error.hpp"
 
-#include <assert.h>
+#include <cassert>
 
 namespace cmkr {
 namespace error {
