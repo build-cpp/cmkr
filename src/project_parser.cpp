@@ -187,9 +187,32 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             }
         }
 
-        // TODO: refactor to std::vector<Content> instead of this hacky thing?
         if (toml.contains("fetch-content")) {
-            contents = toml::find<decltype(contents)>(toml, "fetch-content");
+            const auto &fc = toml::find(toml, "fetch-content").as_table();
+            for (const auto &itr : fc) {
+                Content content;
+                content.name = itr.first;
+                for (const auto &argItr : itr.second.as_table()) {
+                    auto key = argItr.first;
+                    if (key == "git") {
+                        key = "GIT_REPOSITORY";
+                    } else if (key == "tag") {
+                        key = "GIT_TAG";
+                    } else if (key == "svn") {
+                        key = "SVN_REPOSITORY";
+                    } else if (key == "rev") {
+                        key = "SVN_REVISION";
+                    } else if (key == "url") {
+                        key = "URL";
+                    } else if (key == "hash") {
+                        key = "URL_HASH";
+                    } else {
+                        // don't change arg
+                    }
+                    content.arguments.emplace(key, argItr.second.as_string());
+                }
+                contents.emplace_back(std::move(content));
+            }
         }
 
         if (toml.contains("bin")) {

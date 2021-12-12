@@ -119,6 +119,11 @@ struct Subdir {
     ConditionVector include_after;
 };
 
+struct Content {
+    std::string name;
+    tsl::ordered_map<std::string, std::string> arguments;
+};
+
 struct Project {
     // This is the CMake version required to use all cmkr versions.
     std::string cmake_version = "3.15";
@@ -145,7 +150,7 @@ struct Project {
     std::vector<Option> options;
     std::vector<Package> packages;
     Vcpkg vcpkg;
-    tsl::ordered_map<std::string, std::map<std::string, std::string>> contents;
+    std::vector<Content> contents;
     std::vector<Target> targets;
     std::vector<Test> tests;
     std::vector<Install> installs;

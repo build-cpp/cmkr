@@ -554,30 +554,14 @@ int generate_cmake(const char *path, const parser::Project *parent_project) {
 
     if (!project.contents.empty()) {
         cmd("include")("FetchContent").endl();
-        for (const auto &dep : project.contents) {
-            cmd("message")("STATUS", "Fetching " + dep.first + "...");
-            ss << "FetchContent_Declare(\n\t" << dep.first << "\n";
-            for (const auto &arg : dep.second) {
-                std::string first_arg = arg.first;
-                if (first_arg == "git") {
-                    first_arg = "GIT_REPOSITORY";
-                } else if (first_arg == "tag") {
-                    first_arg = "GIT_TAG";
-                } else if (first_arg == "svn") {
-                    first_arg = "SVN_REPOSITORY";
-                } else if (first_arg == "rev") {
-                    first_arg = "SVN_REVISION";
-                } else if (first_arg == "url") {
-                    first_arg = "URL";
-                } else if (first_arg == "hash") {
-                    first_arg = "URL_HASH";
-                } else {
-                    // don't change arg
-                }
-                ss << "\t" << first_arg << "\n\t\t" << arg.second << "\n";
+        for (const auto &content : project.contents) {
+            cmd("message")("STATUS", "Fetching " + content.name + "...");
+            ss << "FetchContent_Declare(\n\t" << content.name << "\n";
+            for (const auto &arg : content.arguments) {
+                ss << "\t" << arg.first << "\n\t\t" << arg.second << "\n";
             }
             ss << ")\n";
-            cmd("FetchContent_MakeAvailable")(dep.first).endl();
+            cmd("FetchContent_MakeAvailable")(content.name).endl();
         }
     }
 
