@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <toml.hpp>
 #include <tsl/ordered_map.h>
+#include <tsl/ordered_set.h>
 
 template <>
 const char *enumStrings<cmkr::parser::TargetType>::data[] = {"executable", "library", "shared", "static", "interface", "custom"};
@@ -61,12 +62,55 @@ static void get_optional(const TomlBasicValue &v, const toml::key &ky, T &destin
     }
 }
 
+class TomlChecker {
+    const TomlBasicValue &m_v;
+    tsl::ordered_set<toml::key> m_visited;
+    bool m_checked = false;
+
+  public:
+    TomlChecker(const TomlBasicValue &v, const toml::key &ky) : m_v(toml::find(v, ky)) {}
+    TomlChecker(const TomlBasicValue &v) : m_v(v) {}
+    TomlChecker(const TomlChecker &) = delete;
+
+    ~TomlChecker() noexcept(false) {
+        if (!m_checked) {
+            throw std::runtime_error("TomlChecker::check() not called");
+        }
+    }
+
+    template <typename T>
+    void optional(const toml::key &ky, T &destination) {
+        get_optional(m_v, ky, destination);
+        visit(ky);
+    }
+
+    template <typename T>
+    void required(const toml::key &ky, T &destination) {
+        destination = toml::find<T>(m_v, ky);
+        visit(ky);
+    }
+
+    void visit(const toml::key &ky) { m_visited.insert(ky); }
+
+    void check() {
+        m_checked = true;
+        for (const auto &itr : m_v.as_table()) {
+            const auto &ky = itr.first;
+            if (m_visited.count(ky) == 0) {
+                // TODO: nice error messages
+                throw std::runtime_error("Unknown key '" + ky + "'");
+            }
+        }
+    }
+};
+
 Project::Project(const Project *parent, const std::string &path, bool build) {
     const auto toml_path = fs::path(path) / "cmake.toml";
     if (!fs::exists(toml_path)) {
         throw std::runtime_error("No cmake.toml was found!");
     }
     const auto toml = toml::parse<toml::preserve_comments, tsl::ordered_map, std::vector>(toml_path.string());
+    // TODO: TomlChecker for the "cmake" section
     if (build) {
         if (toml.contains("cmake")) {
             const auto &cmake = toml::find(toml, "cmake");
@@ -100,28 +144,34 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         }
 
         if (toml.contains("project")) {
-            const auto &project = toml::find(toml, "project");
-            project_name = toml::find(project, "name").as_string();
-            get_optional(project, "version", project_version);
-            get_optional(project, "description", project_description);
-            get_optional(project, "languages", project_languages);
-            get_optional(project, "cmake-before", cmake_before);
-            get_optional(project, "cmake-after", cmake_after);
-            get_optional(project, "include-before", include_before);
-            get_optional(project, "include-after", include_after);
-            get_optional(project, "subdirs", project_subdirs);
+            TomlChecker project(toml, "project");
+            project.required("name", project_name);
+            project.optional("version", project_version);
+            project.optional("description", project_description);
+            project.optional("languages", project_languages);
+            project.optional("cmake-before", cmake_before);
+            project.optional("cmake-after", cmake_after);
+            project.optional("include-before", include_before);
+            project.optional("include-after", include_after);
+            project.optional("subdirs", project_subdirs);
+            project.check();
         }
 
         if (toml.contains("subdir")) {
             const auto &subs = toml::find(toml, "subdir").as_table();
-            for (const auto &sub : subs) {
+            for (const auto &itr : subs) {
                 Subdir subdir;
-                subdir.name = sub.first;
-                get_optional(sub.second, "condition", subdir.condition);
-                get_optional(sub.second, "cmake-before", subdir.cmake_before);
-                get_optional(sub.second, "cmake-after", subdir.cmake_after);
-                get_optional(sub.second, "include-before", subdir.include_before);
-                get_optional(sub.second, "include-after", subdir.include_after);
+                subdir.name = itr.first;
+
+                TomlChecker sub(itr.second);
+                sub.optional("condition", subdir.condition);
+                sub.optional("condition", subdir.condition);
+                sub.optional("cmake-before", subdir.cmake_before);
+                sub.optional("cmake-after", subdir.cmake_after);
+                sub.optional("include-before", subdir.include_before);
+                sub.optional("include-after", subdir.include_after);
+                sub.check();
+
                 subdirs.push_back(subdir);
             }
         }
@@ -129,25 +179,29 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         if (toml.contains("settings")) {
             using set_map = std::map<std::string, TomlBasicValue>;
             const auto &sets = toml::find<set_map>(toml, "settings");
-            for (const auto &set : sets) {
+            for (const auto &itr : sets) {
                 Setting s;
-                s.name = set.first;
-                if (set.second.is_boolean()) {
-                    s.val = set.second.as_boolean();
-                } else if (set.second.is_string()) {
-                    s.val = set.second.as_string();
+                s.name = itr.first;
+                const auto& value = itr.second;
+                if (value.is_boolean()) {
+                    s.val = value.as_boolean();
+                } else if (value.is_string()) {
+                    s.val = value.as_string();
                 } else {
-                    get_optional(set.second, "comment", s.comment);
-                    if (set.second.contains("value")) {
-                        auto v = toml::find(set.second, "value");
+                    TomlChecker setting(value);
+                    setting.optional("comment", s.comment);
+                    setting.visit("value");
+                    if (value.contains("value")) {
+                        auto v = toml::find(value, "value");
                         if (v.is_boolean()) {
                             s.val = v.as_boolean();
                         } else {
                             s.val = v.as_string();
                         }
                     }
-                    get_optional(set.second, "cache", s.cache);
-                    get_optional(set.second, "force", s.force);
+                    setting.optional("cache", s.cache);
+                    setting.optional("force", s.force);
+                    setting.check();
                 }
                 settings.push_back(s);
             }
@@ -156,14 +210,17 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         if (toml.contains("options")) {
             using opts_map = tsl::ordered_map<std::string, TomlBasicValue>;
             const auto &opts = toml::find<opts_map>(toml, "options");
-            for (const auto &opt : opts) {
+            for (const auto &itr : opts) {
                 Option o;
-                o.name = opt.first;
-                if (opt.second.is_boolean()) {
-                    o.val = opt.second.as_boolean();
+                o.name = itr.first;
+                const auto& value = itr.second;
+                if (value.is_boolean()) {
+                    o.val = value.as_boolean();
                 } else {
-                    get_optional(opt.second, "comment", o.comment);
-                    get_optional(opt.second, "value", o.val);
+                    TomlChecker option(value);
+                    option.optional("comment", o.comment);
+                    option.optional("value", o.val);
+                    option.check();
                 }
                 options.push_back(o);
             }
@@ -172,16 +229,19 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         if (toml.contains("find-package")) {
             using pkg_map = tsl::ordered_map<std::string, TomlBasicValue>;
             const auto &pkgs = toml::find<pkg_map>(toml, "find-package");
-            for (const auto &pkg : pkgs) {
+            for (const auto &itr : pkgs) {
                 Package p;
-                p.name = pkg.first;
-                if (pkg.second.is_string()) {
-                    p.version = pkg.second.as_string();
+                p.name = itr.first;
+                const auto& value = itr.second;
+                if (itr.second.is_string()) {
+                    p.version = itr.second.as_string();
                 } else {
-                    get_optional(pkg.second, "version", p.version);
-                    get_optional(pkg.second, "required", p.required);
-                    get_optional(pkg.second, "config", p.config);
-                    get_optional(pkg.second, "components", p.components);
+                    TomlChecker pkg(value);
+                    pkg.optional("version", p.version);
+                    pkg.optional("required", p.required);
+                    pkg.optional("config", p.config);
+                    pkg.optional("components", p.components);
+                    pkg.check();
                 }
                 packages.push_back(p);
             }
@@ -223,37 +283,42 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             const auto &ts = toml::find(toml, "target").as_table();
 
             for (const auto &itr : ts) {
-                const auto &t = itr.second;
+                const auto& value = itr.second;
+
                 Target target;
                 target.name = itr.first;
-                target.type = to_enum<TargetType>(toml::find(t, "type").as_string(), "target type");
 
-                get_optional(t, "headers", target.headers);
-                get_optional(t, "sources", target.sources);
+                TomlChecker t(value);
+                std::string type;
+                t.required("type", type);
+                target.type = to_enum<TargetType>(type, "target type");
 
-                get_optional(t, "compile-definitions", target.compile_definitions);
-                get_optional(t, "private-compile-definitions", target.private_compile_definitions);
+                t.optional("headers", target.headers);
+                t.optional("sources", target.sources);
 
-                get_optional(t, "compile-features", target.compile_features);
-                get_optional(t, "private-compile-features", target.private_compile_features);
+                t.optional("compile-definitions", target.compile_definitions);
+                t.optional("private-compile-definitions", target.private_compile_definitions);
 
-                get_optional(t, "compile-options", target.compile_options);
-                get_optional(t, "private-compile-options", target.private_compile_options);
+                t.optional("compile-features", target.compile_features);
+                t.optional("private-compile-features", target.private_compile_features);
 
-                get_optional(t, "include-directories", target.include_directories);
-                get_optional(t, "private-include-directories", target.private_include_directories);
+                t.optional("compile-options", target.compile_options);
+                t.optional("private-compile-options", target.private_compile_options);
 
-                get_optional(t, "link-directories", target.link_directories);
-                get_optional(t, "private-link-directories", target.private_link_directories);
+                t.optional("include-directories", target.include_directories);
+                t.optional("private-include-directories", target.private_include_directories);
 
-                get_optional(t, "link-libraries", target.link_libraries);
-                get_optional(t, "private-link-libraries", target.private_link_libraries);
+                t.optional("link-directories", target.link_directories);
+                t.optional("private-link-directories", target.private_link_directories);
 
-                get_optional(t, "link-options", target.link_options);
-                get_optional(t, "private-link-options", target.private_link_options);
+                t.optional("link-libraries", target.link_libraries);
+                t.optional("private-link-libraries", target.private_link_libraries);
 
-                get_optional(t, "precompile-headers", target.precompile_headers);
-                get_optional(t, "private-precompile-headers", target.private_precompile_headers);
+                t.optional("link-options", target.link_options);
+                t.optional("private-link-options", target.private_link_options);
+
+                t.optional("precompile-headers", target.precompile_headers);
+                t.optional("private-precompile-headers", target.private_precompile_headers);
 
                 if (!target.headers.empty()) {
                     auto &sources = target.sources.nth(0).value();
@@ -261,15 +326,11 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                     sources.insert(sources.end(), headers.begin(), headers.end());
                 }
 
-                if (t.contains("condition")) {
-                    target.condition = toml::find(t, "condition").as_string();
-                }
+                t.optional("condition", target.condition);
+                t.optional("alias", target.alias);
 
-                if (t.contains("alias")) {
-                    target.alias = toml::find(t, "alias").as_string();
-                }
-
-                if (t.contains("properties")) {
+                t.visit("properties");
+                if (value.contains("properties")) {
                     auto store_property = [&target](const toml::key &k, const TomlBasicValue &v, const std::string &condition) {
                         if (v.is_array()) {
                             std::string property_list;
@@ -287,7 +348,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                         }
                     };
 
-                    const auto &props = toml::find(t, "properties").as_table();
+                    const auto &props = toml::find(value, "properties").as_table();
                     for (const auto &propKv : props) {
                         const auto &k = propKv.first;
                         const auto &v = propKv.second;
@@ -301,10 +362,11 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                     }
                 }
 
-                get_optional(t, "cmake-before", target.cmake_before);
-                get_optional(t, "cmake-after", target.cmake_after);
-                get_optional(t, "include-before", target.include_before);
-                get_optional(t, "include-after", target.include_after);
+                t.optional("cmake-before", target.cmake_before);
+                t.optional("cmake-after", target.cmake_after);
+                t.optional("include-before", target.include_before);
+                t.optional("include-after", target.include_after);
+                t.check();
 
                 targets.push_back(target);
             }
@@ -312,35 +374,40 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
 
         if (toml.contains("test")) {
             const auto &ts = toml::find(toml, "test").as_array();
-            for (const auto &t : ts) {
+            for (const auto &value : ts) {
+                TomlChecker t(value);
                 Test test;
-                test.name = toml::find(t, "name").as_string();
-                get_optional(t, "configurations", test.configurations);
-                get_optional(t, "working-directory", test.working_directory);
-                test.command = toml::find(t, "command").as_string();
-                get_optional(t, "arguments", test.arguments);
+                t.required("name", test.name);
+                t.optional("configurations", test.configurations);
+                t.optional("working-directory", test.working_directory);
+                t.required("command", test.command);
+                t.optional("arguments", test.arguments);
+                t.check();
                 tests.push_back(test);
             }
         }
 
         if (toml.contains("install")) {
-            const auto &ts = toml::find(toml, "install").as_array();
-            for (const auto &t : ts) {
+            const auto &is = toml::find(toml, "install").as_array();
+            for (const auto &value : is) {
+                TomlChecker i(value);
                 Install inst;
-                get_optional(t, "targets", inst.targets);
-                get_optional(t, "files", inst.files);
-                get_optional(t, "dirs", inst.dirs);
-                get_optional(t, "configs", inst.configs);
-                inst.destination = toml::find(t, "destination").as_string();
+                i.optional("targets", inst.targets);
+                i.optional("files", inst.files);
+                i.optional("dirs", inst.dirs);
+                i.optional("configs", inst.configs);
+                i.required("destination", inst.destination);
+                i.check();
                 installs.push_back(inst);
             }
         }
 
         if (toml.contains("vcpkg")) {
-            const auto &v = toml::find(toml, "vcpkg");
-            get_optional(v, "url", vcpkg.url);
-            get_optional(v, "version", vcpkg.version);
-            vcpkg.packages = toml::find<decltype(vcpkg.packages)>(v, "packages");
+            TomlChecker v(toml, "vcpkg");
+            v.optional("url", vcpkg.url);
+            v.optional("version", vcpkg.version);
+            v.required("packages", vcpkg.packages);
+            v.check();
         }
 
         // Reasonable default conditions (you can override these if you desire)
