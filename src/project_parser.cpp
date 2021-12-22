@@ -9,7 +9,7 @@
 #include <tsl/ordered_set.h>
 
 template <>
-const char *enumStrings<cmkr::parser::TargetType>::data[] = {"executable", "library", "shared", "static", "interface", "custom"};
+const char *enumStrings<cmkr::parser::TargetType>::data[] = {"executable", "library", "shared", "static", "interface", "custom", "object"};
 
 namespace cmkr {
 namespace parser {

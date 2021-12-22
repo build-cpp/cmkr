@@ -766,6 +766,12 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 target_type = "SOURCES";
                 target_scope = "PUBLIC";
                 break;
+            case parser::target_object:
+                // NOTE: This is properly supported since 3.12
+                add_command = "add_library";
+                target_type = "OBJECT";
+                target_scope = "PUBLIC";
+                break;
             default:
                 assert("Unimplemented enum value" && false);
             }

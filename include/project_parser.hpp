@@ -45,6 +45,7 @@ enum TargetType {
     target_static,
     target_interface,
     target_custom,
+    target_object,
 };
 
 template <typename T>
