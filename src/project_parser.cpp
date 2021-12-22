@@ -62,25 +62,37 @@ static void get_optional(const TomlBasicValue &v, const toml::key &ky, T &destin
     }
 }
 
+// TODO: construct this from a helper class with state so all the checking can be done implicitly
 class TomlChecker {
     const TomlBasicValue &m_v;
     tsl::ordered_set<toml::key> m_visited;
-    bool m_checked = false;
+    tsl::ordered_set<toml::key> m_conditionVisited;
 
   public:
     TomlChecker(const TomlBasicValue &v, const toml::key &ky) : m_v(toml::find(v, ky)) {}
     TomlChecker(const TomlBasicValue &v) : m_v(v) {}
     TomlChecker(const TomlChecker &) = delete;
 
-    ~TomlChecker() noexcept(false) {
-        if (!m_checked) {
-            throw std::runtime_error("TomlChecker::check() not called");
+    ~TomlChecker() noexcept(false) {}
+
+    // TOOD: check if the condition is valid during the parsing stage to print better errors!
+    template <typename T>
+    void optional(const toml::key &ky, Condition<T> &destination) {
+        get_optional(m_v, ky, destination);
+        for (const auto &itr : destination) {
+            if (!itr.first.empty()) {
+                m_conditionVisited.emplace(itr.first);
+            }
         }
+        visit(ky);
     }
 
     template <typename T>
     void optional(const toml::key &ky, T &destination) {
-        get_optional(m_v, ky, destination);
+        // TODO: this currently doesn't allow you to get an optional map<string, X>
+        if (m_v.contains(ky)) {
+            destination = toml::find<T>(m_v, ky);
+        }
         visit(ky);
     }
 
@@ -92,13 +104,48 @@ class TomlChecker {
 
     void visit(const toml::key &ky) { m_visited.insert(ky); }
 
+    std::string format_unknown_key(const toml::key &ky, const TomlBasicValue &value) {
+        auto loc = value.location();
+        auto line_number_str = std::to_string(loc.line());
+        auto line_width = line_number_str.length();
+        auto line_str = loc.line_str();
+
+        std::ostringstream oss;
+        oss << "[error] Unknown key: " << ky << '\n';
+        oss << " --> " << loc.file_name() << '\n';
+
+        oss << std::string(line_width + 2, ' ') << "|\n";
+        oss << ' ' << line_number_str << " | " << line_str << '\n';
+
+        oss << std::string(line_width + 2, ' ') << '|';
+        auto key_start = line_str.find_last_of(ky, loc.column());
+        if (key_start != std::string::npos) {
+            oss << std::string(key_start - ky.length() + 2, ' ') << std::string(ky.length(), '~');
+        }
+        oss << '\n';
+
+        return oss.str();
+    }
+
     void check() {
-        m_checked = true;
         for (const auto &itr : m_v.as_table()) {
             const auto &ky = itr.first;
-            if (m_visited.count(ky) == 0) {
-                // TODO: nice error messages
-                throw std::runtime_error("Unknown key '" + ky + "'");
+            if (m_conditionVisited.count(ky)) {
+                // TODO: check if condition (ky) exists
+                for (const auto &jtr : itr.second.as_table()) {
+                    if (m_visited.count(jtr.first) == 0) {
+                        throw std::runtime_error(format_unknown_key(jtr.first, jtr.second));
+                    }
+                }
+            } else if (m_visited.count(ky) == 0) {
+                if (itr.second.is_table()) {
+                    for (const auto &jtr : itr.second.as_table()) {
+                        if (m_visited.count(jtr.first) == 0) {
+                            throw std::runtime_error(format_unknown_key(jtr.first, jtr.second));
+                        }
+                    }
+                }
+                throw std::runtime_error(format_unknown_key(ky, itr.second));
             }
         }
     }
@@ -126,6 +173,30 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             get_optional(cmake, "allow-in-tree", allow_in_tree);
         }
     } else {
+        // Reasonable default conditions (you can override these if you desire)
+        if (parent == nullptr) {
+            conditions["windows"] = R"cmake(WIN32)cmake";
+            conditions["macos"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "Darwin")cmake";
+            conditions["unix"] = R"cmake(UNIX)cmake";
+            conditions["bsd"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "BSD")cmake";
+            conditions["linux"] = conditions["lunix"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "Linux")cmake";
+            conditions["gcc"] = R"cmake(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")cmake";
+            conditions["clang"] = R"cmake(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID MATCHES "Clang")cmake";
+            conditions["msvc"] = R"cmake(MSVC)cmake";
+        } else {
+            conditions = parent->conditions;
+        }
+
+        if (toml.contains("conditions")) {
+            auto conds = toml::find<decltype(conditions)>(toml, "conditions");
+            for (const auto &cond : conds) {
+                conditions[cond.first] = cond.second;
+            }
+        }
+
+        // TODO: make TomlCheckerFactory
+        // .check() only once (at the end)
+
         if (toml.contains("cmake")) {
             const auto &cmake = toml::find(toml, "cmake");
             cmake_version = toml::find(cmake, "version").as_string();
@@ -164,7 +235,6 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                 subdir.name = itr.first;
 
                 TomlChecker sub(itr.second);
-                sub.optional("condition", subdir.condition);
                 sub.optional("condition", subdir.condition);
                 sub.optional("cmake-before", subdir.cmake_before);
                 sub.optional("cmake-after", subdir.cmake_after);
@@ -408,27 +478,6 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             v.optional("version", vcpkg.version);
             v.required("packages", vcpkg.packages);
             v.check();
-        }
-
-        // Reasonable default conditions (you can override these if you desire)
-        if (parent == nullptr) {
-            conditions["windows"] = R"cmake(WIN32)cmake";
-            conditions["macos"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "Darwin")cmake";
-            conditions["unix"] = R"cmake(UNIX)cmake";
-            conditions["bsd"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "BSD")cmake";
-            conditions["linux"] = conditions["lunix"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "Linux")cmake";
-            conditions["gcc"] = R"cmake(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")cmake";
-            conditions["clang"] = R"cmake(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID MATCHES "Clang")cmake";
-            conditions["msvc"] = R"cmake(MSVC)cmake";
-        } else {
-            conditions = parent->conditions;
-        }
-
-        if (toml.contains("conditions")) {
-            auto conds = toml::find<decltype(conditions)>(toml, "conditions");
-            for (const auto &cond : conds) {
-                conditions[cond.first] = cond.second;
-            }
         }
     }
 }
