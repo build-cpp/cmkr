@@ -2,9 +2,11 @@
 
 #include "enum_helper.hpp"
 #include "fs.hpp"
+#include <deque>
 #include <stdexcept>
 #include <toml.hpp>
 #include <tsl/ordered_map.h>
+#include <tsl/ordered_set.h>
 
 template <>
 const char *enumStrings<cmkr::parser::TargetType>::data[] = {"executable", "library", "shared", "static", "interface", "custom"};
@@ -33,33 +35,147 @@ static EnumType to_enum(const std::string &str, const std::string &help_name) {
     return value;
 }
 
-template <typename T>
-static void get_optional(const TomlBasicValue &v, const toml::key &ky, T &destination);
+static std::string format_key_error(const std::string &error, const toml::key &ky, const TomlBasicValue &value) {
+    auto loc = value.location();
+    auto line_number_str = std::to_string(loc.line());
+    auto line_width = line_number_str.length();
+    auto line_str = loc.line_str();
 
-template <typename T>
-static void get_optional(const TomlBasicValue &v, const toml::key &ky, Condition<T> &destination) {
-    // TODO: this algorithm in O(n) over the amount of keys, kinda bad
-    const auto &table = v.as_table();
-    for (const auto &itr : table) {
-        const auto &key = itr.first;
-        const auto &value = itr.second;
-        if (value.is_table()) {
-            if (value.contains(ky)) {
-                destination[key] = toml::find<T>(value, ky);
+    std::ostringstream oss;
+    oss << "[error] " << error << '\n';
+    oss << " --> " << loc.file_name() << '\n';
+
+    oss << std::string(line_width + 2, ' ') << "|\n";
+    oss << ' ' << line_number_str << " | " << line_str << '\n';
+
+    oss << std::string(line_width + 2, ' ') << '|';
+    auto key_start = line_str.substr(0, loc.column() - 1).rfind(ky);
+    if (key_start == std::string::npos) {
+        key_start = line_str.find(ky);
+    }
+    if (key_start != std::string::npos) {
+        oss << std::string(key_start + 1, ' ') << std::string(ky.length(), '~');
+    }
+    oss << '\n';
+
+    return oss.str();
+}
+
+class TomlChecker {
+    const TomlBasicValue &m_v;
+    tsl::ordered_set<toml::key> m_visited;
+    tsl::ordered_set<toml::key> m_conditionVisited;
+
+  public:
+    TomlChecker(const TomlBasicValue &v, const toml::key &ky) : m_v(toml::find(v, ky)) {}
+    TomlChecker(const TomlBasicValue &v) : m_v(v) {}
+    TomlChecker(const TomlChecker &) = delete;
+    TomlChecker(TomlChecker &&) = delete;
+
+    template <typename T>
+    void optional(const toml::key &ky, Condition<T> &destination) {
+        // TODO: this algorithm in O(n) over the amount of keys, kinda bad
+        const auto &table = m_v.as_table();
+        for (const auto &itr : table) {
+            const auto &key = itr.first;
+            const auto &value = itr.second;
+            if (value.is_table()) {
+                if (value.contains(ky)) {
+                    destination[key] = toml::find<T>(value, ky);
+                }
+            } else if (key == ky) {
+                destination[""] = toml::find<T>(m_v, ky);
             }
-        } else if (key == ky) {
-            destination[""] = toml::find<T>(v, ky);
+        }
+
+        // Handle visiting logic
+        for (const auto &itr : destination) {
+            if (!itr.first.empty()) {
+                m_conditionVisited.emplace(itr.first);
+            }
+        }
+        visit(ky);
+    }
+
+    template <typename T>
+    void optional(const toml::key &ky, T &destination) {
+        // TODO: this currently doesn't allow you to get an optional map<string, X>
+        if (m_v.contains(ky)) {
+            destination = toml::find<T>(m_v, ky);
+        }
+        visit(ky);
+    }
+
+    template <typename T>
+    void required(const toml::key &ky, T &destination) {
+        destination = toml::find<T>(m_v, ky);
+        visit(ky);
+    }
+
+    bool contains(const toml::key &ky) {
+        visit(ky);
+        return m_v.contains(ky);
+    }
+
+    const TomlBasicValue &find(const toml::key &ky) {
+        visit(ky);
+        return toml::find(m_v, ky);
+    }
+
+    void visit(const toml::key &ky) { m_visited.insert(ky); }
+
+    void check(const tsl::ordered_map<std::string, std::string> &conditions) const {
+        for (const auto &itr : m_v.as_table()) {
+            const auto &ky = itr.first;
+            if (m_conditionVisited.contains(ky)) {
+                if (!conditions.contains(ky)) {
+                    throw std::runtime_error(format_key_error("Unknown condition '" + ky + "'", ky, itr.second));
+                }
+
+                for (const auto &jtr : itr.second.as_table()) {
+                    if (!m_visited.contains(jtr.first)) {
+                        throw std::runtime_error(format_key_error("Unknown key '" + jtr.first + "'", jtr.first, jtr.second));
+                    }
+                }
+            } else if (!m_visited.contains(ky)) {
+                if (itr.second.is_table()) {
+                    for (const auto &jtr : itr.second.as_table()) {
+                        if (!m_visited.contains(jtr.first)) {
+                            throw std::runtime_error(format_key_error("Unknown key '" + jtr.first + "'", jtr.first, jtr.second));
+                        }
+                    }
+                }
+                throw std::runtime_error(format_key_error("Unknown key '" + ky + "'", ky, itr.second));
+            }
         }
     }
-}
+};
 
-template <typename T>
-static void get_optional(const TomlBasicValue &v, const toml::key &ky, T &destination) {
-    // TODO: this currently doesn't allow you to get an optional map<string, X>
-    if (v.contains(ky)) {
-        destination = toml::find<T>(v, ky);
+class TomlCheckerRoot {
+    std::deque<TomlChecker> m_checkers;
+    bool m_checked = false;
+
+  public:
+    TomlCheckerRoot() = default;
+    TomlCheckerRoot(const TomlCheckerRoot &) = delete;
+    TomlCheckerRoot(TomlCheckerRoot &&) = delete;
+
+    TomlChecker &create(const TomlBasicValue &v) {
+        m_checkers.emplace_back(v);
+        return m_checkers.back();
     }
-}
+
+    TomlChecker &create(const TomlBasicValue &v, const toml::key &ky) {
+        m_checkers.emplace_back(v, ky);
+        return m_checkers.back();
+    }
+
+    void check(const tsl::ordered_map<std::string, std::string> &conditions) {
+        for (const auto &checker : m_checkers) {
+            checker.check(conditions);
+        }
+    }
+};
 
 Project::Project(const Project *parent, const std::string &path, bool build) {
     const auto toml_path = fs::path(path) / "cmake.toml";
@@ -67,303 +183,323 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         throw std::runtime_error("No cmake.toml was found!");
     }
     const auto toml = toml::parse<toml::preserve_comments, tsl::ordered_map, std::vector>(toml_path.string());
+
+    TomlCheckerRoot checker;
+
+    if (toml.contains("cmake")) {
+        auto &cmake = checker.create(toml, "cmake");
+
+        cmake.required("version", cmake_version);
+
+        if (cmake.contains("bin-dir")) {
+            throw std::runtime_error("bin-dir has been renamed to build-dir");
+        }
+
+        cmake.optional("build-dir", build_dir);
+        cmake.optional("generator", generator);
+        cmake.optional("config", config);
+        cmake.optional("arguments", gen_args);
+        cmake.optional("allow-in-tree", allow_in_tree);
+
+        if (cmake.contains("cmkr-include")) {
+            const auto &cmkr_include_kv = cmake.find("cmkr-include");
+            if (cmkr_include_kv.is_string()) {
+                cmkr_include = cmkr_include_kv.as_string();
+            } else {
+                // Allow disabling this feature with cmkr-include = false
+                cmkr_include = "";
+            }
+        }
+
+        cmake.optional("cpp-flags", cppflags);
+        cmake.optional("c-flags", cflags);
+        cmake.optional("link-flags", linkflags);
+    }
+
+    // Skip the rest of the parsing when building
     if (build) {
-        if (toml.contains("cmake")) {
-            const auto &cmake = toml::find(toml, "cmake");
+        checker.check(conditions);
+        return;
+    }
 
-            if (cmake.contains("bin-dir")) {
-                throw std::runtime_error("bin-dir has been renamed to build-dir");
-            }
-
-            get_optional(cmake, "build-dir", build_dir);
-            get_optional(cmake, "generator", generator);
-            get_optional(cmake, "config", config);
-            get_optional(cmake, "arguments", gen_args);
-            get_optional(cmake, "allow-in-tree", allow_in_tree);
-        }
+    // Reasonable default conditions (you can override these if you desire)
+    if (parent == nullptr) {
+        conditions["windows"] = R"cmake(WIN32)cmake";
+        conditions["macos"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "Darwin")cmake";
+        conditions["unix"] = R"cmake(UNIX)cmake";
+        conditions["bsd"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "BSD")cmake";
+        conditions["linux"] = conditions["lunix"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "Linux")cmake";
+        conditions["gcc"] = R"cmake(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")cmake";
+        conditions["clang"] = R"cmake(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID MATCHES "Clang")cmake";
+        conditions["msvc"] = R"cmake(MSVC)cmake";
     } else {
-        if (toml.contains("cmake")) {
-            const auto &cmake = toml::find(toml, "cmake");
-            cmake_version = toml::find(cmake, "version").as_string();
-            if (cmake.contains("cmkr-include")) {
-                const auto &cmkr_include_kv = toml::find(cmake, "cmkr-include");
-                if (cmkr_include_kv.is_string()) {
-                    cmkr_include = cmkr_include_kv.as_string();
-                } else {
-                    // Allow disabling this feature with cmkr-include = false
-                    cmkr_include = "";
-                }
-            }
-            get_optional(cmake, "cpp-flags", cppflags);
-            get_optional(cmake, "c-flags", cflags);
-            get_optional(cmake, "link-flags", linkflags);
-        }
+        conditions = parent->conditions;
+    }
 
-        if (toml.contains("project")) {
-            const auto &project = toml::find(toml, "project");
-            project_name = toml::find(project, "name").as_string();
-            get_optional(project, "version", project_version);
-            get_optional(project, "description", project_description);
-            get_optional(project, "languages", project_languages);
-            get_optional(project, "cmake-before", cmake_before);
-            get_optional(project, "cmake-after", cmake_after);
-            get_optional(project, "include-before", include_before);
-            get_optional(project, "include-after", include_after);
-            get_optional(project, "subdirs", project_subdirs);
-        }
-
-        if (toml.contains("subdir")) {
-            const auto &subs = toml::find(toml, "subdir").as_table();
-            for (const auto &sub : subs) {
-                Subdir subdir;
-                subdir.name = sub.first;
-                get_optional(sub.second, "condition", subdir.condition);
-                get_optional(sub.second, "cmake-before", subdir.cmake_before);
-                get_optional(sub.second, "cmake-after", subdir.cmake_after);
-                get_optional(sub.second, "include-before", subdir.include_before);
-                get_optional(sub.second, "include-after", subdir.include_after);
-                subdirs.push_back(subdir);
-            }
-        }
-
-        if (toml.contains("settings")) {
-            using set_map = std::map<std::string, TomlBasicValue>;
-            const auto &sets = toml::find<set_map>(toml, "settings");
-            for (const auto &set : sets) {
-                Setting s;
-                s.name = set.first;
-                if (set.second.is_boolean()) {
-                    s.val = set.second.as_boolean();
-                } else if (set.second.is_string()) {
-                    s.val = set.second.as_string();
-                } else {
-                    get_optional(set.second, "comment", s.comment);
-                    if (set.second.contains("value")) {
-                        auto v = toml::find(set.second, "value");
-                        if (v.is_boolean()) {
-                            s.val = v.as_boolean();
-                        } else {
-                            s.val = v.as_string();
-                        }
-                    }
-                    get_optional(set.second, "cache", s.cache);
-                    get_optional(set.second, "force", s.force);
-                }
-                settings.push_back(s);
-            }
-        }
-
-        if (toml.contains("options")) {
-            using opts_map = tsl::ordered_map<std::string, TomlBasicValue>;
-            const auto &opts = toml::find<opts_map>(toml, "options");
-            for (const auto &opt : opts) {
-                Option o;
-                o.name = opt.first;
-                if (opt.second.is_boolean()) {
-                    o.val = opt.second.as_boolean();
-                } else {
-                    get_optional(opt.second, "comment", o.comment);
-                    get_optional(opt.second, "value", o.val);
-                }
-                options.push_back(o);
-            }
-        }
-
-        if (toml.contains("find-package")) {
-            using pkg_map = tsl::ordered_map<std::string, TomlBasicValue>;
-            const auto &pkgs = toml::find<pkg_map>(toml, "find-package");
-            for (const auto &pkg : pkgs) {
-                Package p;
-                p.name = pkg.first;
-                if (pkg.second.is_string()) {
-                    p.version = pkg.second.as_string();
-                } else {
-                    get_optional(pkg.second, "version", p.version);
-                    get_optional(pkg.second, "required", p.required);
-                    get_optional(pkg.second, "config", p.config);
-                    get_optional(pkg.second, "components", p.components);
-                }
-                packages.push_back(p);
-            }
-        }
-
-        if (toml.contains("fetch-content")) {
-            const auto &fc = toml::find(toml, "fetch-content").as_table();
-            for (const auto &itr : fc) {
-                Content content;
-                content.name = itr.first;
-                for (const auto &argItr : itr.second.as_table()) {
-                    auto key = argItr.first;
-                    if (key == "git") {
-                        key = "GIT_REPOSITORY";
-                    } else if (key == "tag") {
-                        key = "GIT_TAG";
-                    } else if (key == "svn") {
-                        key = "SVN_REPOSITORY";
-                    } else if (key == "rev") {
-                        key = "SVN_REVISION";
-                    } else if (key == "url") {
-                        key = "URL";
-                    } else if (key == "hash") {
-                        key = "URL_HASH";
-                    } else {
-                        // don't change arg
-                    }
-                    content.arguments.emplace(key, argItr.second.as_string());
-                }
-                contents.emplace_back(std::move(content));
-            }
-        }
-
-        if (toml.contains("bin")) {
-            throw std::runtime_error("[[bin]] has been renamed to [[target]]");
-        }
-
-        if (toml.contains("target")) {
-            const auto &ts = toml::find(toml, "target").as_table();
-
-            for (const auto &itr : ts) {
-                const auto &t = itr.second;
-                Target target;
-                target.name = itr.first;
-                target.type = to_enum<TargetType>(toml::find(t, "type").as_string(), "target type");
-
-                get_optional(t, "headers", target.headers);
-                get_optional(t, "sources", target.sources);
-
-                get_optional(t, "compile-definitions", target.compile_definitions);
-                get_optional(t, "private-compile-definitions", target.private_compile_definitions);
-
-                get_optional(t, "compile-features", target.compile_features);
-                get_optional(t, "private-compile-features", target.private_compile_features);
-
-                get_optional(t, "compile-options", target.compile_options);
-                get_optional(t, "private-compile-options", target.private_compile_options);
-
-                get_optional(t, "include-directories", target.include_directories);
-                get_optional(t, "private-include-directories", target.private_include_directories);
-
-                get_optional(t, "link-directories", target.link_directories);
-                get_optional(t, "private-link-directories", target.private_link_directories);
-
-                get_optional(t, "link-libraries", target.link_libraries);
-                get_optional(t, "private-link-libraries", target.private_link_libraries);
-
-                get_optional(t, "link-options", target.link_options);
-                get_optional(t, "private-link-options", target.private_link_options);
-
-                get_optional(t, "precompile-headers", target.precompile_headers);
-                get_optional(t, "private-precompile-headers", target.private_precompile_headers);
-
-                if (!target.headers.empty()) {
-                    auto &sources = target.sources.nth(0).value();
-                    const auto &headers = target.headers.nth(0)->second;
-                    sources.insert(sources.end(), headers.begin(), headers.end());
-                }
-
-                if (t.contains("condition")) {
-                    target.condition = toml::find(t, "condition").as_string();
-                }
-
-                if (t.contains("alias")) {
-                    target.alias = toml::find(t, "alias").as_string();
-                }
-
-                if (t.contains("properties")) {
-                    auto store_property = [&target](const toml::key &k, const TomlBasicValue &v, const std::string &condition) {
-                        if (v.is_array()) {
-                            std::string property_list;
-                            for (const auto &list_val : v.as_array()) {
-                                if (!property_list.empty()) {
-                                    property_list += ';';
-                                }
-                                property_list += list_val.as_string();
-                            }
-                            target.properties[condition][k] = property_list;
-                        } else if (v.is_boolean()) {
-                            target.properties[condition][k] = v.as_boolean() ? "ON" : "OFF";
-                        } else {
-                            target.properties[condition][k] = v.as_string();
-                        }
-                    };
-
-                    const auto &props = toml::find(t, "properties").as_table();
-                    for (const auto &propKv : props) {
-                        const auto &k = propKv.first;
-                        const auto &v = propKv.second;
-                        if (v.is_table()) {
-                            for (const auto &condKv : v.as_table()) {
-                                store_property(condKv.first, condKv.second, k);
-                            }
-                        } else {
-                            store_property(k, v, "");
-                        }
-                    }
-                }
-
-                get_optional(t, "cmake-before", target.cmake_before);
-                get_optional(t, "cmake-after", target.cmake_after);
-                get_optional(t, "include-before", target.include_before);
-                get_optional(t, "include-after", target.include_after);
-
-                targets.push_back(target);
-            }
-        }
-
-        if (toml.contains("test")) {
-            const auto &ts = toml::find(toml, "test").as_array();
-            for (const auto &t : ts) {
-                Test test;
-                test.name = toml::find(t, "name").as_string();
-                get_optional(t, "configurations", test.configurations);
-                get_optional(t, "working-directory", test.working_directory);
-                test.command = toml::find(t, "command").as_string();
-                get_optional(t, "arguments", test.arguments);
-                tests.push_back(test);
-            }
-        }
-
-        if (toml.contains("install")) {
-            const auto &ts = toml::find(toml, "install").as_array();
-            for (const auto &t : ts) {
-                Install inst;
-                get_optional(t, "targets", inst.targets);
-                get_optional(t, "files", inst.files);
-                get_optional(t, "dirs", inst.dirs);
-                get_optional(t, "configs", inst.configs);
-                inst.destination = toml::find(t, "destination").as_string();
-                installs.push_back(inst);
-            }
-        }
-
-        if (toml.contains("vcpkg")) {
-            const auto &v = toml::find(toml, "vcpkg");
-            get_optional(v, "url", vcpkg.url);
-            get_optional(v, "version", vcpkg.version);
-            vcpkg.packages = toml::find<decltype(vcpkg.packages)>(v, "packages");
-        }
-
-        // Reasonable default conditions (you can override these if you desire)
-        if (parent == nullptr) {
-            conditions["windows"] = R"cmake(WIN32)cmake";
-            conditions["macos"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "Darwin")cmake";
-            conditions["unix"] = R"cmake(UNIX)cmake";
-            conditions["bsd"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "BSD")cmake";
-            conditions["linux"] = conditions["lunix"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "Linux")cmake";
-            conditions["gcc"] = R"cmake(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")cmake";
-            conditions["clang"] = R"cmake(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID MATCHES "Clang")cmake";
-            conditions["msvc"] = R"cmake(MSVC)cmake";
-        } else {
-            conditions = parent->conditions;
-        }
-
-        if (toml.contains("conditions")) {
-            auto conds = toml::find<decltype(conditions)>(toml, "conditions");
-            for (const auto &cond : conds) {
-                conditions[cond.first] = cond.second;
-            }
+    if (toml.contains("conditions")) {
+        auto conds = toml::find<decltype(conditions)>(toml, "conditions");
+        for (const auto &cond : conds) {
+            conditions[cond.first] = cond.second;
         }
     }
+
+    if (toml.contains("project")) {
+        auto &project = checker.create(toml, "project");
+        project.required("name", project_name);
+        project.optional("version", project_version);
+        project.optional("description", project_description);
+        project.optional("languages", project_languages);
+        project.optional("cmake-before", cmake_before);
+        project.optional("cmake-after", cmake_after);
+        project.optional("include-before", include_before);
+        project.optional("include-after", include_after);
+        project.optional("subdirs", project_subdirs);
+    }
+
+    if (toml.contains("subdir")) {
+        const auto &subs = toml::find(toml, "subdir").as_table();
+        for (const auto &itr : subs) {
+            Subdir subdir;
+            subdir.name = itr.first;
+
+            auto &sub = checker.create(itr.second);
+            sub.optional("condition", subdir.condition);
+            sub.optional("cmake-before", subdir.cmake_before);
+            sub.optional("cmake-after", subdir.cmake_after);
+            sub.optional("include-before", subdir.include_before);
+            sub.optional("include-after", subdir.include_after);
+
+            subdirs.push_back(subdir);
+        }
+    }
+
+    if (toml.contains("settings")) {
+        using set_map = std::map<std::string, TomlBasicValue>;
+        const auto &sets = toml::find<set_map>(toml, "settings");
+        for (const auto &itr : sets) {
+            Setting s;
+            s.name = itr.first;
+            const auto &value = itr.second;
+            if (value.is_boolean()) {
+                s.val = value.as_boolean();
+            } else if (value.is_string()) {
+                s.val = value.as_string();
+            } else {
+                auto &setting = checker.create(value);
+                setting.optional("comment", s.comment);
+                if (setting.contains("value")) {
+                    const auto &v = setting.find("value");
+                    if (v.is_boolean()) {
+                        s.val = v.as_boolean();
+                    } else {
+                        s.val = v.as_string();
+                    }
+                }
+                setting.optional("cache", s.cache);
+                setting.optional("force", s.force);
+            }
+            settings.push_back(s);
+        }
+    }
+
+    if (toml.contains("options")) {
+        using opts_map = tsl::ordered_map<std::string, TomlBasicValue>;
+        const auto &opts = toml::find<opts_map>(toml, "options");
+        for (const auto &itr : opts) {
+            Option o;
+            o.name = itr.first;
+            const auto &value = itr.second;
+            if (value.is_boolean()) {
+                o.val = value.as_boolean();
+            } else {
+                auto &option = checker.create(value);
+                option.optional("comment", o.comment);
+                option.optional("value", o.val);
+            }
+            options.push_back(o);
+        }
+    }
+
+    if (toml.contains("find-package")) {
+        using pkg_map = tsl::ordered_map<std::string, TomlBasicValue>;
+        const auto &pkgs = toml::find<pkg_map>(toml, "find-package");
+        for (const auto &itr : pkgs) {
+            Package p;
+            p.name = itr.first;
+            const auto &value = itr.second;
+            if (itr.second.is_string()) {
+                p.version = itr.second.as_string();
+            } else {
+                auto &pkg = checker.create(value);
+                pkg.optional("version", p.version);
+                pkg.optional("required", p.required);
+                pkg.optional("config", p.config);
+                pkg.optional("components", p.components);
+            }
+            packages.push_back(p);
+        }
+    }
+
+    // TODO: perform checking here
+    if (toml.contains("fetch-content")) {
+        const auto &fc = toml::find(toml, "fetch-content").as_table();
+        for (const auto &itr : fc) {
+            Content content;
+            content.name = itr.first;
+            for (const auto &argItr : itr.second.as_table()) {
+                auto key = argItr.first;
+                if (key == "git") {
+                    key = "GIT_REPOSITORY";
+                } else if (key == "tag") {
+                    key = "GIT_TAG";
+                } else if (key == "svn") {
+                    key = "SVN_REPOSITORY";
+                } else if (key == "rev") {
+                    key = "SVN_REVISION";
+                } else if (key == "url") {
+                    key = "URL";
+                } else if (key == "hash") {
+                    key = "URL_HASH";
+                } else {
+                    // don't change arg
+                }
+                content.arguments.emplace(key, argItr.second.as_string());
+            }
+            contents.emplace_back(std::move(content));
+        }
+    }
+
+    if (toml.contains("bin")) {
+        throw std::runtime_error("[[bin]] has been renamed to [[target]]");
+    }
+
+    if (toml.contains("target")) {
+        const auto &ts = toml::find(toml, "target").as_table();
+
+        for (const auto &itr : ts) {
+            const auto &value = itr.second;
+
+            Target target;
+            target.name = itr.first;
+
+            auto &t = checker.create(value);
+            std::string type;
+            t.required("type", type);
+            target.type = to_enum<TargetType>(type, "target type");
+
+            t.optional("headers", target.headers);
+            t.optional("sources", target.sources);
+
+            t.optional("compile-definitions", target.compile_definitions);
+            t.optional("private-compile-definitions", target.private_compile_definitions);
+
+            t.optional("compile-features", target.compile_features);
+            t.optional("private-compile-features", target.private_compile_features);
+
+            t.optional("compile-options", target.compile_options);
+            t.optional("private-compile-options", target.private_compile_options);
+
+            t.optional("include-directories", target.include_directories);
+            t.optional("private-include-directories", target.private_include_directories);
+
+            t.optional("link-directories", target.link_directories);
+            t.optional("private-link-directories", target.private_link_directories);
+
+            t.optional("link-libraries", target.link_libraries);
+            t.optional("private-link-libraries", target.private_link_libraries);
+
+            t.optional("link-options", target.link_options);
+            t.optional("private-link-options", target.private_link_options);
+
+            t.optional("precompile-headers", target.precompile_headers);
+            t.optional("private-precompile-headers", target.private_precompile_headers);
+
+            if (!target.headers.empty()) {
+                auto &sources = target.sources.nth(0).value();
+                const auto &headers = target.headers.nth(0)->second;
+                sources.insert(sources.end(), headers.begin(), headers.end());
+            }
+
+            t.optional("condition", target.condition);
+            t.optional("alias", target.alias);
+
+            if (t.contains("properties")) {
+                auto store_property = [&target](const toml::key &k, const TomlBasicValue &v, const std::string &condition) {
+                    if (v.is_array()) {
+                        std::string property_list;
+                        for (const auto &list_val : v.as_array()) {
+                            if (!property_list.empty()) {
+                                property_list += ';';
+                            }
+                            property_list += list_val.as_string();
+                        }
+                        target.properties[condition][k] = property_list;
+                    } else if (v.is_boolean()) {
+                        target.properties[condition][k] = v.as_boolean() ? "ON" : "OFF";
+                    } else {
+                        target.properties[condition][k] = v.as_string();
+                    }
+                };
+
+                const auto &props = t.find("properties").as_table();
+                for (const auto &propKv : props) {
+                    const auto &k = propKv.first;
+                    const auto &v = propKv.second;
+                    if (v.is_table()) {
+                        for (const auto &condKv : v.as_table()) {
+                            store_property(condKv.first, condKv.second, k);
+                        }
+                    } else {
+                        store_property(k, v, "");
+                    }
+                }
+            }
+
+            t.optional("cmake-before", target.cmake_before);
+            t.optional("cmake-after", target.cmake_after);
+            t.optional("include-before", target.include_before);
+            t.optional("include-after", target.include_after);
+
+            targets.push_back(target);
+        }
+    }
+
+    if (toml.contains("test")) {
+        const auto &ts = toml::find(toml, "test").as_array();
+        for (const auto &value : ts) {
+            auto &t = checker.create(value);
+            Test test;
+            t.required("name", test.name);
+            t.optional("configurations", test.configurations);
+            t.optional("working-directory", test.working_directory);
+            t.required("command", test.command);
+            t.optional("arguments", test.arguments);
+            tests.push_back(test);
+        }
+    }
+
+    if (toml.contains("install")) {
+        const auto &is = toml::find(toml, "install").as_array();
+        for (const auto &value : is) {
+            auto &i = checker.create(value);
+            Install inst;
+            i.optional("targets", inst.targets);
+            i.optional("files", inst.files);
+            i.optional("dirs", inst.dirs);
+            i.optional("configs", inst.configs);
+            i.required("destination", inst.destination);
+            installs.push_back(inst);
+        }
+    }
+
+    if (toml.contains("vcpkg")) {
+        auto &v = checker.create(toml, "vcpkg");
+        v.optional("url", vcpkg.url);
+        v.optional("version", vcpkg.version);
+        v.required("packages", vcpkg.packages);
+    }
+
+    checker.check(conditions);
 }
 
 bool is_root_path(const std::string &path) {
