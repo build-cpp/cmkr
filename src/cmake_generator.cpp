@@ -119,7 +119,7 @@ int generate_project(const char *str) {
     const auto tomlbuf = format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str, installed.c_str(), target.c_str(), dest.c_str());
 
     if (strcmp(str, "interface")) {
-        std::ofstream ofs("src/main.cpp");
+        std::ofstream ofs("src/main.cpp", std::ios::binary);
         if (ofs.is_open()) {
             ofs << mainbuf;
         }
@@ -127,7 +127,7 @@ int generate_project(const char *str) {
         ofs.close();
     }
 
-    std::ofstream ofs2("cmake.toml");
+    std::ofstream ofs2("cmake.toml", std::ios::binary);
     if (ofs2.is_open()) {
         ofs2 << tomlbuf;
     }
@@ -607,7 +607,7 @@ int generate_cmake(const char *path, const parser::Project *parent_project) {
             j["description"] = project.project_description;
         }
 
-        std::ofstream ofs("vcpkg.json");
+        std::ofstream ofs("vcpkg.json", std::ios::binary);
         if (!ofs) {
             throw std::runtime_error("Failed to create a vcpkg.json manifest file!");
         }
@@ -900,7 +900,7 @@ int generate_cmake(const char *path, const parser::Project *parent_project) {
         if (!fs::exists(list_path))
             return true;
 
-        std::ifstream ifs(list_path, std::ios_base::binary);
+        std::ifstream ifs(list_path, std::ios::binary);
         if (!ifs.is_open()) {
             throw std::runtime_error("Failed to read " + list_path.string());
         }
@@ -910,7 +910,7 @@ int generate_cmake(const char *path, const parser::Project *parent_project) {
     }();
 
     if (should_regenerate) {
-        std::ofstream ofs(list_path, std::ios_base::binary);
+        std::ofstream ofs(list_path, std::ios::binary);
         if (ofs.is_open()) {
             ofs << ss.str();
         } else {

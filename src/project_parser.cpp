@@ -182,7 +182,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             for (const auto &itr : sets) {
                 Setting s;
                 s.name = itr.first;
-                const auto& value = itr.second;
+                const auto &value = itr.second;
                 if (value.is_boolean()) {
                     s.val = value.as_boolean();
                 } else if (value.is_string()) {
@@ -213,7 +213,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             for (const auto &itr : opts) {
                 Option o;
                 o.name = itr.first;
-                const auto& value = itr.second;
+                const auto &value = itr.second;
                 if (value.is_boolean()) {
                     o.val = value.as_boolean();
                 } else {
@@ -232,7 +232,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             for (const auto &itr : pkgs) {
                 Package p;
                 p.name = itr.first;
-                const auto& value = itr.second;
+                const auto &value = itr.second;
                 if (itr.second.is_string()) {
                     p.version = itr.second.as_string();
                 } else {
@@ -283,7 +283,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             const auto &ts = toml::find(toml, "target").as_table();
 
             for (const auto &itr : ts) {
-                const auto& value = itr.second;
+                const auto &value = itr.second;
 
                 Target target;
                 target.name = itr.first;

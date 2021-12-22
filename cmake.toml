@@ -35,7 +35,7 @@ link-libraries = [
     "ghc_filesystem",
     "mpark_variant",
     "ordered_map",
-    "nlohmann_json"
+    "nlohmann_json",
 ]
 cmake-after = """
 generate_resources(${CMKR_TARGET})
