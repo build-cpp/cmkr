@@ -19,7 +19,7 @@
 namespace cmkr {
 namespace gen {
 
-inline std::string to_upper(const std::string &str) {
+static std::string to_upper(const std::string &str) {
     std::string temp;
     temp.reserve(str.size());
     for (auto c : str) {
@@ -28,16 +28,16 @@ inline std::string to_upper(const std::string &str) {
     return temp;
 }
 
-template <typename... Args>
-std::string format(const char *fmt, Args... args) {
-    auto sz = snprintf(nullptr, 0, fmt, args...) + 1;
-    char *buf = new char[sz];
-    int ret = snprintf(buf, sz, fmt, args...);
-    if (ret != sz - 1)
-        throw std::runtime_error("Error formatting string!");
-    std::string temp(buf, buf + sz - 1);
-    delete[] buf;
-    return temp;
+static std::string format(const char *format, tsl::ordered_map<std::string, std::string> variables) {
+    std::string s = format;
+    for (const auto &itr : variables) {
+        size_t start_pos = 0;
+        while ((start_pos = s.find(itr.first, start_pos)) != std::string::npos) {
+            s.replace(start_pos, itr.first.length(), itr.second);
+            start_pos += itr.second.length();
+        }
+    }
+    return s;
 }
 
 static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs::path &toml_dir) {
@@ -89,52 +89,47 @@ static std::vector<std::string> expand_cmake_paths(const std::vector<std::string
     return result;
 }
 
-int generate_project(const char *str) {
-    fs::create_directory("src");
-    fs::create_directory("include");
-    const auto dir_name = fs::current_path().stem().string();
-    std::string mainbuf;
-    std::string installed;
-    std::string target;
-    std::string dest;
-    if (!strcmp(str, "executable")) {
-        mainbuf = format(hello_world, "main");
-        installed = "targets";
-        target = dir_name;
-        dest = "bin";
-    } else if (!strcmp(str, "static") || !strcmp(str, "shared") || !strcmp(str, "library")) {
-        mainbuf = format(hello_world, "test");
-        installed = "targets";
-        target = dir_name;
-        dest = "lib";
-    } else if (!strcmp(str, "interface")) {
-        installed = "files";
-        target = "include/*.h";
-        dest = "include/" + dir_name;
+static void create_file(const fs::path &path, const std::string &contents) {
+    if (!path.parent_path().empty()) {
+        fs::create_directories(path.parent_path());
+    }
+    std::ofstream ofs(path, std::ios::binary);
+    if (!ofs) {
+        throw std::runtime_error("Failed to create " + path.string());
+    }
+    ofs << contents;
+}
+
+void generate_project(const std::string &type) {
+    const auto name = fs::current_path().stem().string();
+    if (fs::exists(fs::current_path() / "cmake.toml")) {
+        throw std::runtime_error("Cannot initialize a project when cmake.toml already exists!");
+    }
+
+    tsl::ordered_map<std::string, std::string> variables = {
+        {"@name", name},
+        {"@type", type},
+    };
+
+    if (!fs::is_empty(fs::current_path())) {
+        create_file("cmake.toml", format(toml_migration, variables));
+        puts("Generated migration cmake.toml in existing project directory...");
+        return;
+    }
+
+    if (type == "executable") {
+        create_file("cmake.toml", format(toml_executable, variables));
+        create_file("src/" + name + "/main.cpp", format(cpp_executable, variables));
+    } else if (type == "static" || type == "shared" || type == "library") {
+        create_file("cmake.toml", format(toml_library, variables));
+        create_file("src/" + name + "/" + name + ".cpp", format(cpp_library, variables));
+        create_file("include/" + name + "/" + name + ".hpp", format(hpp_library, variables));
+    } else if (type == "interface") {
+        create_file("cmake.toml", format(toml_interface, variables));
+        create_file("include/" + name + "/" + name + ".hpp", format(hpp_interface, variables));
     } else {
-        throw std::runtime_error("Unknown project type " + std::string(str) +
-                                 "! Supported types are: executable, library, shared, static, interface");
+        throw std::runtime_error("Unknown project type " + type + "! Supported types are: executable, library, shared, static, interface");
     }
-
-    const auto tomlbuf = format(cmake_toml, dir_name.c_str(), dir_name.c_str(), str, installed.c_str(), target.c_str(), dest.c_str());
-
-    if (strcmp(str, "interface")) {
-        std::ofstream ofs("src/main.cpp", std::ios::binary);
-        if (ofs.is_open()) {
-            ofs << mainbuf;
-        }
-        ofs.flush();
-        ofs.close();
-    }
-
-    std::ofstream ofs2("cmake.toml", std::ios::binary);
-    if (ofs2.is_open()) {
-        ofs2 << tomlbuf;
-    }
-    ofs2.flush();
-    ofs2.close();
-
-    return 0;
 }
 
 struct CommandEndl {
@@ -440,7 +435,7 @@ static std::string vcpkg_escape_identifier(const std::string &name) {
     return escaped;
 }
 
-int generate_cmake(const char *path, const parser::Project *parent_project) {
+void generate_cmake(const char *path, const parser::Project *parent_project) {
     if (!fs::exists(fs::path(path) / "cmake.toml")) {
         throw std::runtime_error("No cmake.toml found!");
     }
@@ -494,14 +489,7 @@ int generate_cmake(const char *path, const parser::Project *parent_project) {
 
         fs::path cmkr_include(project.cmkr_include);
         if (!project.cmkr_include.empty() && !fs::exists(cmkr_include) && cmkr_include.is_relative()) {
-            if (!cmkr_include.parent_path().empty()) {
-                fs::create_directories(cmkr_include.parent_path());
-            }
-            std::ofstream ofs(cmkr_include.string(), std::ios::binary);
-            if (!ofs) {
-                throw std::runtime_error("Failed to create " + project.cmkr_include);
-            }
-            ofs.write(resources::cmkr, strlen(resources::cmkr));
+            create_file(cmkr_include, resources::cmkr);
         }
     }
 
@@ -910,12 +898,7 @@ int generate_cmake(const char *path, const parser::Project *parent_project) {
     }();
 
     if (should_regenerate) {
-        std::ofstream ofs(list_path, std::ios::binary);
-        if (ofs.is_open()) {
-            ofs << ss.str();
-        } else {
-            throw std::runtime_error("Failed to write " + list_path.string());
-        }
+        create_file(list_path, ss.str());
     }
 
     auto generate_subdir = [path, &project](const fs::path &sub) {
@@ -941,28 +924,6 @@ int generate_cmake(const char *path, const parser::Project *parent_project) {
     for (const auto &subdir : project.subdirs) {
         generate_subdir(subdir.name);
     }
-
-    return 0;
 }
 } // namespace gen
 } // namespace cmkr
-
-int cmkr_gen_generate_project(const char *typ) {
-    try {
-        return cmkr::gen::generate_project(typ);
-    } catch (const std::system_error &e) {
-        return e.code().value();
-    } catch (...) {
-        return cmkr::error::Status(cmkr::error::Status::Code::InitError);
-    }
-}
-
-int cmkr_gen_generate_cmake(const char *path) {
-    try {
-        return cmkr::gen::generate_cmake(path);
-    } catch (const std::system_error &e) {
-        return e.code().value();
-    } catch (...) {
-        return cmkr::error::Status(cmkr::error::Status::Code::GenerationError);
-    }
-}

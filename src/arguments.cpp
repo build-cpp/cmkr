@@ -21,9 +21,7 @@ const char *handle_args(int argc, char **argv) {
         throw std::runtime_error(cmkr::help::message());
     std::string main_arg = args[1];
     if (main_arg == "gen") {
-        auto ret = cmkr::gen::generate_cmake(fs::current_path().string().c_str());
-        if (ret)
-            return "CMake generation error!";
+        cmkr::gen::generate_cmake(fs::current_path().string().c_str());
         return "CMake generation successful!";
     } else if (main_arg == "help") {
         return cmkr::help::message();
@@ -33,18 +31,14 @@ const char *handle_args(int argc, char **argv) {
         std::string type = "executable";
         if (args.size() > 2)
             type = args[2];
-        auto ret = cmkr::gen::generate_project(type.c_str());
-        if (ret)
-            return "Initialization failure!";
-        ret = cmkr::gen::generate_cmake(fs::current_path().string().c_str());
-        if (ret)
-            return "CMake generation error!";
+        cmkr::gen::generate_project(type.c_str());
+        cmkr::gen::generate_cmake(fs::current_path().string().c_str());
         return "Directory initialized!";
     } else if (main_arg == "build") {
         auto ret = build::run(argc, argv);
         if (ret)
             return "CMake build error!";
-        return "CMake run completed!";
+        return "CMake build completed!";
     } else if (main_arg == "install") {
         auto ret = build::install();
         if (ret)
