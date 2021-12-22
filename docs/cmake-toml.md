@@ -47,6 +47,15 @@ arch64 = "CMAKE_SIZEOF_VOID_P EQUALS 8"
 arch32 = "CMAKE_SIZEOF_VOID_P EQUALS 4"
 ```
 
+You can also prefix most keys with `condition.` to represent a conditional:
+
+```toml
+[target]
+type = "executable"
+sources = ["src/main.cpp"]
+windows.sources = ["src/windows_specific.cpp"]
+```
+
 This will make the `arch64` and `arch32` conditions available with their respective CMake expressions. The following conditions are predefined (you can override them if you desire):
 
 ```toml
