@@ -15,3 +15,13 @@ cmake --build build
 ```
 
 Alternatively you can check out the [cmkr topic](https://github.com/topics/cmkr) or the [build-cpp organization](https://github.com/build-cpp) for more examples and templates.
+
+### Migrating an existing project
+
+When migrating an existing project it's easiest to download a [cmkr release](https://github.com/build-cpp/cmkr/releases) and put `cmkr` in your PATH. Then go to your project directory and run:
+
+```
+cmkr init
+```
+
+This will bootstrap `cmake.toml` and `CMakeLists.txt` that you can then build as normal with CMake.
