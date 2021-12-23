@@ -6,7 +6,6 @@
 #include <stdexcept>
 #include <toml.hpp>
 #include <tsl/ordered_map.h>
-#include <tsl/ordered_set.h>
 
 template <>
 const char *enumStrings<cmkr::parser::TargetType>::data[] = {"executable", "library", "shared", "static", "interface", "custom", "object"};
@@ -14,7 +13,7 @@ const char *enumStrings<cmkr::parser::TargetType>::data[] = {"executable", "libr
 namespace cmkr {
 namespace parser {
 
-using TomlBasicValue = toml::basic_value<toml::preserve_comments, tsl::ordered_map, std::vector>;
+using TomlBasicValue = toml::basic_value<toml::discard_comments, tsl::ordered_map, std::vector>;
 
 template <typename EnumType>
 static EnumType to_enum(const std::string &str, const std::string &help_name) {
@@ -63,8 +62,8 @@ static std::string format_key_error(const std::string &error, const toml::key &k
 
 class TomlChecker {
     const TomlBasicValue &m_v;
-    tsl::ordered_set<toml::key> m_visited;
-    tsl::ordered_set<toml::key> m_conditionVisited;
+    tsl::ordered_map<toml::key, bool> m_visited;
+    tsl::ordered_map<toml::key, bool> m_conditionVisited;
 
   public:
     TomlChecker(const TomlBasicValue &v, const toml::key &ky) : m_v(toml::find(v, ky)) {}
@@ -91,7 +90,7 @@ class TomlChecker {
         // Handle visiting logic
         for (const auto &itr : destination) {
             if (!itr.first.empty()) {
-                m_conditionVisited.emplace(itr.first);
+                m_conditionVisited.emplace(itr.first, true);
             }
         }
         visit(ky);
@@ -122,7 +121,7 @@ class TomlChecker {
         return toml::find(m_v, ky);
     }
 
-    void visit(const toml::key &ky) { m_visited.insert(ky); }
+    void visit(const toml::key &ky) { m_visited.emplace(ky, true); }
 
     void check(const tsl::ordered_map<std::string, std::string> &conditions) const {
         for (const auto &itr : m_v.as_table()) {
@@ -182,7 +181,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
     if (!fs::exists(toml_path)) {
         throw std::runtime_error("No cmake.toml was found!");
     }
-    const auto toml = toml::parse<toml::preserve_comments, tsl::ordered_map, std::vector>(toml_path.string());
+    const auto toml = toml::parse<toml::discard_comments, tsl::ordered_map, std::vector>(toml_path.string());
 
     TomlCheckerRoot checker;
 
@@ -274,7 +273,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
     }
 
     if (toml.contains("settings")) {
-        using set_map = std::map<std::string, TomlBasicValue>;
+        using set_map = tsl::ordered_map<std::string, TomlBasicValue>;
         const auto &sets = toml::find<set_map>(toml, "settings");
         for (const auto &itr : sets) {
             Setting s;
@@ -507,7 +506,7 @@ bool is_root_path(const std::string &path) {
     if (!fs::exists(toml_path)) {
         return false;
     }
-    const auto toml = toml::parse<toml::preserve_comments, tsl::ordered_map, std::vector>(toml_path.string());
+    const auto toml = toml::parse<toml::discard_comments, tsl::ordered_map, std::vector>(toml_path.string());
     return toml.contains("project");
 }
 

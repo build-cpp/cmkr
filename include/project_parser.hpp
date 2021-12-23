@@ -1,8 +1,6 @@
 #pragma once
 
-#include <map>
 #include <mpark/variant.hpp>
-#include <stdexcept>
 #include <string>
 #include <tsl/ordered_map.h>
 #include <vector>

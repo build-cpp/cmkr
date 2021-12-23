@@ -4,16 +4,10 @@
 #include <resources/cmkr.hpp>
 
 #include "fs.hpp"
-#include <cassert>
 #include <cstdio>
-#include <cstring>
 #include <fstream>
-#include <iomanip>
-#include <new>
-#include <regex>
 #include <sstream>
 #include <stdexcept>
-#include <string>
 
 namespace cmkr {
 namespace gen {
@@ -157,9 +151,9 @@ struct Command {
     Command(std::stringstream &ss, int depth, std::string command, std::string post_comment)
         : ss(ss), depth(depth), command(std::move(command)), post_comment(std::move(post_comment)) {}
 
-    ~Command() {
+    ~Command() noexcept(false) {
         if (!generated) {
-            assert(false && "Incorrect usage of cmd(), you probably forgot ()");
+            throw std::runtime_error("Incorrect usage of cmd(), you probably forgot ()");
         }
     }
 
@@ -407,10 +401,28 @@ struct Generator {
 };
 
 static bool vcpkg_valid_identifier(const std::string &name) {
-    const std::regex reserved("prn|aux|nul|con|lpt[1-9]|com[1-9]|core|default");
-    const std::regex ok("[a-z0-9]+(-[a-z0-9]+)*");
-    std::cmatch m;
-    return !std::regex_match(name.c_str(), m, reserved) && std::regex_match(name.c_str(), m, ok);
+    // prn|aux|nul|con|lpt[1-9]|com[1-9]|core|default
+    auto is_reserved = [](const std::string &s) {
+        if (s == "prn" || s == "aux" || s == "nul" || s == "con" || s == "core" || s == "default") {
+            return true;
+        }
+        if (s.length() == 4 && (s.compare(0, 3, "lpt") == 0 || s.compare(0, 3, "com") == 0) && (s[3] >= '1' && s[3] <= '9')) {
+            return true;
+        }
+        return false;
+    };
+    // [a-z0-9]+(-[a-z0-9]+)*
+    auto is_identifier = [](const std::string &s) {
+        for (size_t i = 0; i < s.length(); i++) {
+            auto c = s[i];
+            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (i > 0 && c == '-')) {
+                continue;
+            }
+            return false;
+        }
+        return true;
+    };
+    return is_identifier(name) && !is_reserved(name);
 }
 
 static std::string vcpkg_escape_identifier(const std::string &name) {
@@ -795,7 +807,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 target_scope = "PUBLIC";
                 break;
             default:
-                assert("Unimplemented enum value" && false);
+                throw std::runtime_error("Unimplemented enum value");
             }
 
             cmd(add_command)(target.name, target_type).endl();
