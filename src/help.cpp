@@ -1,9 +1,10 @@
 #include "help.hpp"
+#include <resources/version.hpp>
 
 namespace cmkr {
 namespace help {
 
-const char *version() noexcept { return "cmkr version 0.1.3"; }
+const char *version() noexcept { return "cmkr version " CMKR_VERSION; }
 
 const char *message() noexcept {
     return R"lit(

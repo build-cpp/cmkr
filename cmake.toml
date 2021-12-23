@@ -25,6 +25,7 @@ sources = [
     "src/*.cpp",
     "include/*.hpp",
     "cmake/cmkr.cmake",
+    "cmake/version.hpp.in",
 ]
 include-directories = [
     "include",

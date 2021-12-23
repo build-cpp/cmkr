@@ -1,0 +1,3 @@
+#pragma once
+
+#define CMKR_VERSION "@PROJECT_VERSION@"

@@ -93,6 +93,7 @@ list(APPEND cmkr_SOURCES
 	"include/literals.hpp"
 	"include/project_parser.hpp"
 	"cmake/cmkr.cmake"
+	"cmake/version.hpp.in"
 )
 
 list(APPEND cmkr_SOURCES
