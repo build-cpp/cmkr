@@ -91,10 +91,10 @@ static const char *toml_migration = &R"lit(
 name = "@name"
 
 # TODO: define a target for each of your executables/libraries like this:
-#[target.@name]
-#type = "executable"
+#[target.myexecutable]
+#type = "executable" # static, shared
 #sources = ["src/@name/*.cpp", "include/@name/*.hpp"]
 #include-directories = ["include"]
 #compile-features = ["cxx_std_11"]
-#link-libraries = ["other-targets"]
+#link-libraries = ["target-or-library"]
 )lit"[1]; // skip initial newline

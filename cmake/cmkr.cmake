@@ -1,7 +1,10 @@
 include_guard()
 
+# To bootstrap/generate a cmkr project: cmake -P cmkr.cmake
 if(CMAKE_SCRIPT_MODE_FILE)
-    message(FATAL_ERROR "Running cmkr.cmake as a script is unsupported. To build your project try: cmake -B build")
+    set(CMAKE_BINARY_DIR "${CMAKE_BINARY_DIR}/build")
+    set(CMAKE_CURRENT_BINARY_DIR "${CMAKE_BINARY_DIR}")
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}")
 endif()
 
 # Change these defaults to point to your infrastructure if desired
@@ -23,7 +26,7 @@ if(DEFINED ENV{CI} OR CMKR_SKIP_GENERATION OR CMKR_BUILD_SKIP_GENERATION)
 endif()
 
 # Disable cmkr if no cmake.toml file is found
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake.toml")
+if(NOT CMAKE_SCRIPT_MODE_FILE AND NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cmake.toml")
     message(AUTHOR_WARNING "[cmkr] Not found: ${CMAKE_CURRENT_SOURCE_DIR}/cmake.toml")
     macro(cmkr)
     endmacro()
@@ -141,6 +144,29 @@ execute_process(COMMAND "${CMKR_EXECUTABLE}" version
 )
 if(NOT CMKR_EXEC_RESULT EQUAL 0)
     message(FATAL_ERROR "[cmkr] Failed to get version, try clearing the cache and rebuilding")
+endif()
+
+# Use cmkr.cmake as a script
+if(CMAKE_SCRIPT_MODE_FILE)
+    if(NOT EXISTS "${CMAKE_SOURCE_DIR}/cmake.toml")
+        execute_process(COMMAND "${CMKR_EXECUTABLE}" init
+            RESULT_VARIABLE CMKR_EXEC_RESULT
+        )
+        if(NOT CMKR_EXEC_RESULT EQUAL 0)
+            message(FATAL_ERROR "[cmkr] Failed to bootstrap cmkr project. Please report an issue: https://github.com/build-cpp/cmkr/issues/new")
+        else()
+            message(STATUS "[cmkr] Modify cmake.toml and then configure using: cmake -B build")
+        endif()
+    else()
+        execute_process(COMMAND "${CMKR_EXECUTABLE}" gen
+            RESULT_VARIABLE CMKR_EXEC_RESULT
+        )
+        if(NOT CMKR_EXEC_RESULT EQUAL 0)
+            message(FATAL_ERROR "[cmkr] Failed to generate project.")
+        else()
+            message(STATUS "[cmkr] Configure using: cmake -B build")
+        endif()
+    endif()
 endif()
 
 # This is the macro that contains black magic

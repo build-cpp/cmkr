@@ -7,39 +7,48 @@
 ```toml
 [project]
 name = "cmkr_for_beginners"
-description = "A minimal cmkr project."
 
 [target.hello_world]
 type = "executable"
 sources = ["src/main.cpp"]
 ```
 
-`cmkr` can bootstrap itself from CMake and consumers of your project do not need to install anything to work with it.
+`cmkr` can bootstrap itself from CMake and you only need CMake to use it.
 
 ## Getting started
 
-The easiest way to get started is to use the [cmkr_for_beginners](https://github.com/build-cpp/cmkr_for_beginners) template repository. Either open it in [Gitpod](https://gitpod.io/#https://github.com/build-cpp/cmkr_for_beginners), or clone the repository and run:
+To get started run the following commands from your project directory:
+
+```sh
+curl https://raw.githubusercontent.com/build-cpp/cmkr/main/cmake/cmkr.cmake -o cmkr.cmake
+cmake -P cmkr.cmake
+```
+
+After the bootstrapping process finishes, modify [`cmake.toml`](https://build-cpp.github.io/cmkr/cmake-toml) and open the project in your favorite IDE or build with CMake:
 
 ```sh
 cmake -B build
 cmake --build build
 ```
 
-Alternatively you can check out the [cmkr topic](https://github.com/topics/cmkr), the [build-cpp organization](https://github.com/build-cpp) or the [tests](https://github.com/build-cpp/cmkr/tree/main/tests) for more examples and templates. You can also check out the [documentation](https://build-cpp.github.io/cmkr).
+Once bootstrapped, `cmkr` does not introduce extra steps to your workflow. After modifying `cmake.toml` you simply build/configure your CMake project and `cmkr` will automatically regenerate `CMakeLists.txt`.
 
-### Migrating an existing project
+In CI settings the `cmkr` bootstrapping process is skipped so there is no extra configure-time overhead in your pipelines.
 
-When migrating an existing project it's easiest to download a [cmkr release](https://github.com/build-cpp/cmkr/releases) and put `cmkr` in your PATH. Then go to your project directory and run:
+## Template repositories
 
+Another way to get started is to use the [cmkr_for_beginners](https://github.com/build-cpp/cmkr_for_beginners) template repository. Either open it in [Gitpod](https://gitpod.io/#https://github.com/build-cpp/cmkr_for_beginners), or clone the repository and run:
+
+```sh
+cmake -B build
+cmake --build build
 ```
-cmkr init
-```
 
-This will bootstrap `cmake.toml` and `CMakeLists.txt` that you can then build as normal with CMake.
+Check out the [cmkr topic](https://github.com/topics/cmkr), the [build-cpp organization](https://github.com/build-cpp) or the [tests](https://github.com/build-cpp/cmkr/tree/main/tests) for more examples and templates.
 
 ## Command line
 
-Optionally you can install `cmkr` in your `PATH` and use it as a utility from the command line:
+Optionally you can put a [`cmkr` release](https://github.com/build-cpp/cmkr/releases) in your `PATH` and use it as a utility from the command line:
 
 ```
 Usage: cmkr [arguments]

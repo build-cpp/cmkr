@@ -1,15 +1,15 @@
 ---
 layout: page
-title: cmake.toml
+title: Reference
 permalink: /cmake-toml/
-nav_order: 3
+nav_order: 1
 ---
 
-# cmake.toml
+# Reference
 
-This page is supposed to be a reference for the options in the `cmake.toml` file. If you think anything is missing or unclear, please [edit this page](https://github.com/build-cpp/cmkr/edit/main/docs/cmake-toml.md) or open an [issue](https://github.com/build-cpp/cmkr/issues).
+This page is a reference for the options in the `cmake.toml` file. If you think anything is missing or unclear, please [edit this page](https://github.com/build-cpp/cmkr/edit/main/docs/cmake-toml.md) or open an [issue](https://github.com/build-cpp/cmkr/issues).
 
-See the [examples](/examples) section for more real-world examples.
+See the [examples](/examples) section for concrete examples.
 
 ## CMake configuration
 
@@ -132,7 +132,7 @@ tag = "v0.1"
 [target.mytarget]
 condition = "linux"
 alias = "mytarget::mytarget"
-type = "static" # executable, library, shared, static, interface, custom
+type = "static" # executable, shared (DLL), static, interface, object, library, custom
 headers = ["src/mytarget.h"]
 sources = ["src/mytarget.cpp"]
 

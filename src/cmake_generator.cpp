@@ -105,8 +105,11 @@ void generate_project(const std::string &type) {
     };
 
     if (!fs::is_empty(fs::current_path())) {
+        // Make a backup of an existing CMakeLists.txt if it exists
+        std::error_code ec;
+        fs::rename("CMakeLists.txt", "CMakeLists.txt.bak", ec);
+        // Create an empty cmake.toml for migration purporses
         create_file("cmake.toml", format(toml_migration, variables));
-        puts("Generated migration cmake.toml in existing project directory...");
         return;
     }
 
