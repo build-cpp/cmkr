@@ -9,7 +9,7 @@ endif()
 
 # Change these defaults to point to your infrastructure if desired
 set(CMKR_REPO "https://github.com/build-cpp/cmkr" CACHE STRING "cmkr git repository" FORCE)
-set(CMKR_TAG "archive_04bf40a5" CACHE STRING "cmkr git tag (this needs to be available forever)" FORCE)
+set(CMKR_TAG "v0.2.0" CACHE STRING "cmkr git tag (this needs to be available forever)" FORCE)
 
 # Set these from the command line to customize for development/debugging purposes
 set(CMKR_EXECUTABLE "" CACHE FILEPATH "cmkr executable")
