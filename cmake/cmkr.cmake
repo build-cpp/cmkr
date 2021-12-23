@@ -11,6 +11,7 @@ set(CMKR_TAG "archive_52671dcf" CACHE STRING "cmkr git tag (this needs to be ava
 # Set these from the command line to customize for development/debugging purposes
 set(CMKR_EXECUTABLE "" CACHE FILEPATH "cmkr executable")
 set(CMKR_SKIP_GENERATION OFF CACHE BOOL "skip automatic cmkr generation")
+set(CMKR_BUILD_TYPE "Debug" CACHE STRING "cmkr build configuration")
 
 # Disable cmkr if generation is disabled
 if(DEFINED ENV{CI} OR CMKR_SKIP_GENERATION OR CMKR_BUILD_SKIP_GENERATION)
@@ -86,18 +87,19 @@ else()
         --no-warn-unused-cli
         "${CMKR_DIRECTORY}"
         "-B${CMKR_DIRECTORY}/build"
-        "-DCMAKE_BUILD_TYPE=Release"
+        "-DCMAKE_BUILD_TYPE=${CMKR_BUILD_TYPE}"
+        "-DCMAKE_UNITY_BUILD=ON"
         "-DCMAKE_INSTALL_PREFIX=${CMKR_DIRECTORY}"
         "-DCMKR_GENERATE_DOCUMENTATION=OFF"
     )
     cmkr_exec("${CMAKE_COMMAND}"
         --build "${CMKR_DIRECTORY}/build"
-        --config Release
+        --config "${CMKR_BUILD_TYPE}"
         --parallel
     )
     cmkr_exec("${CMAKE_COMMAND}"
         --install "${CMKR_DIRECTORY}/build"
-        --config Release
+        --config "${CMKR_BUILD_TYPE}"
         --prefix "${CMKR_DIRECTORY}"
         --component cmkr
     )
