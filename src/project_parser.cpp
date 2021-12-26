@@ -495,7 +495,26 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         auto &v = checker.create(toml, "vcpkg");
         v.optional("url", vcpkg.url);
         v.optional("version", vcpkg.version);
-        v.required("packages", vcpkg.packages);
+        for (const auto &p : v.find("packages").as_array()) {
+            Vcpkg::Package package;
+            const auto &package_str = p.as_string().str;
+            const auto open_bracket = package_str.find('[');
+            const auto close_bracket = package_str.find(']', open_bracket);
+            if (open_bracket == std::string::npos && close_bracket == std::string::npos) {
+                package.name = package_str;
+            } else if (close_bracket != std::string::npos) {
+                package.name = package_str.substr(0, open_bracket);
+                auto features = package_str.substr(open_bracket + 1, close_bracket - open_bracket - 1);
+                std::istringstream feature_stream{features};
+                std::string feature;
+                while (std::getline(feature_stream, feature, ',')) {
+                    package.features.emplace_back(feature);
+                }
+            } else {
+                throw std::runtime_error("Badly formed vcpkg package name");
+            }
+            vcpkg.packages.emplace_back(std::move(package));
+        }
     }
 
     checker.check(conditions);

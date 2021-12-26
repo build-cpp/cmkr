@@ -579,8 +579,8 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
         // Show a nicer error than vcpkg when specifying an invalid package name
         for (const auto &package : project.vcpkg.packages) {
-            if (!vcpkg_valid_identifier(package)) {
-                throw std::runtime_error("Invalid [vcpkg].packages name '" + package + "' (needs to be lowercase alphanumeric)");
+            if (!vcpkg_valid_identifier(package.name)) {
+                throw std::runtime_error("Invalid [vcpkg].packages name '" + package.name + "' (needs to be lowercase alphanumeric)");
             }
         }
 
@@ -611,13 +611,28 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         const auto &packages = project.vcpkg.packages;
         for (size_t i = 0; i < packages.size(); i++) {
             const auto &package = packages[i];
-            if (!vcpkg_valid_identifier(package)) {
-                throw std::runtime_error("Invalid vcpkg package name '" + package + "'");
+            if (!vcpkg_valid_identifier(package.name)) {
+                throw std::runtime_error("Invalid vcpkg package name '" + package.name + "'");
             }
-            ofs << "    \"" << package << '\"';
-            if (i + 1 < packages.size()) {
-                ofs << ',';
+            if (package.features.empty()) {
+                ofs << "    \"" << package.name << '\"';
+            } else {
+                ofs << "    {\n";
+                ofs << "        \"name\": \"" << package.name << "\",\n";
+                ofs << "        \"features\": [";
+                for (size_t j = 0; j < package.features.size(); j++) {
+                    const auto &feature = package.features[j];
+                    ofs << '\"' << feature << '\"';
+                    if (j + 1 < package.features.size()) {
+                        ofs << ',';
+                    }
+                }
+                ofs << "]\n";
+                ofs << "    }";
             }
+			if (i + 1 < packages.size()) {
+				ofs << ',';
+			}
             ofs << '\n';
         }
 
