@@ -636,9 +636,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 ofs << "]\n";
                 ofs << "    }";
             }
-			if (i + 1 < packages.size()) {
-				ofs << ',';
-			}
+            if (i + 1 < packages.size()) {
+                ofs << ',';
+            }
             ofs << '\n';
         }
 
