@@ -511,7 +511,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                     package.features.emplace_back(feature);
                 }
             } else {
-                throw std::runtime_error("Badly formed vcpkg package name");
+                throw std::runtime_error("Invalid vcpkg package '" + package_str + "'");
             }
             vcpkg.packages.emplace_back(std::move(package));
         }
