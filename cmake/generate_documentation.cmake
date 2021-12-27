@@ -46,14 +46,14 @@ function(generate_documentation)
                 string(REGEX MATCH "^(\n*(#[^\n]+\n)+\n*)" EXAMPLE_HEADER "${test_contents}")
                 string(LENGTH "${EXAMPLE_HEADER}" header_length)
                 string(STRIP "${EXAMPLE_HEADER}" EXAMPLE_HEADER)
-                string(REGEX REPLACE "\n# ?" "\n" EXAMPLE_HEADER "\n${EXAMPLE_HEADER}")
+                string(REGEX REPLACE "\n# ?" "\n\n" EXAMPLE_HEADER "\n${EXAMPLE_HEADER}")
                 string(STRIP "${EXAMPLE_HEADER}" EXAMPLE_HEADER)
                 
                 # Extract footer text
                 string(REGEX MATCH "(((#[^\n]+)(\n+|$))+)$" EXAMPLE_FOOTER "${test_contents}")
                 string(LENGTH "${EXAMPLE_FOOTER}" footer_length)
                 string(STRIP "${EXAMPLE_FOOTER}" EXAMPLE_FOOTER)
-                string(REGEX REPLACE "\n# ?" "\n" EXAMPLE_FOOTER "\n${EXAMPLE_FOOTER}")
+                string(REGEX REPLACE "\n# ?" "\n\n" EXAMPLE_FOOTER "\n${EXAMPLE_FOOTER}")
                 string(STRIP "${EXAMPLE_FOOTER}" EXAMPLE_FOOTER)
                 
                 # Extract toml body

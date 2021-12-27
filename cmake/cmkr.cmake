@@ -1,15 +1,15 @@
 include_guard()
 
+# Change these defaults to point to your infrastructure if desired
+set(CMKR_REPO "https://github.com/build-cpp/cmkr" CACHE STRING "cmkr git repository" FORCE)
+set(CMKR_TAG "v0.2.0" CACHE STRING "cmkr git tag (this needs to be available forever)" FORCE)
+
 # To bootstrap/generate a cmkr project: cmake -P cmkr.cmake
 if(CMAKE_SCRIPT_MODE_FILE)
     set(CMAKE_BINARY_DIR "${CMAKE_BINARY_DIR}/build")
     set(CMAKE_CURRENT_BINARY_DIR "${CMAKE_BINARY_DIR}")
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}")
 endif()
-
-# Change these defaults to point to your infrastructure if desired
-set(CMKR_REPO "https://github.com/build-cpp/cmkr" CACHE STRING "cmkr git repository" FORCE)
-set(CMKR_TAG "v0.2.0" CACHE STRING "cmkr git tag (this needs to be available forever)" FORCE)
 
 # Set these from the command line to customize for development/debugging purposes
 set(CMKR_EXECUTABLE "" CACHE FILEPATH "cmkr executable")
