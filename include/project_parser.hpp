@@ -33,7 +33,13 @@ struct Package {
 struct Vcpkg {
     std::string version;
     std::string url;
-    std::vector<std::string> packages;
+
+    struct Package {
+        std::string name;
+        std::vector<std::string> features;
+    };
+
+    std::vector<Package> packages;
 };
 
 enum TargetType {
