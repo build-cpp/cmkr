@@ -616,9 +616,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 throw std::runtime_error("Invalid vcpkg package name '" + package.name + "'");
             }
             for (const auto &feature : features) {
-				if (!vcpkg_valid_identifier(feature)) {
-					throw std::runtime_error("Invalid vcpkg package feature '" + feature + "'");
-				}
+                if (!vcpkg_valid_identifier(feature)) {
+                    throw std::runtime_error("Invalid vcpkg package feature '" + feature + "'");
+                }
             }
             if (features.empty()) {
                 ofs << "    \"" << package.name << '\"';
