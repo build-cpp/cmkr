@@ -618,8 +618,8 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 ofs << "    \"" << package.name << '\"';
             } else {
                 ofs << "    {\n";
-                ofs << "        \"name\": \"" << package.name << "\",\n";
-                ofs << "        \"features\": [";
+                ofs << "      \"name\": \"" << package.name << "\",\n";
+                ofs << "      \"features\": [";
                 for (size_t j = 0; j < package.features.size(); j++) {
                     const auto &feature = package.features[j];
                     ofs << '\"' << feature << '\"';
