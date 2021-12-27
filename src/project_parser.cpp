@@ -504,7 +504,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                 package.name = package_str;
             } else if (close_bracket != std::string::npos) {
                 package.name = package_str.substr(0, open_bracket);
-                auto features = package_str.substr(open_bracket + 1, close_bracket - open_bracket - 1);
+                const auto features = package_str.substr(open_bracket + 1, close_bracket - open_bracket - 1);
                 std::istringstream feature_stream{features};
                 std::string feature;
                 while (std::getline(feature_stream, feature, ',')) {
