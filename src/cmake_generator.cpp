@@ -541,6 +541,35 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         ss << "\")\n\n";
     }
 
+    if (!project.options.empty()) {
+        comment("Options");
+        for (const auto &opt : project.options) {
+            cmd("option")(opt.name, opt.comment, opt.val ? "ON" : "OFF");
+        }
+        endl();
+    }
+
+    if (!project.settings.empty()) {
+        comment("Settings");
+        for (const auto &set : project.settings) {
+            std::string set_val;
+            if (set.val.index() == 1) {
+                set_val = mpark::get<1>(set.val);
+            } else {
+                set_val = mpark::get<0>(set.val) ? "ON" : "OFF";
+            }
+
+            if (set.cache) {
+                auto typ = set.val.index() == 1 ? "STRING" : "BOOL";
+                auto force = set.force ? "FORCE" : "";
+                cmd("set")(set.name, set_val, typ, set.comment, force);
+            } else {
+                cmd("set")(set.name, set_val);
+            }
+        }
+        endl();
+    }
+
     gen.handle_condition(project.include_before, [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
     gen.handle_condition(project.cmake_before, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
 
@@ -671,35 +700,6 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             auto components = std::make_pair("COMPONENTS", dep.components);
             cmd("find_package")(dep.name, version, required, config, components).endl();
         }
-    }
-
-    if (!project.options.empty()) {
-        comment("Options");
-        for (const auto &opt : project.options) {
-            cmd("option")(opt.name, opt.comment, opt.val ? "ON" : "OFF");
-        }
-        endl();
-    }
-
-    if (!project.settings.empty()) {
-        comment("Settings");
-        for (const auto &set : project.settings) {
-            std::string set_val;
-            if (set.val.index() == 1) {
-                set_val = mpark::get<1>(set.val);
-            } else {
-                set_val = mpark::get<0>(set.val) ? "ON" : "OFF";
-            }
-
-            if (set.cache) {
-                auto typ = set.val.index() == 1 ? "STRING" : "BOOL";
-                auto force = set.force ? "FORCE" : "";
-                cmd("set")(set.name, set_val, typ, set.comment, force);
-            } else {
-                cmd("set")(set.name, set_val);
-            }
-        }
-        endl();
     }
 
     auto add_subdir = [&](const std::string &dir) {
