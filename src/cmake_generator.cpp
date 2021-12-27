@@ -611,24 +611,25 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         const auto &packages = project.vcpkg.packages;
         for (size_t i = 0; i < packages.size(); i++) {
             const auto &package = packages[i];
+            const auto &features = package.features;
             if (!vcpkg_valid_identifier(package.name)) {
                 throw std::runtime_error("Invalid vcpkg package name '" + package.name + "'");
             }
-            for (const auto &feature : package.features) {
+            for (const auto &feature : features) {
 				if (!vcpkg_valid_identifier(feature)) {
 					throw std::runtime_error("Invalid vcpkg package feature '" + feature + "'");
 				}
             }
-            if (package.features.empty()) {
+            if (features.empty()) {
                 ofs << "    \"" << package.name << '\"';
             } else {
                 ofs << "    {\n";
                 ofs << "      \"name\": \"" << package.name << "\",\n";
                 ofs << "      \"features\": [";
-                for (size_t j = 0; j < package.features.size(); j++) {
-                    const auto &feature = package.features[j];
+                for (size_t j = 0; j < features.size(); j++) {
+                    const auto &feature = features[j];
                     ofs << '\"' << feature << '\"';
-                    if (j + 1 < package.features.size()) {
+                    if (j + 1 < features.size()) {
                         ofs << ',';
                     }
                 }
