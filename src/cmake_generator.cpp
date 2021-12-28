@@ -583,19 +583,6 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     gen.handle_condition(project.include_after, [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
     gen.handle_condition(project.cmake_after, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
 
-    if (!project.contents.empty()) {
-        cmd("include")("FetchContent").endl();
-        for (const auto &content : project.contents) {
-            cmd("message")("STATUS", "Fetching " + content.name + "...");
-            ss << "FetchContent_Declare(\n\t" << content.name << "\n";
-            for (const auto &arg : content.arguments) {
-                ss << "\t" << arg.first << "\n\t\t" << arg.second << "\n";
-            }
-            ss << ")\n";
-            cmd("FetchContent_MakeAvailable")(content.name).endl();
-        }
-    }
-
     if (!project.vcpkg.packages.empty()) {
         // Allow the user to specify a url or derive it from the version
         auto url = project.vcpkg.url;
@@ -687,6 +674,19 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         ofs << "  \"name\": \"" << escape(project.project_name) << "\",\n";
         ofs << R"(  "version-string": "")" << '\n';
         ofs << "}\n";
+    }
+
+    if (!project.contents.empty()) {
+        cmd("include")("FetchContent").endl();
+        for (const auto &content : project.contents) {
+            cmd("message")("STATUS", "Fetching " + content.name + "...");
+            ss << "FetchContent_Declare(\n\t" << content.name << "\n";
+            for (const auto &arg : content.arguments) {
+                ss << "\t" << arg.first << "\n\t\t" << arg.second << "\n";
+            }
+            ss << ")\n";
+            cmd("FetchContent_MakeAvailable")(content.name).endl();
+        }
     }
 
     if (!project.packages.empty()) {
