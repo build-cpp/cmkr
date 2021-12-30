@@ -47,6 +47,8 @@ arch64 = "CMAKE_SIZEOF_VOID_P EQUALS 8"
 arch32 = "CMAKE_SIZEOF_VOID_P EQUALS 4"
 ```
 
+This will make the `arch64` and `arch32` conditions available with their respective CMake expressions. 
+
 You can also prefix most keys with `condition.` to represent a conditional:
 
 ```toml
@@ -56,7 +58,7 @@ sources = ["src/main.cpp"]
 windows.sources = ["src/windows_specific.cpp"]
 ```
 
-This will make the `arch64` and `arch32` conditions available with their respective CMake expressions. The following conditions are predefined (you can override them if you desire):
+The following conditions are predefined (you can override them if you desire):
 
 ```toml
 [conditions]
@@ -74,7 +76,7 @@ msvc = "MSVC"
 
 ```toml
 [subdir.mysubdir]
-condition = "linux"
+condition = "mycondition"
 cmake-before = """
 message(STATUS "CMake injected before the add_subdirectory() call"
 """
@@ -101,11 +103,8 @@ To specify package features you can use the following syntax: `imgui[docking-exp
 ## Packages
 
 ```toml
-[find-package]
-mypackage = { version = "1.0", required = true, config = true, components = ["mycomponent"] }
-
-# Alternative syntax
 [find-package.mypackage]
+condition = "mycondition"
 version = "1.0"
 required = true
 config = true
@@ -117,22 +116,27 @@ components = ["mycomponent"]
 **Note**: The `[fetch-content]` feature is unpolished and will likely change in a future release.
 
 ```toml
-[fetch-content]
-gitcontent = { git = "https://github.com/myuser/gitcontent", tag = "v0.1" }
-svncontent = { svn = "https://svn-host.com/url", rev = "svn_rev" }
-urlcontent = { url = "https://content-host.com/urlcontent.zip", hash = "123123123123" }
-
-# Alternative syntax
 [fetch-content.gitcontent]
+condition = "mycondition"
 git = "https://github.com/myuser/gitcontent"
 tag = "v0.1"
+
+[fetch-content.svncontent]
+condition = "mycondition"
+svn = "https://svn-host.com/url"
+rev = "svn_rev"
+
+[fetch-content.urlcontent]
+condition = "mycondition"
+url = "https://content-host.com/urlcontent.zip"
+hash = "123123123123"
 ```
 
 ## Targets
 
 ```toml
 [target.mytarget]
-condition = "linux"
+condition = "mycondition"
 alias = "mytarget::mytarget"
 type = "static" # executable, shared (DLL), static, interface, object, library, custom
 headers = ["src/mytarget.h"]
@@ -180,6 +184,7 @@ FOLDER = "MyFolder"
 ```toml
 # You can declare as many as you want like this, but the name has to be unique
 [[test]]
+condition = "mycondition"
 name = "mytest"
 command = "$<TARGET_FILE:mytest>"
 arguments = ["arg1", "arg2"]
@@ -189,6 +194,7 @@ working-directory = "mytest-dir"
 
 ```toml
 [[install]]
+condition = "mycondition"
 targets = ["mytarget", "mytest"]
 destination = ["bin"]
 files = ["content/my.png"]
