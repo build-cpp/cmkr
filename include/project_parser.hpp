@@ -8,6 +8,11 @@
 namespace cmkr {
 namespace parser {
 
+template <typename T>
+using Condition = tsl::ordered_map<std::string, T>;
+
+using ConditionVector = Condition<std::vector<std::string>>;
+
 struct Setting {
     std::string name;
     std::string comment;
@@ -24,6 +29,7 @@ struct Option {
 
 struct Package {
     std::string name;
+    std::string condition;
     std::string version;
     bool required = true;
     bool config = false;
@@ -51,11 +57,6 @@ enum TargetType {
     target_custom,
     target_object,
 };
-
-template <typename T>
-using Condition = tsl::ordered_map<std::string, T>;
-
-using ConditionVector = Condition<std::vector<std::string>>;
 
 struct Target {
     std::string name;
@@ -101,6 +102,7 @@ struct Target {
 
 struct Test {
     std::string name;
+    std::string condition;
     std::vector<std::string> configurations;
     std::string working_directory;
     std::string command;
@@ -108,6 +110,7 @@ struct Test {
 };
 
 struct Install {
+    std::string condition;
     std::vector<std::string> targets;
     std::vector<std::string> files;
     std::vector<std::string> dirs;
@@ -126,6 +129,7 @@ struct Subdir {
 
 struct Content {
     std::string name;
+    std::string condition;
     tsl::ordered_map<std::string, std::string> arguments;
 };
 

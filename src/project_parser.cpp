@@ -145,6 +145,11 @@ class TomlChecker {
                     }
                 }
                 throw std::runtime_error(format_key_error("Unknown key '" + ky + "'", ky, itr.second));
+            } else if (ky == "condition") {
+                std::string condition = itr.second.as_string();
+                if (!conditions.contains(condition)) {
+                    throw std::runtime_error(format_key_error("Unknown condition '" + condition + "'", condition, itr.second));
+                }
             }
         }
     }
@@ -330,6 +335,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                 p.version = itr.second.as_string();
             } else {
                 auto &pkg = checker.create(value);
+                pkg.optional("condition", p.condition);
                 pkg.optional("version", p.version);
                 pkg.optional("required", p.required);
                 pkg.optional("config", p.config);
@@ -347,6 +353,11 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             content.name = itr.first;
             for (const auto &argItr : itr.second.as_table()) {
                 auto key = argItr.first;
+                if (key == "condition") {
+                    content.condition = argItr.second.as_string();
+                    continue;
+                }
+
                 if (key == "git") {
                     key = "GIT_REPOSITORY";
                 } else if (key == "tag") {
@@ -469,6 +480,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             auto &t = checker.create(value);
             Test test;
             t.required("name", test.name);
+            t.optional("condition", test.condition);
             t.optional("configurations", test.configurations);
             t.optional("working-directory", test.working_directory);
             t.required("command", test.command);
@@ -482,6 +494,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         for (const auto &value : is) {
             auto &i = checker.create(value);
             Install inst;
+            i.optional("condition", inst.condition);
             i.optional("targets", inst.targets);
             i.optional("files", inst.files);
             i.optional("dirs", inst.dirs);

@@ -316,10 +316,10 @@ static std::string tolf(const std::string &str) {
 };
 
 struct Generator {
-    Generator(parser::Project &project) : project(project) {}
+    Generator(const parser::Project &project) : project(project) {}
     Generator(const Generator &) = delete;
 
-    parser::Project &project;
+    const parser::Project &project;
     std::stringstream ss;
     int indent = 0;
 
@@ -383,11 +383,7 @@ struct Generator {
             for (const auto &itr : value) {
                 const auto &condition = itr.first;
                 if (!condition.empty()) {
-                    if (project.conditions.count(condition) == 0) {
-                        // TODO: somehow print line number information here?
-                        throw std::runtime_error("Unknown condition '" + condition + "'");
-                    }
-                    cmd("if", condition)(RawArg(project.conditions[condition]));
+                    cmd("if", condition)(RawArg(project.conditions.at(condition)));
                 }
 
                 if (!itr.second.empty()) {
@@ -399,6 +395,27 @@ struct Generator {
                 }
                 endl();
             }
+        }
+    }
+};
+
+struct ConditionScope {
+    Generator &gen;
+    bool endif = false;
+
+    ConditionScope(Generator &gen, const std::string &condition) : gen(gen) {
+        if (!condition.empty()) {
+            gen.cmd("if", condition)(RawArg(gen.project.conditions.at(condition)));
+            endif = true;
+        }
+    }
+
+    ConditionScope(const ConditionScope &) = delete;
+    ConditionScope(ConditionScope &&) = delete;
+
+    ~ConditionScope() {
+        if (endif) {
+            gen.cmd("endif")();
         }
     }
 };
@@ -679,7 +696,14 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     if (!project.contents.empty()) {
         cmd("include")("FetchContent").endl();
         for (const auto &content : project.contents) {
-            cmd("message")("STATUS", "Fetching " + content.name + "...");
+            ConditionScope cs(gen, content.condition);
+            std::string version_info = "";
+            if (content.arguments.contains("GIT_TAG")) {
+                version_info = " (" + content.arguments.at("GIT_TAG") + ")";
+            } else if (content.arguments.contains("SVN_REVISION")) {
+                version_info = " (" + content.arguments.at("SVN_REVISION") + ")";
+            }
+            cmd("message")("STATUS", "Fetching " + content.name + version_info + "...");
             ss << "FetchContent_Declare(\n\t" << content.name << "\n";
             for (const auto &arg : content.arguments) {
                 ss << "\t" << arg.first << "\n\t\t" << arg.second << "\n";
@@ -698,6 +722,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             auto required = dep.required ? "REQUIRED" : "";
             auto config = dep.config ? "CONFIG" : "";
             auto components = std::make_pair("COMPONENTS", dep.components);
+            ConditionScope cs(gen, dep.condition);
             cmd("find_package")(dep.name, version, required, config, components).endl();
         }
     }
@@ -727,13 +752,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         endl();
     }
     for (const auto &subdir : project.subdirs) {
-        if (!subdir.condition.empty()) {
-            const auto &condition = subdir.condition;
-            if (project.conditions.count(condition) == 0) {
-                throw std::runtime_error("Unknown condition '" + condition + "' for [subdir." + subdir.name + "]");
-            }
-            gen.cmd("if", condition)(RawArg(project.conditions[condition]));
-        }
+        ConditionScope cs(gen, subdir.condition);
 
         gen.handle_condition(subdir.include_before,
                              [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
@@ -743,23 +762,18 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
         gen.handle_condition(subdir.include_after, [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
         gen.handle_condition(subdir.cmake_after, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
-
-        if (!subdir.condition.empty()) {
-            cmd("endif")();
-        }
     }
 
     if (!project.targets.empty()) {
-        for (const auto &target : project.targets) {
+        for (size_t i = 0; i < project.targets.size(); i++) {
+            if (i > 0) {
+                endl();
+            }
+
+            const auto &target = project.targets[i];
             comment("Target " + target.name);
 
-            if (!target.condition.empty()) {
-                const auto &condition = target.condition;
-                if (project.conditions.count(condition) == 0) {
-                    throw std::runtime_error("Unknown condition '" + condition + "' for [target." + target.name + "]");
-                }
-                gen.cmd("if", condition)(RawArg(project.conditions[condition]));
-            }
+            ConditionScope cs(gen, target.condition);
 
             cmd("set")("CMKR_TARGET", target.name);
 
@@ -901,13 +915,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
             cmd("unset")("CMKR_TARGET");
             cmd("unset")("CMKR_SOURCES");
-
-            if (!target.condition.empty()) {
-                cmd("endif")();
-            }
-
-            endl();
         }
+
+        endl();
     }
 
     if (!project.tests.empty()) {
@@ -922,6 +932,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             auto working_directory = std::make_pair("WORKING_DIRECTORY", dir);
             auto command = std::make_pair("COMMAND", test.command);
             auto arguments = std::make_pair("", test.arguments);
+            ConditionScope cs(gen, test.condition);
             cmd("add_test")(name, configurations, working_directory, command, arguments).endl();
         }
     }
@@ -941,6 +952,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             auto configs = std::make_pair("CONFIGURATIONS", inst.configs);
             auto destination = std::make_pair("DESTINATION", inst.destination);
             auto component = std::make_pair("COMPONENT", inst.targets.empty() ? "" : inst.targets.front());
+            ConditionScope cs(gen, inst.condition);
             cmd("install")(targets, dirs, files, configs, destination, component);
         }
     }
