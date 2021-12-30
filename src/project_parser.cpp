@@ -236,6 +236,9 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         conditions["gcc"] = R"cmake(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")cmake";
         conditions["clang"] = R"cmake(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID MATCHES "Clang")cmake";
         conditions["msvc"] = R"cmake(MSVC)cmake";
+        conditions["root"] = R"cmake(CMKR_ROOT_PROJECT)cmake";
+        conditions["x64"] = R"cmake(CMAKE_SIZEOF_VOID_P EQUAL 8)cmake";
+        conditions["x32"] = R"cmake(CMAKE_SIZEOF_VOID_P EQUAL 4)cmake";
     } else {
         conditions = parent->conditions;
     }
