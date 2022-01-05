@@ -165,6 +165,7 @@ struct Project {
     std::vector<Install> installs;
     tsl::ordered_map<std::string, std::string> conditions;
     std::vector<Subdir> subdirs;
+    std::vector<Target> templates;
 
     Project(const Project *parent, const std::string &path, bool build);
 };

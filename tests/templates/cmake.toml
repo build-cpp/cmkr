@@ -1,0 +1,18 @@
+# A project using templates.
+
+[project]
+name = "templates"
+description = "Template example"
+
+[template.app]
+type = "executable"
+sources = ["src/templates.cpp"]
+compile-definitions = ["IS_APP=true"]
+
+[target.app-a]
+template = "app"
+compile-definitions = ["APP_A"]
+
+[target.app-b]
+template = "app"
+compile-definitions = ["APP_B"]

@@ -97,6 +97,36 @@ class TomlChecker {
     }
 
     template <typename T>
+    void optional_append(const toml::key &ky, Condition<T> &destination) {
+        // TODO: this algorithm in O(n) over the amount of keys, kinda bad
+        const auto &table = m_v.as_table();
+        for (const auto &itr : table) {
+            const auto &key = itr.first;
+            const auto &value = itr.second;
+            T *dest = nullptr;
+            if (value.is_table()) {
+                if (value.contains(ky)) {
+                    dest = &destination[key];
+                }
+            } else if (key == ky) {
+                dest = &destination[""];
+            }
+            if (dest != nullptr) {
+                const auto &items = toml::find<T>(m_v, ky);
+                dest->insert(dest->end(), items.begin(), items.end());
+            }
+        }
+
+        // Handle visiting logic
+        for (const auto &itr : destination) {
+            if (!itr.first.empty()) {
+                m_conditionVisited.emplace(itr.first, true);
+            }
+        }
+        visit(ky);
+    }
+
+    template <typename T>
     void optional(const toml::key &ky, T &destination) {
         // TODO: this currently doesn't allow you to get an optional map<string, X>
         if (m_v.contains(ky)) {
@@ -104,6 +134,17 @@ class TomlChecker {
         }
         visit(ky);
     }
+
+    template <typename T>
+    void optional_append(const toml::key &ky, T &destination) {
+        // TODO: this currently doesn't allow you to get an optional map<string, X>
+        if (m_v.contains(ky)) {
+            const auto &items = toml::find<T>(m_v, ky);
+            destination.insert(destination.end(), items.begin(), items.end());
+        }
+        visit(ky);
+    }
+
 
     template <typename T>
     void required(const toml::key &ky, T &destination) {
@@ -386,94 +427,124 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         throw std::runtime_error("[[bin]] has been renamed to [[target]]");
     }
 
-    if (toml.contains("target")) {
-        const auto &ts = toml::find(toml, "target").as_table();
+    if (toml.contains("target") || toml.contains("template")) {
+        auto is_template = true;
 
-        for (const auto &itr : ts) {
-            const auto &value = itr.second;
+        for (const auto &ts : {&toml::find(toml, "template"), &toml::find(toml, "target")}) {
+            for (const auto &itr : ts->as_table()) {
+                const auto &value = itr.second;
+                auto &t = checker.create(value);
+                std::string template_name;
 
-            Target target;
-            target.name = itr.first;
+                if (!is_template) {
+                    t.optional("template", template_name);
+                }
 
-            auto &t = checker.create(value);
-            std::string type;
-            t.required("type", type);
-            target.type = to_enum<TargetType>(type, "target type");
+                Target target;
+                auto from_template = false;
 
-            t.optional("headers", target.headers);
-            t.optional("sources", target.sources);
+                if (!template_name.empty()) {
+                    for (const auto & template_ : templates) {
+                        if (template_name == template_.name) {
+                            from_template = true;
+                            target = template_;
+                        }
+                    }
 
-            t.optional("compile-definitions", target.compile_definitions);
-            t.optional("private-compile-definitions", target.private_compile_definitions);
+                    if (!from_template) {
+                        throw std::runtime_error("Could not find template named " + template_name);
+                    }
+                }
 
-            t.optional("compile-features", target.compile_features);
-            t.optional("private-compile-features", target.private_compile_features);
+                target.name = itr.first;
 
-            t.optional("compile-options", target.compile_options);
-            t.optional("private-compile-options", target.private_compile_options);
+                if (!from_template) {
+                    std::string type;
+                    t.required("type", type);
+                    target.type = to_enum<TargetType>(type, "target type");
+                }
 
-            t.optional("include-directories", target.include_directories);
-            t.optional("private-include-directories", target.private_include_directories);
+                t.optional_append("headers", target.headers);
+                t.optional_append("sources", target.sources);
 
-            t.optional("link-directories", target.link_directories);
-            t.optional("private-link-directories", target.private_link_directories);
+                t.optional_append("compile-definitions", target.compile_definitions);
+                t.optional_append("private-compile-definitions", target.private_compile_definitions);
 
-            t.optional("link-libraries", target.link_libraries);
-            t.optional("private-link-libraries", target.private_link_libraries);
+                t.optional_append("compile-features", target.compile_features);
+                t.optional_append("private-compile-features", target.private_compile_features);
 
-            t.optional("link-options", target.link_options);
-            t.optional("private-link-options", target.private_link_options);
+                t.optional_append("compile-options", target.compile_options);
+                t.optional_append("private-compile-options", target.private_compile_options);
 
-            t.optional("precompile-headers", target.precompile_headers);
-            t.optional("private-precompile-headers", target.private_precompile_headers);
+                t.optional_append("include-directories", target.include_directories);
+                t.optional_append("private-include-directories", target.private_include_directories);
 
-            if (!target.headers.empty()) {
-                auto &sources = target.sources.nth(0).value();
-                const auto &headers = target.headers.nth(0)->second;
-                sources.insert(sources.end(), headers.begin(), headers.end());
-            }
+                t.optional_append("link-directories", target.link_directories);
+                t.optional_append("private-link-directories", target.private_link_directories);
 
-            t.optional("condition", target.condition);
-            t.optional("alias", target.alias);
+                t.optional_append("link-libraries", target.link_libraries);
+                t.optional_append("private-link-libraries", target.private_link_libraries);
 
-            if (t.contains("properties")) {
-                auto store_property = [&target](const toml::key &k, const TomlBasicValue &v, const std::string &condition) {
-                    if (v.is_array()) {
-                        std::string property_list;
-                        for (const auto &list_val : v.as_array()) {
-                            if (!property_list.empty()) {
-                                property_list += ';';
+                t.optional_append("link-options", target.link_options);
+                t.optional_append("private-link-options", target.private_link_options);
+
+                t.optional_append("precompile-headers", target.precompile_headers);
+                t.optional_append("private-precompile-headers", target.private_precompile_headers);
+
+                if (!target.headers.empty()) {
+                    auto &sources = target.sources.nth(0).value();
+                    const auto &headers = target.headers.nth(0)->second;
+                    sources.insert(sources.end(), headers.begin(), headers.end());
+                }
+
+                t.optional("condition", target.condition);
+                t.optional("alias", target.alias);
+
+                if (t.contains("properties")) {
+                    auto store_property = [&target](const toml::key &k, const TomlBasicValue &v, const std::string &condition) {
+                        if (v.is_array()) {
+                            std::string property_list;
+                            for (const auto &list_val : v.as_array()) {
+                                if (!property_list.empty()) {
+                                    property_list += ';';
+                                }
+                                property_list += list_val.as_string();
                             }
-                            property_list += list_val.as_string();
+                            target.properties[condition][k] = property_list;
+                        } else if (v.is_boolean()) {
+                            target.properties[condition][k] = v.as_boolean() ? "ON" : "OFF";
+                        } else {
+                            target.properties[condition][k] = v.as_string();
                         }
-                        target.properties[condition][k] = property_list;
-                    } else if (v.is_boolean()) {
-                        target.properties[condition][k] = v.as_boolean() ? "ON" : "OFF";
-                    } else {
-                        target.properties[condition][k] = v.as_string();
-                    }
-                };
+                    };
 
-                const auto &props = t.find("properties").as_table();
-                for (const auto &propKv : props) {
-                    const auto &k = propKv.first;
-                    const auto &v = propKv.second;
-                    if (v.is_table()) {
-                        for (const auto &condKv : v.as_table()) {
-                            store_property(condKv.first, condKv.second, k);
+                    const auto &props = t.find("properties").as_table();
+                    for (const auto &propKv : props) {
+                        const auto &k = propKv.first;
+                        const auto &v = propKv.second;
+                        if (v.is_table()) {
+                            for (const auto &condKv : v.as_table()) {
+                                store_property(condKv.first, condKv.second, k);
+                            }
+                        } else {
+                            store_property(k, v, "");
                         }
-                    } else {
-                        store_property(k, v, "");
                     }
+                }
+
+                t.optional("cmake-before", target.cmake_before);
+                t.optional("cmake-after", target.cmake_after);
+                t.optional_append("include-before", target.include_before);
+                t.optional_append("include-after", target.include_after);
+
+                if (is_template) {
+                    templates.push_back(target);
+                } else {
+                    targets.push_back(target);
                 }
             }
 
-            t.optional("cmake-before", target.cmake_before);
-            t.optional("cmake-after", target.cmake_after);
-            t.optional("include-before", target.include_before);
-            t.optional("include-after", target.include_after);
-
-            targets.push_back(target);
+            is_template = false;
         }
     }
 
