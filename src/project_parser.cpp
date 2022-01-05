@@ -428,9 +428,14 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
     }
 
     if (toml.contains("target") || toml.contains("template")) {
+        const toml::basic_value<toml::discard_comments, tsl::ordered_map, std::vector> empty_templates_table = toml::table();
+        auto tables = {
+            toml.contains("template") ? &toml::find(toml, "template") : &empty_templates_table,
+            &toml::find(toml, "target")
+        };
         auto is_template = true;
 
-        for (const auto &ts : {&toml::find(toml, "template"), &toml::find(toml, "target")}) {
+        for (const auto &ts : tables) {
             for (const auto &itr : ts->as_table()) {
                 const auto &value = itr.second;
                 auto &t = checker.create(value);
