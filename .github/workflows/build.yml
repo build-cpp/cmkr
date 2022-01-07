@@ -50,7 +50,7 @@ jobs:
         string: ${{ runner.os }}
 
     - name: Compress artifacts
-      uses: papeloto/action-zip@v1
+      uses: vimtor/action-zip@v1
       with:
         files: install/bin/
         dest: ${{ github.event.repository.name }}-${{ steps.osname.outputs.lowercase }}.zip
