@@ -6,9 +6,9 @@
 #include "fs.hpp"
 #include <cstdio>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
-#include <memory>
 
 namespace cmkr {
 namespace gen {
@@ -934,57 +934,37 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                                      [&](const std::string &, const std::vector<std::string> &args) { cmd(command)(target.name, scope, args); });
             };
 
+            auto gen_target_cmds = [&](const parser::Target &t) {
+                target_cmd("target_compile_definitions", t.compile_definitions, target_scope);
+                target_cmd("target_compile_definitions", t.private_compile_definitions, "PRIVATE");
+
+                target_cmd("target_compile_features", t.compile_features, target_scope);
+                target_cmd("target_compile_features", t.private_compile_features, "PRIVATE");
+
+                target_cmd("target_compile_options", t.compile_options, target_scope);
+                target_cmd("target_compile_options", t.private_compile_options, "PRIVATE");
+
+                target_cmd("target_include_directories", t.include_directories, target_scope);
+                target_cmd("target_include_directories", t.private_include_directories, "PRIVATE");
+
+                target_cmd("target_link_directories", t.link_directories, target_scope);
+                target_cmd("target_link_directories", t.private_link_directories, "PRIVATE");
+
+                target_cmd("target_link_libraries", t.link_libraries, target_scope);
+                target_cmd("target_link_libraries", t.private_link_libraries, "PRIVATE");
+
+                target_cmd("target_link_options", t.link_options, target_scope);
+                target_cmd("target_link_options", t.private_link_options, "PRIVATE");
+
+                target_cmd("target_precompile_headers", t.precompile_headers, target_scope);
+                target_cmd("target_precompile_headers", t.private_precompile_headers, "PRIVATE");
+            };
+
             if (tmplate != nullptr) {
-                const auto &outline = tmplate->outline;
-
-                target_cmd("target_compile_definitions", outline.compile_definitions, target_scope);
-                target_cmd("target_compile_definitions", outline.private_compile_definitions, "PRIVATE");
-
-                target_cmd("target_compile_features", outline.compile_features, target_scope);
-                target_cmd("target_compile_features", outline.private_compile_features, "PRIVATE");
-
-                target_cmd("target_compile_options", outline.compile_options, target_scope);
-                target_cmd("target_compile_options", outline.private_compile_options, "PRIVATE");
-
-                target_cmd("target_include_directories", outline.include_directories, target_scope);
-                target_cmd("target_include_directories", outline.private_include_directories, "PRIVATE");
-
-                target_cmd("target_link_directories", outline.link_directories, target_scope);
-                target_cmd("target_link_directories", outline.private_link_directories, "PRIVATE");
-
-                target_cmd("target_link_libraries", outline.link_libraries, target_scope);
-                target_cmd("target_link_libraries", outline.private_link_libraries, "PRIVATE");
-
-                target_cmd("target_link_options", outline.link_options, target_scope);
-                target_cmd("target_link_options", outline.private_link_options, "PRIVATE");
-
-                target_cmd("target_precompile_headers", outline.precompile_headers, target_scope);
-                target_cmd("target_precompile_headers", outline.private_precompile_headers, "PRIVATE");
+                gen_target_cmds(tmplate->outline);
             }
 
-            target_cmd("target_compile_definitions", target.compile_definitions, target_scope);
-            target_cmd("target_compile_definitions", target.private_compile_definitions, "PRIVATE");
-
-            target_cmd("target_compile_features", target.compile_features, target_scope);
-            target_cmd("target_compile_features", target.private_compile_features, "PRIVATE");
-
-            target_cmd("target_compile_options", target.compile_options, target_scope);
-            target_cmd("target_compile_options", target.private_compile_options, "PRIVATE");
-
-            target_cmd("target_include_directories", target.include_directories, target_scope);
-            target_cmd("target_include_directories", target.private_include_directories, "PRIVATE");
-
-            target_cmd("target_link_directories", target.link_directories, target_scope);
-            target_cmd("target_link_directories", target.private_link_directories, "PRIVATE");
-
-            target_cmd("target_link_libraries", target.link_libraries, target_scope);
-            target_cmd("target_link_libraries", target.private_link_libraries, "PRIVATE");
-
-            target_cmd("target_link_options", target.link_options, target_scope);
-            target_cmd("target_link_options", target.private_link_options, "PRIVATE");
-
-            target_cmd("target_precompile_headers", target.precompile_headers, target_scope);
-            target_cmd("target_precompile_headers", target.private_precompile_headers, "PRIVATE");
+            gen_target_cmds(target);
 
             if (!target.properties.empty() || (tmplate != nullptr && !tmplate->outline.properties.empty())) {
                 auto props = target.properties;
