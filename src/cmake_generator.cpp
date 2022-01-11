@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <memory>
 
 namespace cmkr {
 namespace gen {
@@ -771,11 +772,30 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             }
 
             const auto &target = project.targets[i];
+            const parser::Template *tmplate = nullptr;
+            std::unique_ptr<ConditionScope> tmplate_cs{};
+
             comment("Target " + target.name);
+
+            // Check if this target is using a template.
+            if (target.type == parser::target_template) {
+                for (const auto &t : project.templates) {
+                    if (target.type_string == t.outline.name) {
+                        tmplate = &t;
+                        tmplate_cs = std::make_unique<ConditionScope>(gen, tmplate->outline.condition);
+                    }
+                }
+            }
 
             ConditionScope cs(gen, target.condition);
 
             cmd("set")("CMKR_TARGET", target.name);
+
+            if (tmplate != nullptr) {
+                gen.handle_condition(tmplate->outline.include_before,
+                                     [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
+                gen.handle_condition(tmplate->outline.cmake_before, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
+            }
 
             gen.handle_condition(target.include_before,
                                  [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
@@ -785,6 +805,18 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
             bool added_toml = false;
             cmd("set")(sources_var, RawArg("\"\"")).endl();
+
+            if (tmplate != nullptr) {
+                gen.handle_condition(tmplate->outline.sources, [&](const std::string &condition, const std::vector<std::string> &condition_sources) {
+                    auto sources = expand_cmake_paths(condition_sources, path);
+                    if (sources.empty()) {
+                        auto source_key = condition.empty() ? "sources" : (condition + ".sources");
+                        throw std::runtime_error(target.name + " " + source_key + " wildcard found 0 files");
+                    }
+                    cmd("list")("APPEND", sources_var, sources);
+                });
+            }
+
             gen.handle_condition(target.sources, [&](const std::string &condition, const std::vector<std::string> &condition_sources) {
                 auto sources = expand_cmake_paths(condition_sources, path);
                 if (sources.empty()) {
@@ -798,66 +830,89 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 cmd("list")("APPEND", sources_var, sources);
             });
 
-            if (!added_toml && target.type != parser::target_interface) {
+            auto target_type = target.type;
+
+            if (tmplate != nullptr) {
+                target_type = tmplate->outline.type;
+            }
+
+            if (!added_toml && target_type != parser::target_interface) {
                 cmd("list")("APPEND", sources_var, std::vector<std::string>{"cmake.toml"}).endl();
             }
             cmd("set")("CMKR_SOURCES", "${" + sources_var + "}");
 
             std::string add_command;
-            std::string target_type;
+            std::string target_type_string;
             std::string target_scope;
-            switch (target.type) {
+
+            switch (target_type) {
             case parser::target_executable:
                 add_command = "add_executable";
-                target_type = "";
+                target_type_string = "";
                 target_scope = "PRIVATE";
                 break;
             case parser::target_library:
                 add_command = "add_library";
-                target_type = "";
+                target_type_string = "";
                 target_scope = "PUBLIC";
                 break;
             case parser::target_shared:
                 add_command = "add_library";
-                target_type = "SHARED";
+                target_type_string = "SHARED";
                 target_scope = "PUBLIC";
                 break;
             case parser::target_static:
                 add_command = "add_library";
-                target_type = "STATIC";
+                target_type_string = "STATIC";
                 target_scope = "PUBLIC";
                 break;
             case parser::target_interface:
                 add_command = "add_library";
-                target_type = "INTERFACE";
+                target_type_string = "INTERFACE";
                 target_scope = "INTERFACE";
                 break;
             case parser::target_custom:
                 // TODO: add proper support, this is hacky
                 add_command = "add_custom_target";
-                target_type = "SOURCES";
+                target_type_string = "SOURCES";
                 target_scope = "PUBLIC";
                 break;
             case parser::target_object:
                 // NOTE: This is properly supported since 3.12
                 add_command = "add_library";
-                target_type = "OBJECT";
+                target_type_string = "OBJECT";
                 target_scope = "PUBLIC";
                 break;
             default:
                 throw std::runtime_error("Unimplemented enum value");
             }
 
-            cmd(add_command)(target.name, target_type).endl();
+            // Handle custom add commands from templates.
+            if (tmplate != nullptr && !tmplate->add_function.empty()) {
+                add_command = tmplate->add_function;
+                target_type_string = ""; // TODO: let templates supply options to the add_command here?
 
-            // clang-format off
-            cmd("if")(sources_var);
-                cmd("target_sources")(target.name, target.type == parser::target_interface ? "INTERFACE" : "PRIVATE", "${" + sources_var + "}");
-            cmd("endif")().endl();
-            // clang-format on
+                if (tmplate->pass_sources_to_add_function) {
+                    cmd(add_command)(target.name, target_type_string, "${" + sources_var + "}");
+                } else {
+                    // clang-format off
+                    cmd("if")(sources_var);
+                        cmd("target_sources")(target.name, target_type == parser::target_interface ? "INTERFACE" : "PRIVATE", "${" + sources_var + "}");
+                    cmd("endif")().endl();
+                    // clang-format on
+                }
+            } else {
+                cmd(add_command)(target.name, target_type_string).endl();
+
+                // clang-format off
+                cmd("if")(sources_var);
+                    cmd("target_sources")(target.name, target_type == parser::target_interface ? "INTERFACE" : "PRIVATE", "${" + sources_var + "}");
+                cmd("endif")().endl();
+                // clang-format on
+            }
 
             // The first executable target will become the Visual Studio startup project
-            if (target.type == parser::target_executable) {
+            if (target_type == parser::target_executable) {
                 cmd("get_directory_property")("CMKR_VS_STARTUP_PROJECT", "DIRECTORY", "${PROJECT_SOURCE_DIR}", "DEFINITION", "VS_STARTUP_PROJECT");
                 // clang-format off
                 cmd("if")("NOT", "CMKR_VS_STARTUP_PROJECT");
@@ -878,6 +933,34 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 gen.handle_condition(cargs,
                                      [&](const std::string &, const std::vector<std::string> &args) { cmd(command)(target.name, scope, args); });
             };
+
+            if (tmplate != nullptr) {
+                const auto &outline = tmplate->outline;
+
+                target_cmd("target_compile_definitions", outline.compile_definitions, target_scope);
+                target_cmd("target_compile_definitions", outline.private_compile_definitions, "PRIVATE");
+
+                target_cmd("target_compile_features", outline.compile_features, target_scope);
+                target_cmd("target_compile_features", outline.private_compile_features, "PRIVATE");
+
+                target_cmd("target_compile_options", outline.compile_options, target_scope);
+                target_cmd("target_compile_options", outline.private_compile_options, "PRIVATE");
+
+                target_cmd("target_include_directories", outline.include_directories, target_scope);
+                target_cmd("target_include_directories", outline.private_include_directories, "PRIVATE");
+
+                target_cmd("target_link_directories", outline.link_directories, target_scope);
+                target_cmd("target_link_directories", outline.private_link_directories, "PRIVATE");
+
+                target_cmd("target_link_libraries", outline.link_libraries, target_scope);
+                target_cmd("target_link_libraries", outline.private_link_libraries, "PRIVATE");
+
+                target_cmd("target_link_options", outline.link_options, target_scope);
+                target_cmd("target_link_options", outline.private_link_options, "PRIVATE");
+
+                target_cmd("target_precompile_headers", outline.precompile_headers, target_scope);
+                target_cmd("target_precompile_headers", outline.private_precompile_headers, "PRIVATE");
+            }
 
             target_cmd("target_compile_definitions", target.compile_definitions, target_scope);
             target_cmd("target_compile_definitions", target.private_compile_definitions, "PRIVATE");
@@ -903,8 +986,14 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             target_cmd("target_precompile_headers", target.precompile_headers, target_scope);
             target_cmd("target_precompile_headers", target.private_precompile_headers, "PRIVATE");
 
-            if (!target.properties.empty()) {
-                gen.handle_condition(target.properties, [&](const std::string &, const tsl::ordered_map<std::string, std::string> &properties) {
+            if (!target.properties.empty() || (tmplate != nullptr && !tmplate->outline.properties.empty())) {
+                auto props = target.properties;
+
+                if (tmplate != nullptr) {
+                    props.insert(tmplate->outline.properties.begin(), tmplate->outline.properties.end());
+                }
+
+                gen.handle_condition(props, [&](const std::string &, const tsl::ordered_map<std::string, std::string> &properties) {
                     cmd("set_target_properties")(target.name, "PROPERTIES", properties);
                 });
             }
@@ -912,6 +1001,12 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             gen.handle_condition(target.include_after,
                                  [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
             gen.handle_condition(target.cmake_after, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
+
+            if (tmplate != nullptr) {
+                gen.handle_condition(tmplate->outline.include_after,
+                                     [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
+                gen.handle_condition(tmplate->outline.cmake_after, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
+            }
 
             cmd("unset")("CMKR_TARGET");
             cmd("unset")("CMKR_SOURCES");

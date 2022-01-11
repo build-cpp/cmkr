@@ -10,9 +10,9 @@ sources = ["src/templates.cpp"]
 compile-definitions = ["IS_APP=true"]
 
 [target.app-a]
-template = "app"
+type = "app"
 compile-definitions = ["APP_A"]
 
 [target.app-b]
-template = "app"
+type = "app"
 compile-definitions = ["APP_B"]

@@ -56,11 +56,14 @@ enum TargetType {
     target_interface,
     target_custom,
     target_object,
+    target_template,
+    target_COUNT,
 };
 
 struct Target {
     std::string name;
     TargetType type = {};
+    std::string type_string;
 
     ConditionVector headers;
     ConditionVector sources;
@@ -98,6 +101,12 @@ struct Target {
     Condition<std::string> cmake_after;
     ConditionVector include_before;
     ConditionVector include_after;
+};
+
+struct Template {
+    Target outline;
+    std::string add_function;
+    bool pass_sources_to_add_function = false;
 };
 
 struct Test {
@@ -160,12 +169,12 @@ struct Project {
     std::vector<Package> packages;
     Vcpkg vcpkg;
     std::vector<Content> contents;
+    std::vector<Template> templates;
     std::vector<Target> targets;
     std::vector<Test> tests;
     std::vector<Install> installs;
     tsl::ordered_map<std::string, std::string> conditions;
     std::vector<Subdir> subdirs;
-    std::vector<Target> templates;
 
     Project(const Project *parent, const std::string &path, bool build);
 };

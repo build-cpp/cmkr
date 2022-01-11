@@ -4,6 +4,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 // This is the type that will hold all the strings.
 // Each enumeration type will declare its own specialization.
@@ -12,7 +13,7 @@
 // be no definition of a generic version).
 template <typename T>
 struct enumStrings {
-    static char const *data[];
+    static std::vector<std::string> data;
 };
 
 // This is a utility type.
@@ -43,8 +44,8 @@ std::istream &operator>>(std::istream &str, enumRefHolder<T> const &data) {
     // These two can be made easier to read in C++11
     // using std::begin() and std::end()
     //
-    static auto begin = std::begin(enumStrings<T>::data);
-    static auto end = std::end(enumStrings<T>::data);
+    auto begin = std::begin(enumStrings<T>::data);
+    auto end = std::end(enumStrings<T>::data);
 
     auto find = std::find(begin, end, value);
     if (find != end) {
