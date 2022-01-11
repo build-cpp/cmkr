@@ -782,7 +782,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 for (const auto &t : project.templates) {
                     if (target.type_string == t.outline.name) {
                         tmplate = &t;
-                        tmplate_cs = std::make_unique<ConditionScope>(gen, tmplate->outline.condition);
+                        tmplate_cs = std::unique_ptr<ConditionScope>(new ConditionScope(gen, tmplate->outline.condition));
                     }
                 }
             }
