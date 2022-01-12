@@ -1,39 +1,26 @@
 #include "project_parser.hpp"
 
-#include "enum_helper.hpp"
 #include "fs.hpp"
 #include <deque>
 #include <stdexcept>
 #include <toml.hpp>
 #include <tsl/ordered_map.h>
 
-template <>
-std::vector<std::string> enumStrings<cmkr::parser::TargetType>::data{"executable", "library", "shared", "static",
-                                                                     "interface",  "custom",  "object", "template"};
-
 namespace cmkr {
 namespace parser {
 
-using TomlBasicValue = toml::basic_value<toml::discard_comments, tsl::ordered_map, std::vector>;
+const char *targetTypeNames[target_last] = {"executable", "library", "shared", "static", "interface", "custom", "object", "template"};
 
-template <typename EnumType>
-static EnumType to_enum(const std::string &str, const std::string &help_name) {
-    EnumType value;
-    try {
-        std::stringstream ss(str);
-        ss >> enumFromString(value);
-    } catch (std::invalid_argument &) {
-        std::string supported;
-        for (const auto &s : enumStrings<EnumType>::data) {
-            if (!supported.empty()) {
-                supported += ", ";
-            }
-            supported += s;
+static TargetType parse_targetType(const std::string &name) {
+    for (int i = 0; i < target_last; i++) {
+        if (name == targetTypeNames[i]) {
+            return static_cast<TargetType>(i);
         }
-        throw std::runtime_error("Unknown " + help_name + "'" + str + "'! Supported types are: " + supported);
     }
-    return value;
+    return target_last;
 }
+
+using TomlBasicValue = toml::basic_value<toml::discard_comments, tsl::ordered_map, std::vector>;
 
 static std::string format_key_error(const std::string &error, const toml::key &ky, const TomlBasicValue &value) {
     auto loc = value.location();
@@ -43,7 +30,7 @@ static std::string format_key_error(const std::string &error, const toml::key &k
 
     std::ostringstream oss;
     oss << "[error] " << error << '\n';
-    oss << " --> " << loc.file_name() << '\n';
+    oss << " --> " << loc.file_name() << ':' << loc.line() << '\n';
 
     oss << std::string(line_width + 2, ' ') << "|\n";
     oss << ' ' << line_number_str << " | " << line_str << '\n';
@@ -56,7 +43,6 @@ static std::string format_key_error(const std::string &error, const toml::key &k
     if (key_start != std::string::npos) {
         oss << std::string(key_start + 1, ' ') << std::string(ky.length(), '~');
     }
-    oss << '\n';
 
     return oss.str();
 }
@@ -242,6 +228,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         conditions["x32"] = R"cmake(CMAKE_SIZEOF_VOID_P EQUAL 4)cmake";
     } else {
         conditions = parent->conditions;
+        templates = parent->templates;
     }
 
     if (toml.contains("conditions")) {
@@ -387,16 +374,43 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         throw std::runtime_error("[[bin]] has been renamed to [[target]]");
     }
 
-    auto parse_target = [&](const std::string &name, TomlChecker& t) {
+    auto parse_target = [&](const std::string &name, TomlChecker &t, bool isTemplate) {
         Target target;
         target.name = name;
 
-        t.required("type", target.type_string);
+        t.required("type", target.type_name);
+        target.type = parse_targetType(target.type_name);
 
-        target.type = to_enum<TargetType>(target.type_string, "target type");
+        // Users cannot set this target type
+        if (target.type == target_template) {
+            target.type = target_last;
+        }
 
-        if (target.type >= target_COUNT) {
-            target.type = target_template;
+        if (!isTemplate && target.type == target_last) {
+            for (const auto &tmplate : templates) {
+                if (target.type_name == tmplate.outline.name) {
+                    target.type = target_template;
+                    break;
+                }
+            }
+        }
+
+        if (target.type == target_last) {
+            std::string error = "Unknown target type '" + target.type_name + "'\n";
+            error += "Available types:\n";
+            for (std::string type_name : targetTypeNames) {
+                if (type_name != "template") {
+                    error += "  - " + type_name + "\n";
+                }
+            }
+            if (!isTemplate && !templates.empty()) {
+                error += "Available templates:\n";
+                for (const auto &tmplate : templates) {
+                    error += "  - " + tmplate.outline.name + "\n";
+                }
+            }
+            error.pop_back(); // Remove last newline
+            throw std::runtime_error(format_key_error(error, target.type_name, t.find("type")));
         }
 
         t.optional("headers", target.headers);
@@ -477,26 +491,37 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
 
     if (toml.contains("template")) {
         const auto &ts = toml::find(toml, "template").as_table();
-
         for (const auto &itr : ts) {
+            auto &t = checker.create(itr.second);
+            const auto &name = itr.first;
+
+            for (const auto &type_name : targetTypeNames) {
+                if (name == type_name) {
+                    throw std::runtime_error(format_key_error("Reserved template name '" + name + "'", name, itr.second));
+                }
+            }
+
+            for (const auto &tmplate : templates) {
+                if (name == tmplate.outline.name) {
+                    throw std::runtime_error(format_key_error("Template '" + name + "' already defined", name, itr.second));
+                }
+            }
+
             Template tmplate;
-            auto& t = checker.create(itr.second);
-            tmplate.outline = parse_target(itr.first, t);
+            tmplate.outline = parse_target(name, t, true);
 
             t.optional("add-function", tmplate.add_function);
             t.optional("pass-sources-to-add-function", tmplate.pass_sources_to_add_function);
 
             templates.push_back(tmplate);
-            enumStrings<TargetType>::data.push_back(tmplate.outline.name);
         }
     }
 
     if (toml.contains("target")) {
         const auto &ts = toml::find(toml, "target").as_table();
-
         for (const auto &itr : ts) {
-            auto& t = checker.create(itr.second);
-            targets.push_back(parse_target(itr.first, t));
+            auto &t = checker.create(itr.second);
+            targets.push_back(parse_target(itr.first, t, false));
         }
     }
 

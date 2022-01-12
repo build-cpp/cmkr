@@ -57,13 +57,15 @@ enum TargetType {
     target_custom,
     target_object,
     target_template,
-    target_COUNT,
+    target_last,
 };
+
+extern const char *targetTypeNames[target_last];
 
 struct Target {
     std::string name;
-    TargetType type = {};
-    std::string type_string;
+    TargetType type = target_last;
+    std::string type_name;
 
     ConditionVector headers;
     ConditionVector sources;

@@ -780,7 +780,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             // Check if this target is using a template.
             if (target.type == parser::target_template) {
                 for (const auto &t : project.templates) {
-                    if (target.type_string == t.outline.name) {
+                    if (target.type_name == t.outline.name) {
                         tmplate = &t;
                         tmplate_cs = std::unique_ptr<ConditionScope>(new ConditionScope(gen, tmplate->outline.condition));
                     }
@@ -895,6 +895,8 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 if (tmplate->pass_sources_to_add_function) {
                     cmd(add_command)(target.name, target_type_string, "${" + sources_var + "}");
                 } else {
+                    cmd(add_command)(target.name, target_type_string).endl();
+
                     // clang-format off
                     cmd("if")(sources_var);
                         cmd("target_sources")(target.name, target_type == parser::target_interface ? "INTERFACE" : "PRIVATE", "${" + sources_var + "}");
