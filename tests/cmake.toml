@@ -1,41 +1,47 @@
 [[test]]
 name = "basic"
-command = "$<TARGET_FILE:cmkr>"
 working-directory = "basic"
+command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
 
 [[test]]
 name = "interface"
-command = "$<TARGET_FILE:cmkr>"
 working-directory = "interface"
+command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
 
 [[test]]
 name = "fetch-content"
-command = "$<TARGET_FILE:cmkr>"
 working-directory = "fetch-content"
+command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
 
 [[test]]
 name = "conditions"
-command = "$<TARGET_FILE:cmkr>"
 working-directory = "conditions"
+command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
 
 [[test]]
 name = "vcpkg"
-command = "$<TARGET_FILE:cmkr>"
 working-directory = "vcpkg"
+command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
 
 [[test]]
 name = "cxx-standard"
-command = "$<TARGET_FILE:cmkr>"
 working-directory = "cxx-standard"
+command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
 
 [[test]]
 name = "globbing"
-command = "$<TARGET_FILE:cmkr>"
 working-directory = "globbing"
+command = "$<TARGET_FILE:cmkr>"
+arguments = ["build"]
+
+[[test]]
+name = "templates"
+working-directory = "templates"
+command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]

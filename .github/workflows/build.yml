@@ -35,7 +35,7 @@ jobs:
     - name: Test
       run: |
         cd build/tests
-        ctest -C ${{ env.BUILD_TYPE }}
+        ctest -C ${{ env.BUILD_TYPE }} --verbose
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v2

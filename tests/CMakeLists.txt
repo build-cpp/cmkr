@@ -78,3 +78,13 @@ add_test(
 		build
 )
 
+add_test(
+	NAME
+		templates
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/templates"
+	COMMAND
+		$<TARGET_FILE:cmkr>
+		build
+)
+
