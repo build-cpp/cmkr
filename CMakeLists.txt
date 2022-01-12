@@ -86,7 +86,6 @@ list(APPEND cmkr_SOURCES
 	"include/arguments.hpp"
 	"include/build.hpp"
 	"include/cmake_generator.hpp"
-	"include/enum_helper.hpp"
 	"include/error.hpp"
 	"include/fs.hpp"
 	"include/help.hpp"

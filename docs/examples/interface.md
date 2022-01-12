@@ -19,6 +19,7 @@ description = "Header-only library"
 [target.mylib]
 type = "interface"
 include-directories = ["include"]
+compile-features = ["cxx_std_11"]
 
 [target.example]
 type = "executable"
