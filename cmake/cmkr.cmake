@@ -69,7 +69,7 @@ set(CMKR_DIRECTORY "${CMKR_DIRECTORY_PREFIX}${CMKR_TAG}")
 set(CMKR_CACHED_EXECUTABLE "${CMKR_DIRECTORY}/bin/${CMKR_EXECUTABLE_NAME}")
 
 # Handle upgrading logic
-if(CMKR_EXECUTABLE AND NOT CMKR_CACHED_EXECUTABLE STREQUAL CMKR_EXECUTABLE)    
+if(CMKR_EXECUTABLE AND NOT CMKR_CACHED_EXECUTABLE STREQUAL CMKR_EXECUTABLE)
     if(CMKR_EXECUTABLE MATCHES "^${CMAKE_CURRENT_BINARY_DIR}/_cmkr")
         if(DEFINED ENV{CMKR_CACHE} AND EXISTS "$ENV{CMKR_CACHE}")
             message(AUTHOR_WARNING "[cmkr] Switching to cached cmkr: '${CMKR_CACHED_EXECUTABLE}'")
@@ -98,7 +98,7 @@ elseif(NOT CMKR_EXECUTABLE AND EXISTS "${CMKR_CACHED_EXECUTABLE}")
 else()
     set(CMKR_EXECUTABLE "${CMKR_CACHED_EXECUTABLE}" CACHE FILEPATH "Full path to cmkr executable" FORCE)
     message(VERBOSE "[cmkr] Bootstrapping '${CMKR_EXECUTABLE}'")
-    
+
     message(STATUS "[cmkr] Fetching cmkr...")
     if(EXISTS "${CMKR_DIRECTORY}")
         cmkr_exec("${CMAKE_COMMAND}" -E rm -rf "${CMKR_DIRECTORY}")
@@ -202,18 +202,18 @@ macro(cmkr)
             # Copy the now-generated CMakeLists.txt to CMakerLists.txt
             # This is done because you cannot include() a file you are currently in
             configure_file(CMakeLists.txt "${CMKR_TEMP_FILE}" COPYONLY)
-            
+
             # Add the macro required for the hack at the start of the cmkr macro
             set_source_files_properties("${CMKR_TEMP_FILE}" PROPERTIES
                 CMKR_CURRENT_LIST_FILE "${CMAKE_CURRENT_LIST_FILE}"
             )
-            
+
             # 'Execute' the newly-generated CMakeLists.txt
             include("${CMKR_TEMP_FILE}")
-            
+
             # Delete the generated file
             file(REMOVE "${CMKR_TEMP_FILE}")
-            
+
             # Do not execute the rest of the original CMakeLists.txt
             return()
         endif()

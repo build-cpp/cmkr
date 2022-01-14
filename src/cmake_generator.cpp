@@ -604,11 +604,13 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     if (!project.vcpkg.packages.empty()) {
         // Allow the user to specify a url or derive it from the version
         auto url = project.vcpkg.url;
+        auto version_name = url;
         if (url.empty()) {
             if (project.vcpkg.version.empty()) {
                 throw std::runtime_error("You need either [vcpkg].version or [vcpkg].url");
             }
             url = "https://github.com/microsoft/vcpkg/archive/refs/tags/" + project.vcpkg.version + ".tar.gz";
+            version_name = project.vcpkg.version;
         }
 
         // Show a nicer error than vcpkg when specifying an invalid package name
@@ -622,7 +624,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         // clang-format off
         cmd("if")("CMKR_ROOT_PROJECT", "AND", "NOT", "CMKR_DISABLE_VCPKG");
             cmd("include")("FetchContent");
-            cmd("message")("STATUS", "Fetching vcpkg...");
+            cmd("message")("STATUS", "Fetching vcpkg (" + version_name + ")...");
             cmd("FetchContent_Declare")("vcpkg", "URL", url);
             cmd("FetchContent_MakeAvailable")("vcpkg");
             cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
