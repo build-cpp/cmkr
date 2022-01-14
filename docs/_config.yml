@@ -9,7 +9,7 @@ search_enabled: true
 color_scheme: light-or-dark
 heading_anchors: true
 aux_links:
-  "cmkr":
+  "GitHub":
     - "https://github.com/build-cpp/cmkr"
 aux_links_new_tab: true
 
