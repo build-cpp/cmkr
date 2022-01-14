@@ -689,7 +689,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
         ofs << "  ],\n";
         ofs << "  \"description\": \"" << escape(project.project_description) << "\",\n";
-        ofs << "  \"name\": \"" << escape(project.project_name) << "\",\n";
+        ofs << "  \"name\": \"" << escape(vcpkg_escape_identifier(project.project_name)) << "\",\n";
         ofs << R"(  "version-string": "")" << '\n';
         ofs << "}\n";
     }
