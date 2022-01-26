@@ -15,6 +15,7 @@ endif()
 set(CMKR_EXECUTABLE "" CACHE FILEPATH "cmkr executable")
 set(CMKR_SKIP_GENERATION OFF CACHE BOOL "skip automatic cmkr generation")
 set(CMKR_BUILD_TYPE "Debug" CACHE STRING "cmkr build configuration")
+mark_as_advanced(CMKR_REPO CMKR_TAG CMKR_EXECUTABLE CMKR_SKIP_GENERATION CMKR_BUILD_TYPE)
 
 # Disable cmkr if generation is disabled
 if(DEFINED ENV{CI} OR CMKR_SKIP_GENERATION OR CMKR_BUILD_SKIP_GENERATION)
@@ -62,6 +63,8 @@ if(DEFINED ENV{CMKR_CACHE} AND EXISTS "$ENV{CMKR_CACHE}")
     if(NOT CMKR_DIRECTORY_PREFIX MATCHES "\\/$")
         set(CMKR_DIRECTORY_PREFIX "${CMKR_DIRECTORY_PREFIX}/")
     endif()
+    # Build in release mode for the cache
+    set(CMKR_BUILD_TYPE "Release")
 else()
     set(CMKR_DIRECTORY_PREFIX "${CMAKE_CURRENT_BINARY_DIR}/_cmkr_")
 endif()
