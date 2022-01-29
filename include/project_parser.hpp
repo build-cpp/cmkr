@@ -127,6 +127,7 @@ struct Install {
     std::vector<std::string> dirs;
     std::vector<std::string> configs;
     std::string destination;
+    std::string component;
 };
 
 struct Subdir {
