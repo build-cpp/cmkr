@@ -1030,7 +1030,11 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             auto files = std::make_pair("FILES", inst.files);
             auto configs = std::make_pair("CONFIGURATIONS", inst.configs);
             auto destination = std::make_pair("DESTINATION", inst.destination);
-            auto component = std::make_pair("COMPONENT", inst.targets.empty() ? "" : inst.targets.front());
+            auto component_name = inst.component;
+            if (component_name.empty() && !inst.targets.empty()) {
+                component_name = inst.targets.front();
+            }
+            auto component = std::make_pair("COMPONENT", component_name);
             ConditionScope cs(gen, inst.condition);
             cmd("install")(targets, dirs, files, configs, destination, component);
         }

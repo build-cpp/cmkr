@@ -551,6 +551,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             i.optional("dirs", inst.dirs);
             i.optional("configs", inst.configs);
             i.required("destination", inst.destination);
+            i.optional("component", inst.component);
             installs.push_back(inst);
         }
     }
