@@ -1,7 +1,6 @@
 ---
 layout: home
 title: Index
-permalink: /getting-started/
 nav_order: 0
 ---
 
