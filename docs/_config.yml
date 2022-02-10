@@ -2,6 +2,7 @@ title: cmkr
 
 plugins:
   - jekyll-remote-theme
+  - jekyll-sitemap
 
 # Automatically deduce dark theme preference https://github.com/pmarsceill/just-the-docs/pull/464
 remote_theme: build-cpp/just-the-docs@light-switch
@@ -19,3 +20,5 @@ gh_edit_repository: "https://github.com/build-cpp/cmkr"
 gh_edit_branch: "main"
 gh_edit_view_mode: "edit"
 gh_edit_source: docs
+
+production_url : https://cmkr.build
