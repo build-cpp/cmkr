@@ -162,6 +162,10 @@ struct Command {
     }
 
     static std::string quote(const std::string &str) {
+        // Quote an empty string
+        if (str.empty()) {
+            return "\"\"";
+        }
         // Don't quote arguments that don't need quoting
         if (str.find(' ') == std::string::npos && str.find('\"') == std::string::npos && str.find('/') == std::string::npos &&
             str.find(';') == std::string::npos) {
@@ -562,7 +566,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     if (!project.options.empty()) {
         comment("Options");
         for (const auto &opt : project.options) {
-            cmd("option")(opt.name, opt.comment, opt.val ? "ON" : "OFF");
+            cmd("option")(opt.name, RawArg(Command::quote(opt.comment)), opt.val ? "ON" : "OFF");
         }
         endl();
     }
