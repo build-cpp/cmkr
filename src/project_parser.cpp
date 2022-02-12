@@ -143,13 +143,20 @@ class TomlChecker {
 };
 
 class TomlCheckerRoot {
+    const TomlBasicValue &m_root;
     std::deque<TomlChecker> m_checkers;
+    tsl::ordered_map<toml::key, bool> m_visisted;
     bool m_checked = false;
 
   public:
-    TomlCheckerRoot() = default;
+    TomlCheckerRoot(const TomlBasicValue &root) : m_root(root) {}
     TomlCheckerRoot(const TomlCheckerRoot &) = delete;
     TomlCheckerRoot(TomlCheckerRoot &&) = delete;
+
+    bool contains(const toml::key &ky) {
+        m_visisted[ky] = true;
+        return m_root.contains(ky);
+    }
 
     TomlChecker &create(const TomlBasicValue &v) {
         m_checkers.emplace_back(v);
@@ -161,7 +168,14 @@ class TomlCheckerRoot {
         return m_checkers.back();
     }
 
-    void check(const tsl::ordered_map<std::string, std::string> &conditions) {
+    void check(const tsl::ordered_map<std::string, std::string> &conditions, bool check_root) {
+        if (check_root) {
+            for (const auto &itr : m_root.as_table()) {
+                if (!m_visisted.contains(itr.first)) {
+                    throw std::runtime_error(format_key_error("Unknown key '" + itr.first + "'", itr.first, itr.second));
+                }
+            }
+        }
         for (const auto &checker : m_checkers) {
             checker.check(conditions);
         }
@@ -178,9 +192,9 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         throw std::runtime_error("Empty TOML '" + toml_path.string() + "'");
     }
 
-    TomlCheckerRoot checker;
+    TomlCheckerRoot checker(toml);
 
-    if (toml.contains("cmake")) {
+    if (checker.contains("cmake")) {
         auto &cmake = checker.create(toml, "cmake");
 
         cmake.required("version", cmake_version);
@@ -212,7 +226,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
 
     // Skip the rest of the parsing when building
     if (build) {
-        checker.check(conditions);
+        checker.check(conditions, false);
         return;
     }
 
@@ -234,14 +248,14 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         templates = parent->templates;
     }
 
-    if (toml.contains("conditions")) {
+    if (checker.contains("conditions")) {
         auto conds = toml::find<decltype(conditions)>(toml, "conditions");
         for (const auto &cond : conds) {
             conditions[cond.first] = cond.second;
         }
     }
 
-    if (toml.contains("project")) {
+    if (checker.contains("project")) {
         auto &project = checker.create(toml, "project");
         project.required("name", project_name);
         project.optional("version", project_version);
@@ -254,7 +268,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         project.optional("subdirs", project_subdirs);
     }
 
-    if (toml.contains("subdir")) {
+    if (checker.contains("subdir")) {
         const auto &subs = toml::find(toml, "subdir").as_table();
         for (const auto &itr : subs) {
             Subdir subdir;
@@ -271,7 +285,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         }
     }
 
-    if (toml.contains("settings")) {
+    if (checker.contains("settings")) {
         using set_map = tsl::ordered_map<std::string, TomlBasicValue>;
         const auto &sets = toml::find<set_map>(toml, "settings");
         for (const auto &itr : sets) {
@@ -300,7 +314,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         }
     }
 
-    if (toml.contains("options")) {
+    if (checker.contains("options")) {
         using opts_map = tsl::ordered_map<std::string, TomlBasicValue>;
         const auto &opts = toml::find<opts_map>(toml, "options");
         for (const auto &itr : opts) {
@@ -318,7 +332,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         }
     }
 
-    if (toml.contains("find-package")) {
+    if (checker.contains("find-package")) {
         using pkg_map = tsl::ordered_map<std::string, TomlBasicValue>;
         const auto &pkgs = toml::find<pkg_map>(toml, "find-package");
         for (const auto &itr : pkgs) {
@@ -340,7 +354,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
     }
 
     // TODO: perform checking here
-    if (toml.contains("fetch-content")) {
+    if (checker.contains("fetch-content")) {
         const auto &fc = toml::find(toml, "fetch-content").as_table();
         for (const auto &itr : fc) {
             Content content;
@@ -373,7 +387,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         }
     }
 
-    if (toml.contains("bin")) {
+    if (checker.contains("bin")) {
         throw std::runtime_error("[[bin]] has been renamed to [[target]]");
     }
 
@@ -492,7 +506,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         return target;
     };
 
-    if (toml.contains("template")) {
+    if (checker.contains("template")) {
         const auto &ts = toml::find(toml, "template").as_table();
         for (const auto &itr : ts) {
             auto &t = checker.create(itr.second);
@@ -520,7 +534,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         }
     }
 
-    if (toml.contains("target")) {
+    if (checker.contains("target")) {
         const auto &ts = toml::find(toml, "target").as_table();
         for (const auto &itr : ts) {
             auto &t = checker.create(itr.second);
@@ -528,7 +542,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         }
     }
 
-    if (toml.contains("test")) {
+    if (checker.contains("test")) {
         const auto &ts = toml::find(toml, "test").as_array();
         for (const auto &value : ts) {
             auto &t = checker.create(value);
@@ -543,7 +557,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         }
     }
 
-    if (toml.contains("install")) {
+    if (checker.contains("install")) {
         const auto &is = toml::find(toml, "install").as_array();
         for (const auto &value : is) {
             auto &i = checker.create(value);
@@ -559,7 +573,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         }
     }
 
-    if (toml.contains("vcpkg")) {
+    if (checker.contains("vcpkg")) {
         auto &v = checker.create(toml, "vcpkg");
         v.optional("url", vcpkg.url);
         v.optional("version", vcpkg.version);
@@ -585,7 +599,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         }
     }
 
-    checker.check(conditions);
+    checker.check(conditions, true);
 }
 
 bool is_root_path(const std::string &path) {
