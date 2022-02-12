@@ -171,9 +171,12 @@ class TomlCheckerRoot {
 Project::Project(const Project *parent, const std::string &path, bool build) {
     const auto toml_path = fs::path(path) / "cmake.toml";
     if (!fs::exists(toml_path)) {
-        throw std::runtime_error("No cmake.toml was found!");
+        throw std::runtime_error("File not found '" + toml_path.string() + "'");
     }
     const auto toml = toml::parse<toml::discard_comments, tsl::ordered_map, std::vector>(toml_path.string());
+    if (toml.size() == 0) {
+        throw std::runtime_error("Empty TOML '" + toml_path.string() + "'");
+    }
 
     TomlCheckerRoot checker;
 
