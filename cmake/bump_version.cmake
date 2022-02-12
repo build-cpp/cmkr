@@ -12,6 +12,14 @@ if(NOT EXISTS "${CMAKE_SOURCE_DIR}/cmake/cmkr.cmake")
     message(FATAL_ERROR "Cannot find cmkr.cmake")
 endif()
 
+# Validate branch
+find_package(Git REQUIRED)
+execute_process(COMMAND "${GIT_EXECUTABLE}" branch --show-current OUTPUT_VARIABLE GIT_BRANCH)
+string(STRIP "${GIT_BRANCH}" GIT_BRANCH)
+if(NOT GIT_BRANCH STREQUAL "main")
+    message(FATAL_ERROR "You need to be on the main branch, you are on: ${GIT_BRANCH}")
+endif()
+
 file(READ "${CMAKE_SOURCE_DIR}/cmake.toml" CMAKE_TOML)
 string(FIND "${CMAKE_TOML}" "[project]" PROJECT_INDEX)
 string(SUBSTRING "${CMAKE_TOML}" ${PROJECT_INDEX} -1 CMAKE_TOML_PROJECT)
