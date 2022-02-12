@@ -370,6 +370,8 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                     key = "GIT_REPOSITORY";
                 } else if (key == "tag") {
                     key = "GIT_TAG";
+                } else if (key == "shallow") {
+                    key = "GIT_SHALLOW";
                 } else if (key == "svn") {
                     key = "SVN_REPOSITORY";
                 } else if (key == "rev") {
@@ -381,7 +383,14 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                 } else {
                     // don't change arg
                 }
-                content.arguments.emplace(key, argItr.second.as_string());
+
+                std::string value;
+                if (argItr.second.is_boolean()) {
+                    value = argItr.second.as_boolean() ? "ON" : "OFF";
+                } else {
+                    value = argItr.second.as_string();
+                }
+                content.arguments.emplace(key, value);
             }
             contents.emplace_back(std::move(content));
         }
