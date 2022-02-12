@@ -3,6 +3,7 @@ include_guard()
 # Change these defaults to point to your infrastructure if desired
 set(CMKR_REPO "https://github.com/build-cpp/cmkr" CACHE STRING "cmkr git repository" FORCE)
 set(CMKR_TAG "v0.2.10" CACHE STRING "cmkr git tag (this needs to be available forever)" FORCE)
+set(CMKR_COMMIT_HASH "" CACHE STRING "cmkr git commit hash (optional)" FORCE)
 
 # To bootstrap/generate a cmkr project: cmake -P cmkr.cmake
 if(CMAKE_SCRIPT_MODE_FILE)
@@ -15,7 +16,7 @@ endif()
 set(CMKR_EXECUTABLE "" CACHE FILEPATH "cmkr executable")
 set(CMKR_SKIP_GENERATION OFF CACHE BOOL "skip automatic cmkr generation")
 set(CMKR_BUILD_TYPE "Debug" CACHE STRING "cmkr build configuration")
-mark_as_advanced(CMKR_REPO CMKR_TAG CMKR_EXECUTABLE CMKR_SKIP_GENERATION CMKR_BUILD_TYPE)
+mark_as_advanced(CMKR_REPO CMKR_TAG CMKR_COMMIT_HASH CMKR_EXECUTABLE CMKR_SKIP_GENERATION CMKR_BUILD_TYPE)
 
 # Disable cmkr if generation is disabled
 if(DEFINED ENV{CI} OR CMKR_SKIP_GENERATION OR CMKR_BUILD_SKIP_GENERATION)
@@ -115,6 +116,16 @@ else()
         ${CMKR_REPO}
         "${CMKR_DIRECTORY}"
     )
+    if(CMKR_COMMIT_HASH)
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" checkout -q "${CMKR_COMMIT_HASH}"
+            RESULT_VARIABLE CMKR_EXEC_RESULT
+            WORKING_DIRECTORY "${CMKR_DIRECTORY}"
+        )
+        if(NOT CMKR_EXEC_RESULT EQUAL 0)
+            message(FATAL_ERROR "Tag '${CMKR_TAG}' hash is not '${CMKR_COMMIT_HASH}'")
+        endif()
+    endif()
     message(STATUS "[cmkr] Building cmkr (using system compiler)...")
     cmkr_exec("${CMAKE_COMMAND}"
         --no-warn-unused-cli
