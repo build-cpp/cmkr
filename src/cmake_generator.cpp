@@ -34,7 +34,7 @@ static std::string format(const char *format, tsl::ordered_map<std::string, std:
     return s;
 }
 
-static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs::path &toml_dir) {
+static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs::path &toml_dir, bool root_project) {
     std::vector<std::string> temp;
 
     auto extract_suffix = [](const fs::path &base, const fs::path &full) {
@@ -46,6 +46,10 @@ static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs
 
     auto stem = name.filename().stem().string();
     auto ext = name.extension();
+
+    if (root_project && stem == "**" && name == name.filename()) {
+        throw std::runtime_error("Recursive globbing not allowed in project root: " + name.string());
+    }
 
     if (stem == "*") {
         for (const auto &f : fs::directory_iterator(toml_dir / name.parent_path(), fs::directory_options::follow_directory_symlink)) {
@@ -71,11 +75,11 @@ static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs
     return temp;
 }
 
-static std::vector<std::string> expand_cmake_paths(const std::vector<std::string> &sources, const fs::path &toml_dir) {
+static std::vector<std::string> expand_cmake_paths(const std::vector<std::string> &sources, const fs::path &toml_dir, bool root_project) {
     // TODO: add duplicate checking
     std::vector<std::string> result;
     for (const auto &src : sources) {
-        auto expanded = expand_cmake_path(src, toml_dir);
+        auto expanded = expand_cmake_path(src, toml_dir, root_project);
         for (const auto &f : expanded) {
             result.push_back(f);
         }
@@ -476,6 +480,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         throw std::runtime_error("No cmake.toml found!");
     }
 
+    // Root project doesn't have a parent
+    auto root_project = parent_project == nullptr;
+
     parser::Project project(parent_project, path, false);
     Generator gen(project);
 
@@ -492,8 +499,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     comment("See " + cmkr_url + " for more information");
     endl();
 
-    // Root project doesn't have a parent
-    if (parent_project == nullptr) {
+    if (root_project) {
         cmd("cmake_minimum_required")("VERSION", project.cmake_version).endl();
 
         if (!project.allow_in_tree) {
@@ -814,7 +820,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
             if (tmplate != nullptr) {
                 gen.handle_condition(tmplate->outline.sources, [&](const std::string &condition, const std::vector<std::string> &condition_sources) {
-                    auto sources = expand_cmake_paths(condition_sources, path);
+                    auto sources = expand_cmake_paths(condition_sources, path, root_project);
                     if (sources.empty()) {
                         auto source_key = condition.empty() ? "sources" : (condition + ".sources");
                         throw std::runtime_error(target.name + " " + source_key + " wildcard found 0 files");
@@ -824,7 +830,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             }
 
             gen.handle_condition(target.sources, [&](const std::string &condition, const std::vector<std::string> &condition_sources) {
-                auto sources = expand_cmake_paths(condition_sources, path);
+                auto sources = expand_cmake_paths(condition_sources, path, root_project);
                 if (sources.empty()) {
                     auto source_key = condition.empty() ? "sources" : (condition + ".sources");
                     throw std::runtime_error(target.name + " " + source_key + " wildcard found 0 files");
@@ -1026,7 +1032,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             auto dirs = std::make_pair("DIRS", inst.dirs);
             std::vector<std::string> files_data;
             if (!inst.files.empty()) {
-                files_data = expand_cmake_paths(inst.files, path);
+                files_data = expand_cmake_paths(inst.files, path, root_project);
                 if (files_data.empty()) {
                     throw std::runtime_error("[[install]] files wildcard did not resolve to any files");
                 }
