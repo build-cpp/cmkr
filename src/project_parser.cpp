@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <toml.hpp>
 #include <tsl/ordered_map.h>
+#include <tsl/ordered_set.h>
 
 namespace cmkr {
 namespace parser {
@@ -49,8 +50,8 @@ static std::string format_key_error(const std::string &error, const toml::key &k
 
 class TomlChecker {
     const TomlBasicValue &m_v;
-    tsl::ordered_map<toml::key, bool> m_visited;
-    tsl::ordered_map<toml::key, bool> m_conditionVisited;
+    tsl::ordered_set<toml::key> m_visited;
+    tsl::ordered_set<toml::key> m_conditionVisited;
 
   public:
     TomlChecker(const TomlBasicValue &v, const toml::key &ky) : m_v(toml::find(v, ky)) {}
@@ -77,7 +78,7 @@ class TomlChecker {
         // Handle visiting logic
         for (const auto &itr : destination) {
             if (!itr.first.empty()) {
-                m_conditionVisited.emplace(itr.first, true);
+                m_conditionVisited.emplace(itr.first);
             }
         }
         visit(ky);
@@ -108,7 +109,9 @@ class TomlChecker {
         return toml::find(m_v, ky);
     }
 
-    void visit(const toml::key &ky) { m_visited.emplace(ky, true); }
+    void visit(const toml::key &ky) { m_visited.emplace(ky); }
+
+    bool visisted(const toml::key &ky) const { return m_visited.contains(ky); }
 
     void check(const tsl::ordered_map<std::string, std::string> &conditions) const {
         for (const auto &itr : m_v.as_table()) {
@@ -145,7 +148,7 @@ class TomlChecker {
 class TomlCheckerRoot {
     const TomlBasicValue &m_root;
     std::deque<TomlChecker> m_checkers;
-    tsl::ordered_map<toml::key, bool> m_visisted;
+    tsl::ordered_set<toml::key> m_visisted;
     bool m_checked = false;
 
   public:
@@ -154,7 +157,7 @@ class TomlCheckerRoot {
     TomlCheckerRoot(TomlCheckerRoot &&) = delete;
 
     bool contains(const toml::key &ky) {
-        m_visisted[ky] = true;
+        m_visisted.emplace(ky);
         return m_root.contains(ky);
     }
 
@@ -353,19 +356,49 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         }
     }
 
-    // TODO: perform checking here
     if (checker.contains("fetch-content")) {
         const auto &fc = toml::find(toml, "fetch-content").as_table();
         for (const auto &itr : fc) {
             Content content;
             content.name = itr.first;
+
+            auto &c = checker.create(itr.second);
+            c.optional("condition", content.condition);
+            c.optional("cmake-before", content.cmake_before);
+            c.optional("cmake-after", content.cmake_after);
+            c.optional("include-before", content.include_before);
+            c.optional("include-after", content.include_after);
+
             for (const auto &argItr : itr.second.as_table()) {
-                auto key = argItr.first;
-                if (key == "condition") {
-                    content.condition = argItr.second.as_string();
-                    continue;
+                std::string value;
+                if (argItr.second.is_array()) {
+                    for (const auto &list_val : argItr.second.as_array()) {
+                        if (!value.empty()) {
+                            value += ';';
+                        }
+                        value += list_val.as_string();
+                    }
+                } else if (argItr.second.is_boolean()) {
+                    value = argItr.second.as_boolean() ? "ON" : "OFF";
+                } else {
+                    value = argItr.second.as_string();
                 }
 
+                auto is_cmake_arg = [](const std::string &s) {
+                    for (auto c : s) {
+                        if (!(std::isdigit(c) || std::isupper(c) || c == '_')) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+
+                // https://cmake.org/cmake/help/latest/command/string.html#supported-hash-algorithms
+                tsl::ordered_set<std::string> hash_algorithms = {
+                    "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha3_224", "sha3_256", "sha3_384", "sha3_512",
+                };
+
+                auto key = argItr.first;
                 if (key == "git") {
                     key = "GIT_REPOSITORY";
                 } else if (key == "tag") {
@@ -378,18 +411,23 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                     key = "SVN_REVISION";
                 } else if (key == "url") {
                     key = "URL";
+                } else if (hash_algorithms.contains(key)) {
+                    std::string algo;
+                    for (auto c : key) {
+                        algo.push_back(std::toupper(c));
+                    }
+                    key = "URL_HASH";
+                    value = algo + "=" + value;
                 } else if (key == "hash") {
                     key = "URL_HASH";
-                } else {
-                    // don't change arg
+                } else if (is_cmake_arg(key)) {
+                    // allow passthrough of ExternalProject options
+                } else if (!c.visisted(key)) {
+                    throw std::runtime_error(format_key_error("Unknown key '" + argItr.first + "'", argItr.first, argItr.second));
                 }
 
-                std::string value;
-                if (argItr.second.is_boolean()) {
-                    value = argItr.second.as_boolean() ? "ON" : "OFF";
-                } else {
-                    value = argItr.second.as_string();
-                }
+                c.visit(argItr.first);
+
                 content.arguments.emplace(key, value);
             }
             contents.emplace_back(std::move(content));

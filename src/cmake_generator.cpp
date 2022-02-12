@@ -13,15 +13,6 @@
 namespace cmkr {
 namespace gen {
 
-static std::string to_upper(const std::string &str) {
-    std::string temp;
-    temp.reserve(str.size());
-    for (auto c : str) {
-        temp.push_back(::toupper(c));
-    }
-    return temp;
-}
-
 static std::string format(const char *format, tsl::ordered_map<std::string, std::string> variables) {
     std::string s = format;
     for (const auto &itr : variables) {
@@ -710,6 +701,11 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         cmd("include")("FetchContent").endl();
         for (const auto &content : project.contents) {
             ConditionScope cs(gen, content.condition);
+
+            gen.handle_condition(content.include_before,
+                                 [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
+            gen.handle_condition(content.cmake_before, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
+
             std::string version_info = "";
             if (content.arguments.contains("GIT_TAG")) {
                 version_info = " (" + content.arguments.at("GIT_TAG") + ")";
@@ -723,6 +719,10 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             }
             ss << ")\n";
             cmd("FetchContent_MakeAvailable")(content.name).endl();
+
+            gen.handle_condition(content.include_after,
+                                 [&](const std::string &, const std::vector<std::string> &includes) { inject_includes(includes); });
+            gen.handle_condition(content.cmake_after, [&](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
         }
     }
 

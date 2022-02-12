@@ -133,6 +133,7 @@ struct Install {
 struct Subdir {
     std::string name;
     std::string condition;
+
     Condition<std::string> cmake_before;
     Condition<std::string> cmake_after;
     ConditionVector include_before;
@@ -143,6 +144,11 @@ struct Content {
     std::string name;
     std::string condition;
     tsl::ordered_map<std::string, std::string> arguments;
+
+    Condition<std::string> cmake_before;
+    Condition<std::string> cmake_after;
+    ConditionVector include_before;
+    ConditionVector include_after;
 };
 
 struct Project {
