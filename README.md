@@ -69,3 +69,4 @@ arguments:
 - https://github.com/ToruNiina/toml11
 - https://github.com/mpark/variant
 - https://www.svgrepo.com/svg/192268/hammer
+- https://github.com/can1357 for buying `cmkr.build` ❤️
