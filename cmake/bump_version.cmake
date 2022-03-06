@@ -46,7 +46,7 @@ endif()
 
 message(STATUS "Version ${OLDVERSION} -> ${NEWVERSION}")
 
-find_program(CMKR_EXECUTABLE "cmkr" PATHS "${CMAKE_SOURCE_DIR}/build" NO_CACHE REQUIRED)
+find_program(CMKR_EXECUTABLE "cmkr" PATHS "${CMAKE_SOURCE_DIR}/build" PATH_SUFFIXES Debug Release RelWithDebInfo MinSizeRel NO_CACHE REQUIRED)
 message(STATUS "Found cmkr: ${CMKR_EXECUTABLE}")
 
 # Replace version in cmake.toml
