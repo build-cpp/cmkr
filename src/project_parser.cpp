@@ -426,9 +426,12 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                     throw std::runtime_error(format_key_error("Unknown key '" + argItr.first + "'", argItr.first, argItr.second));
                 }
 
-                c.visit(argItr.first);
+                // Make sure not to emit keys like "condition" in the FetchContent call
+                if (!c.visisted(key)) {
+                    content.arguments.emplace(key, value);
+                }
 
-                content.arguments.emplace(key, value);
+                c.visit(argItr.first);
             }
             contents.emplace_back(std::move(content));
         }
