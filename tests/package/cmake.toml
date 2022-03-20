@@ -1,0 +1,20 @@
+[project]
+name = "Utility"
+version = "1.2"
+
+[target.Utility]
+type = "static"
+alias = "Utility::Utility" # autogenerate this alias as ${PROJECT_NAME}::TargetName
+sources = [
+    "src/Utility/*.cpp",
+    "include/Utility/*.hpp",
+]
+include-directories = ["include"]
+compile-features = ["cxx_std_11"]
+
+[package]
+name = "Utility" # defaults to ${PROJECT_NAME}
+targets = ["Utility"] # required
+headers = ["include/**.hpp", "include/**.h"] # required
+dependencies = [] # defaults to all the required packages
+namespace = "Utility::" # defaults to ${PROJECT_NAME}::

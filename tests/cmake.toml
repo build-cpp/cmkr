@@ -45,3 +45,9 @@ name = "templates"
 working-directory = "templates"
 command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
+
+[[test]]
+name = "package"
+working-directory = "package"
+command = "$<TARGET_FILE:cmkr>"
+arguments = ["build"]

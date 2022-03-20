@@ -25,15 +25,15 @@ static std::string format(const char *format, tsl::ordered_map<std::string, std:
     return s;
 }
 
+static std::string extract_suffix(const fs::path &base, const fs::path &full) {
+    auto fullpath = full.string();
+    auto base_len = base.string().length();
+    auto delet = fullpath.substr(base_len + 1, fullpath.length() - base_len);
+    return delet;
+}
+
 static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs::path &toml_dir, bool root_project) {
     std::vector<std::string> temp;
-
-    auto extract_suffix = [](const fs::path &base, const fs::path &full) {
-        auto fullpath = full.string();
-        auto base_len = base.string().length();
-        auto delet = fullpath.substr(base_len + 1, fullpath.length() - base_len);
-        return delet;
-    };
 
     auto stem = name.filename().stem().string();
     auto ext = name.extension();
@@ -234,9 +234,16 @@ struct Command {
         return true;
     }
 
+    template <class T>
+    static bool is_empty(const T &v) {
+        return v.empty();
+    }
+
+    static bool is_empty(const char *v) { return *v == '\0'; }
+
     template <class K, class V>
     bool print_arg(const std::pair<K, V> &kv) {
-        if (kv.second.empty()) {
+        if (is_empty(kv.second)) {
             return true;
         }
 
@@ -250,7 +257,7 @@ struct Command {
     }
 
     bool print_arg(const RawArg &arg) {
-        if (arg.arg.empty()) {
+        if (is_empty(arg.arg)) {
             return true;
         }
 
@@ -609,6 +616,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     gen.conditional_cmake(project.cmake_after);
 
     if (!project.vcpkg.packages.empty()) {
+        if (!root_project) {
+            throw std::runtime_error("[vcpkg] has to be in the project root");
+        }
         // Allow the user to specify a url or derive it from the version
         auto url = project.vcpkg.url;
         auto version_name = url;
@@ -955,7 +965,23 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 target_cmd("target_compile_options", t.compile_options, target_scope);
                 target_cmd("target_compile_options", t.private_compile_options, "PRIVATE");
 
-                target_cmd("target_include_directories", t.include_directories, target_scope);
+                cmkr::parser::ConditionVector include_directories;
+                for (const auto &itr : t.include_directories) {
+                    auto directories = itr.second;
+                    if (target_scope == "PUBLIC" || target_scope == "INTERFACE") {
+                        for (auto &directory : directories) {
+                            // TODO: properly detect if this is a relative path
+                            if (directory[0] != '$') {
+                                directory = "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/" + directory + ">";
+                            }
+                        }
+                    }
+                    include_directories[itr.first] = directories;
+                }
+                // TODO: this needs to be done cleaner, maybe the install command has some magic?
+                include_directories[""].push_back("$<INSTALL_INTERFACE:include>");
+
+                target_cmd("target_include_directories", include_directories, target_scope);
                 target_cmd("target_include_directories", t.private_include_directories, "PRIVATE");
 
                 target_cmd("target_link_directories", t.link_directories, target_scope);
@@ -1043,6 +1069,84 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             ConditionScope cs(gen, inst.condition);
             cmd("install")(targets, dirs, files, configs, destination, component);
         }
+    }
+
+    if (!project.package.targets.empty()) {
+        //TODO: generate an option to enable/disable installation
+
+        const auto &package = project.package;
+
+        if (!root_project) {
+            throw std::runtime_error("[package] has to be in the project root");
+        }
+        comment("Project packaging");
+        cmd("include")("CMakePackageConfigHelpers").endl();
+
+        comment("Install headers");
+        tsl::ordered_map<std::string, std::vector<std::string>> header_tree;
+        for (const auto &pattern : package.headers) {
+            auto pattern_path = fs::path(pattern);
+            auto pattern_parent = pattern_path.parent_path();
+            auto headers = expand_cmake_path(pattern_path, path, root_project);
+            for (const auto &header : headers) {
+                auto install_path = extract_suffix(pattern_parent, header);
+                auto install_destination = "include/" + fs::path(install_path).parent_path().string();
+                header_tree[install_destination].push_back(header);
+            }
+        }
+
+        for (const auto &itr : header_tree) {
+            cmd("install")(std::make_pair("FILES", itr.second), std::make_pair("DESTINATION", itr.first));
+            printf("Install destination: %s\n", itr.first.c_str());
+            for (const auto &header : itr.second) {
+                printf("  Header: %s\n", header.c_str());
+            }
+        }
+        endl();
+
+        comment("Install target outputs and generate target exports");
+        auto export_name = package.name + "Targets";
+        cmd("install")(std::make_pair("TARGETS", package.targets), std::make_pair("EXPORT", export_name), "LIBRARY", "ARCHIVE", "RUNTIME");
+        endl();
+
+        comment("Install generated target exports");
+        auto cmake_destination = "lib/cmake/" + package.name;
+        cmd("install")(std::make_pair("EXPORT", export_name), std::make_pair("FILE", export_name + ".cmake"),
+                       std::make_pair("NAMESPACE", package.namespace_name), std::make_pair("DESTINATION", cmake_destination));
+        endl();
+
+        auto config_base = "${CMAKE_CURRENT_BINARY_DIR}/" + package.name;
+        std::vector<std::string> generated_scripts;
+        if (!project.project_version.empty()) {
+            comment("Generate package version scripts");
+            auto version_cmake = config_base + "ConfigVersion.cmake";
+            cmd("write_basic_package_version_file")(version_cmake, std::make_pair("VERSION", "${PROJECT_VERSION}"),
+                                                    std::make_pair("COMPATIBILITY", "SameMajorVersion"));
+            endl();
+
+            generated_scripts.push_back(version_cmake);
+        }
+
+        comment("Generate package config scripts");
+        cmd("set")("PACKAGE_NAME", package.name);
+        // TODO: this needs some actual logic
+        cmd("set")("PACKAGE_DEPENDENCIES", package.dependencies);
+        auto config_cmake = config_base + "Config.cmake";
+        auto config_in = config_cmake + ".in";
+        cmd("file")("WRITE", config_in, RawArg(R"("include(CMakeFindDependencyMacro)\n\n")"));
+        cmd("file")("APPEND", config_in, RawArg(R"("string(REGEX MATCHALL \"[^;]+\" SEPARATE_DEPENDENCIES \"@PACKAGE_DEPENDENCIES@\")\n")"));
+        cmd("file")("APPEND", config_in, RawArg(R"("foreach(dependency ${SEPARATE_DEPENDENCIES})\n")"));
+        cmd("file")("APPEND", config_in, RawArg(R"("    string(REPLACE \" \" \";\" args \"\${dependency}\")\n")"));
+        cmd("file")("APPEND", config_in, RawArg(R"("    find_dependency(\${args})\n")"));
+        cmd("file")("APPEND", config_in, RawArg(R"("endforeach()\n\n")"));
+        cmd("file")("APPEND", config_in, RawArg(R"("include(\"\${CMAKE_CURRENT_LIST_DIR}/@PACKAGE_NAME@Targets.cmake\")\n")"));
+        cmd("configure_file")(config_in, config_cmake, "@ONLY");
+        generated_scripts.push_back(config_cmake);
+        endl();
+
+        comment("Install generated package scripts");
+        cmd("install")(std::make_pair("FILES", generated_scripts), std::make_pair("DESTINATION", cmake_destination));
+        endl();
     }
 
     // Generate CMakeLists.txt

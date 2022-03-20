@@ -27,7 +27,7 @@ struct Option {
     bool val = false;
 };
 
-struct Package {
+struct FindPackage {
     std::string name;
     std::string condition;
     std::string version;
@@ -151,6 +151,14 @@ struct Content {
     ConditionVector include_after;
 };
 
+struct Package {
+    std::string name;
+    std::vector<std::string> targets;
+    std::vector<std::string> headers;
+    std::vector<std::string> dependencies;
+    std::string namespace_name;
+};
+
 struct Project {
     // This is the CMake version required to use all cmkr versions.
     std::string cmake_version = "3.15";
@@ -175,8 +183,9 @@ struct Project {
     ConditionVector include_after;
     std::vector<Setting> settings;
     std::vector<Option> options;
-    std::vector<Package> packages;
+    std::vector<FindPackage> packages;
     Vcpkg vcpkg;
+    Package package;
     std::vector<Content> contents;
     std::vector<Template> templates;
     std::vector<Target> targets;

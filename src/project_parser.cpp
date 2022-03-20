@@ -60,7 +60,8 @@ class TomlChecker {
     TomlChecker(TomlChecker &&) = delete;
 
     template <typename T>
-    void optional(const toml::key &ky, Condition<T> &destination) {
+    bool optional(const toml::key &ky, Condition<T> &destination) {
+        auto found = false;
         // TODO: this algorithm in O(n) over the amount of keys, kinda bad
         const auto &table = m_v.as_table();
         for (const auto &itr : table) {
@@ -69,9 +70,11 @@ class TomlChecker {
             if (value.is_table()) {
                 if (value.contains(ky)) {
                     destination[key] = toml::find<T>(value, ky);
+                    found = true;
                 }
             } else if (key == ky) {
                 destination[""] = toml::find<T>(m_v, ky);
+                found = true;
             }
         }
 
@@ -82,15 +85,19 @@ class TomlChecker {
             }
         }
         visit(ky);
+        return found;
     }
 
     template <typename T>
-    void optional(const toml::key &ky, T &destination) {
+    bool optional(const toml::key &ky, T &destination) {
+        auto found = false;
         // TODO: this currently doesn't allow you to get an optional map<string, X>
         if (m_v.contains(ky)) {
             destination = toml::find<T>(m_v, ky);
+            found = true;
         }
         visit(ky);
+        return found;
     }
 
     template <typename T>
@@ -339,7 +346,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         using pkg_map = tsl::ordered_map<std::string, TomlBasicValue>;
         const auto &pkgs = toml::find<pkg_map>(toml, "find-package");
         for (const auto &itr : pkgs) {
-            Package p;
+            FindPackage p;
             p.name = itr.first;
             const auto &value = itr.second;
             if (itr.second.is_string()) {
@@ -646,6 +653,23 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
                 throw std::runtime_error("Invalid vcpkg package '" + package_str + "'");
             }
             vcpkg.packages.emplace_back(std::move(package));
+        }
+    }
+
+    if(checker.contains("package")) {
+        auto& p = checker.create(toml, "package");
+        if(!p.optional("name", package.name)) {
+            package.name = project_name;
+        }
+        p.required("targets", package.targets);
+        // TODO: should this be optional?
+        p.required("headers", package.headers);
+        // TODO: how to detect this should default to all dependencies vs no dependencies?
+        p.optional("dependencies", package.dependencies);
+        if(!p.optional("namespace", package.namespace_name)) {
+            package.namespace_name = project_name + "::";
+        } else {
+            // TODO: check if the namespace ends with "::"?
         }
     }
 
