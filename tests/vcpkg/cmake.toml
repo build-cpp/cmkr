@@ -9,6 +9,8 @@ description = "Dependencies from vcpkg"
 [vcpkg]
 version = "2021.05.12"
 packages = ["fmt"]
+crt-linkage = "dynamic"
+library-linkage = "dynamic"
 
 [find-package]
 fmt = {}

@@ -627,6 +627,19 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         auto &v = checker.create(toml, "vcpkg");
         v.optional("url", vcpkg.url);
         v.optional("version", vcpkg.version);
+
+        auto handle_linkage = [&v](const toml::key &ky, std::string &value) {
+            if (v.contains(ky)) {
+                v.required(ky, value);
+                if (value != "dynamic" && value != "static") {
+                    throw std::runtime_error(format_key_error("Unknown linkage, expected dynamic/static", value, v.find(ky)));
+                }
+            }
+        };
+
+        handle_linkage("crt-linkage", vcpkg.crt_linkage);
+        handle_linkage("library-linkage", vcpkg.library_linkage);
+
         for (const auto &p : v.find("packages").as_array()) {
             Vcpkg::Package package;
             const auto &package_str = p.as_string().str;

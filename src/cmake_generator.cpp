@@ -634,6 +634,12 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             cmd("message")("STATUS", "Fetching vcpkg (" + version_name + ")...");
             cmd("FetchContent_Declare")("vcpkg", "URL", url);
             cmd("FetchContent_MakeAvailable")("vcpkg");
+            if (!project.vcpkg.crt_linkage.empty()) {
+                cmd("set")("VCPKG_CRT_LINKAGE", project.vcpkg.crt_linkage);
+            }
+            if (!project.vcpkg.library_linkage.empty()) {
+                cmd("set")("VCPKG_LIBRARY_LINKAGE", project.vcpkg.library_linkage);
+            }
             cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
         cmd("endif")();
         endl();

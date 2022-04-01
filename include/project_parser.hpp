@@ -39,6 +39,8 @@ struct Package {
 struct Vcpkg {
     std::string version;
     std::string url;
+    std::string crt_linkage;
+    std::string library_linkage;
 
     struct Package {
         std::string name;

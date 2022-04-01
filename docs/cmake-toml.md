@@ -97,6 +97,8 @@ include-after = ["cmake/after-subdir.cmake"]
 version = "2021.05.12"
 url = "https://github.com/microsoft/vcpkg/archive/refs/tags/2021.05.12.tar.gz"
 packages = ["fmt", "zlib"]
+crt-linkage = "dynamic"
+library-linkage = "dynamic"
 ```
 
 The vcpkg `version` will automatically generate the `url` from the [official repository](https://github.com/microsoft/vcpkg/releases). For a custom registry you can specify your own `url` (and omit the `version`). You can browse available packages on [vcpkg.io](https://vcpkg.io/en/packages.html).
@@ -113,6 +115,8 @@ required = true
 config = true
 components = ["mycomponent"]
 ```
+
+The `crt-linkage` specifies the MSVC runtime library variant to use while compiling packages. `library-linkage` is whether libraries built are dynamic (default) or static.
 
 ## FetchContent
 
