@@ -162,10 +162,11 @@ struct Command {
             return "\"\"";
         }
         // Don't quote arguments that don't need quoting
-        if (str.find(' ') == std::string::npos && str.find('\"') == std::string::npos && str.find('/') == std::string::npos &&
-            str.find(';') == std::string::npos) {
+        // https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#unquoted-argument
+        // NOTE: Normally '/' does not require quoting according to the documentation but this has been the case here
+        //       previously, so for backwards compatibility its still here.
+        if (str.find_first_of("()#\"\\'> |/") == str.npos)
             return str;
-        }
         std::string result;
         result += "\"";
         for (char ch : str) {

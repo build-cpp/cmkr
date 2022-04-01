@@ -14,7 +14,7 @@ add_test(
 	WORKING_DIRECTORY
 		"${CMAKE_CURRENT_LIST_DIR}/basic"
 	COMMAND
-		$<TARGET_FILE:cmkr>
+		"$<TARGET_FILE:cmkr>"
 		build
 )
 
@@ -24,7 +24,7 @@ add_test(
 	WORKING_DIRECTORY
 		"${CMAKE_CURRENT_LIST_DIR}/interface"
 	COMMAND
-		$<TARGET_FILE:cmkr>
+		"$<TARGET_FILE:cmkr>"
 		build
 )
 
@@ -34,7 +34,7 @@ add_test(
 	WORKING_DIRECTORY
 		"${CMAKE_CURRENT_LIST_DIR}/fetch-content"
 	COMMAND
-		$<TARGET_FILE:cmkr>
+		"$<TARGET_FILE:cmkr>"
 		build
 )
 
@@ -44,7 +44,7 @@ add_test(
 	WORKING_DIRECTORY
 		"${CMAKE_CURRENT_LIST_DIR}/conditions"
 	COMMAND
-		$<TARGET_FILE:cmkr>
+		"$<TARGET_FILE:cmkr>"
 		build
 )
 
@@ -54,7 +54,7 @@ add_test(
 	WORKING_DIRECTORY
 		"${CMAKE_CURRENT_LIST_DIR}/vcpkg"
 	COMMAND
-		$<TARGET_FILE:cmkr>
+		"$<TARGET_FILE:cmkr>"
 		build
 )
 
@@ -64,7 +64,7 @@ add_test(
 	WORKING_DIRECTORY
 		"${CMAKE_CURRENT_LIST_DIR}/cxx-standard"
 	COMMAND
-		$<TARGET_FILE:cmkr>
+		"$<TARGET_FILE:cmkr>"
 		build
 )
 
@@ -74,7 +74,7 @@ add_test(
 	WORKING_DIRECTORY
 		"${CMAKE_CURRENT_LIST_DIR}/globbing"
 	COMMAND
-		$<TARGET_FILE:cmkr>
+		"$<TARGET_FILE:cmkr>"
 		build
 )
 
@@ -84,7 +84,7 @@ add_test(
 	WORKING_DIRECTORY
 		"${CMAKE_CURRENT_LIST_DIR}/templates"
 	COMMAND
-		$<TARGET_FILE:cmkr>
+		"$<TARGET_FILE:cmkr>"
 		build
 )
 
