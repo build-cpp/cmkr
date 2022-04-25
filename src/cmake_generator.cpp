@@ -978,6 +978,8 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 target_cmd("target_precompile_headers", t.private_precompile_headers, "PRIVATE");
             };
 
+            cmd("add_definitions")(target.add_definitions);
+
             if (tmplate != nullptr) {
                 gen_target_cmds(tmplate->outline);
             }

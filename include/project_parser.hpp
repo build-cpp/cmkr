@@ -71,6 +71,8 @@ struct Target {
 
     ConditionVector headers;
     ConditionVector sources;
+    
+    ConditionVector add_definitions;
 
     // https://cmake.org/cmake/help/latest/manual/cmake-commands.7.html#project-commands
     ConditionVector compile_definitions;
