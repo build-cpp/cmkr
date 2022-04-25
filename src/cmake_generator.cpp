@@ -947,6 +947,10 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 cmd("add_library")(target.alias, "ALIAS", target.name);
             }
 
+            if (!target.add_definitions.empty()) {
+                cmd("add_definitions")(target.add_definitions);
+            }
+             
             auto target_cmd = [&](const char *command, const parser::ConditionVector &cargs, const std::string &scope) {
                 gen.handle_condition(cargs,
                                      [&](const std::string &, const std::vector<std::string> &args) { cmd(command)(target.name, scope, args); });

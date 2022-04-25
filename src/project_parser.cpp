@@ -483,6 +483,8 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         t.optional("headers", target.headers);
         t.optional("sources", target.sources);
 
+        t.optional("add-definitions", target.add_definitions);
+
         t.optional("compile-definitions", target.compile_definitions);
         t.optional("private-compile-definitions", target.private_compile_definitions);
 
