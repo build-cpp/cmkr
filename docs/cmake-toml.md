@@ -200,7 +200,8 @@ working-directory = "mytest-dir"
 condition = "mycondition"
 targets = ["mytarget", "mytest"]
 destination = ["bin"]
+component = "mycomponent"
 files = ["content/my.png"]
-dirs = [""]
-configs = [""]
+dirs = ["include"]
+configs = ["Release", "Debug"]
 ```
