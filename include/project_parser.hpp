@@ -128,6 +128,7 @@ struct Install {
     std::vector<std::string> configs;
     std::string destination;
     std::string component;
+    bool optional = false;
 };
 
 struct Subdir {

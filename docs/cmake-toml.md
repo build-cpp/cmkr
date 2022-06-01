@@ -204,4 +204,5 @@ component = "mycomponent"
 files = ["content/my.png"]
 dirs = ["include"]
 configs = ["Release", "Debug"]
+optional = false
 ```

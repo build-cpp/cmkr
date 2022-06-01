@@ -619,6 +619,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             i.optional("configs", inst.configs);
             i.required("destination", inst.destination);
             i.optional("component", inst.component);
+            i.optional("optional", inst.optional);
             installs.push_back(inst);
         }
     }

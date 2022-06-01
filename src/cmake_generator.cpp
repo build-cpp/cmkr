@@ -1045,8 +1045,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 component_name = inst.targets.front();
             }
             auto component = std::make_pair("COMPONENT", component_name);
+            auto optional = inst.optional ? "OPTIONAL" : "";
             ConditionScope cs(gen, inst.condition);
-            cmd("install")(targets, dirs, files, configs, destination, component);
+            cmd("install")(targets, dirs, files, configs, destination, component, optional);
         }
     }
 
