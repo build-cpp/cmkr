@@ -105,6 +105,8 @@ The vcpkg `version` will automatically generate the `url` from the [official rep
 
 To specify package features you can use the following syntax: `imgui[docking-experimental,freetype,sdl2-binding,opengl3-binding]`.
 
+The `crt-linkage` specifies the MSVC runtime library variant to use while compiling packages. `library-linkage` is whether libraries built are dynamic (default) or static.
+
 ## Packages
 
 ```toml
@@ -115,8 +117,6 @@ required = true
 config = true
 components = ["mycomponent"]
 ```
-
-The `crt-linkage` specifies the MSVC runtime library variant to use while compiling packages. `library-linkage` is whether libraries built are dynamic (default) or static.
 
 ## FetchContent
 
