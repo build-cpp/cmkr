@@ -1,6 +1,7 @@
 #include "error.hpp"
 
 #include <cassert>
+#include <cstddef>
 
 namespace cmkr {
 namespace error {
@@ -20,6 +21,6 @@ static const char *err_string[] = {
 };
 
 const char *cmkr_error_status(int i) {
-    assert(i >= 0 && i < (sizeof(err_string) / sizeof(*(err_string))));
+    assert(i >= 0 && static_cast<size_t>(i) < (sizeof(err_string) / sizeof(*(err_string))));
     return err_string[i];
 }
