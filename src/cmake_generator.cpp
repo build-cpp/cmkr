@@ -89,8 +89,24 @@ static void create_file(const fs::path &path, const std::string &contents) {
     ofs << contents;
 }
 
+// CMake target name rules: https://cmake.org/cmake/help/latest/policy/CMP0037.html [A-Za-z0-9_.+\-]
+// TOML bare keys: non-empty strings composed only of [A-Za-z0-9_-]
+// We replace all non-TOML bare key characters with _
+static std::string escape_project_name(const std::string &name) {
+    std::string escaped;
+    escaped.reserve(name.length());
+    for (auto ch : name) {
+        if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-') {
+            escaped += ch;
+        } else {
+            escaped += '_';
+        }
+    }
+    return escaped;
+}
+
 void generate_project(const std::string &type) {
-    const auto name = fs::current_path().stem().string();
+    const auto name = escape_project_name(fs::current_path().stem().string());
     if (fs::exists(fs::current_path() / "cmake.toml")) {
         throw std::runtime_error("Cannot initialize a project when cmake.toml already exists!");
     }
