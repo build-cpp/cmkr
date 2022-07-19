@@ -126,13 +126,17 @@ void generate_project(const std::string &type) {
 
 struct CommandEndl {
     std::stringstream &ss;
-    CommandEndl(std::stringstream &ss) : ss(ss) {}
-    void endl() { ss << '\n'; }
+    CommandEndl(std::stringstream &ss) : ss(ss) {
+    }
+    void endl() {
+        ss << '\n';
+    }
 };
 
 struct RawArg {
     RawArg() = default;
-    RawArg(std::string arg) : arg(std::move(arg)) {}
+    RawArg(std::string arg) : arg(std::move(arg)) {
+    }
 
     std::string arg;
 };
@@ -148,7 +152,8 @@ struct Command {
     std::string post_comment;
 
     Command(std::stringstream &ss, int depth, std::string command, std::string post_comment)
-        : ss(ss), depth(depth), command(std::move(command)), post_comment(std::move(post_comment)) {}
+        : ss(ss), depth(depth), command(std::move(command)), post_comment(std::move(post_comment)) {
+    }
 
     ~Command() noexcept(false) {
         if (!generated) {
@@ -317,7 +322,8 @@ static std::string tolf(const std::string &str) {
 };
 
 struct Generator {
-    Generator(const parser::Project &project) : project(project) {}
+    Generator(const parser::Project &project) : project(project) {
+    }
     Generator(const Generator &) = delete;
 
     const parser::Project &project;
@@ -343,7 +349,9 @@ struct Generator {
         return CommandEndl(ss);
     }
 
-    void endl() { ss << '\n'; }
+    void endl() {
+        ss << '\n';
+    }
 
     void inject_includes(const std::vector<std::string> &includes) {
         if (!includes.empty()) {

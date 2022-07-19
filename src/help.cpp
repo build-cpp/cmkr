@@ -4,7 +4,9 @@
 namespace cmkr {
 namespace help {
 
-const char *version() noexcept { return "cmkr version " CMKR_VERSION; }
+const char *version() noexcept {
+    return "cmkr version " CMKR_VERSION;
+}
 
 const char *message() noexcept {
     return R"lit(
@@ -22,6 +24,10 @@ arguments:
 } // namespace help
 } // namespace cmkr
 
-const char *cmkr_help_version(void) { return cmkr::help::version(); }
+const char *cmkr_help_version(void) {
+    return cmkr::help::version();
+}
 
-const char *cmkr_help_message(void) { return cmkr::help::message(); }
+const char *cmkr_help_message(void) {
+    return cmkr::help::message();
+}

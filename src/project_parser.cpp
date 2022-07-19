@@ -54,8 +54,10 @@ class TomlChecker {
     tsl::ordered_set<toml::key> m_conditionVisited;
 
   public:
-    TomlChecker(const TomlBasicValue &v, const toml::key &ky) : m_v(toml::find(v, ky)) {}
-    TomlChecker(const TomlBasicValue &v) : m_v(v) {}
+    TomlChecker(const TomlBasicValue &v, const toml::key &ky) : m_v(toml::find(v, ky)) {
+    }
+    TomlChecker(const TomlBasicValue &v) : m_v(v) {
+    }
     TomlChecker(const TomlChecker &) = delete;
     TomlChecker(TomlChecker &&) = delete;
 
@@ -109,9 +111,13 @@ class TomlChecker {
         return toml::find(m_v, ky);
     }
 
-    void visit(const toml::key &ky) { m_visited.emplace(ky); }
+    void visit(const toml::key &ky) {
+        m_visited.emplace(ky);
+    }
 
-    bool visisted(const toml::key &ky) const { return m_visited.contains(ky); }
+    bool visisted(const toml::key &ky) const {
+        return m_visited.contains(ky);
+    }
 
     void check(const tsl::ordered_map<std::string, std::string> &conditions) const {
         for (const auto &itr : m_v.as_table()) {
@@ -152,7 +158,8 @@ class TomlCheckerRoot {
     bool m_checked = false;
 
   public:
-    TomlCheckerRoot(const TomlBasicValue &root) : m_root(root) {}
+    TomlCheckerRoot(const TomlBasicValue &root) : m_root(root) {
+    }
     TomlCheckerRoot(const TomlCheckerRoot &) = delete;
     TomlCheckerRoot(TomlCheckerRoot &&) = delete;
 
