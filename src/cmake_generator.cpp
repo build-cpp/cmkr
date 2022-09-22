@@ -89,8 +89,24 @@ static void create_file(const fs::path &path, const std::string &contents) {
     ofs << contents;
 }
 
+// CMake target name rules: https://cmake.org/cmake/help/latest/policy/CMP0037.html [A-Za-z0-9_.+\-]
+// TOML bare keys: non-empty strings composed only of [A-Za-z0-9_-]
+// We replace all non-TOML bare key characters with _
+static std::string escape_project_name(const std::string &name) {
+    std::string escaped;
+    escaped.reserve(name.length());
+    for (auto ch : name) {
+        if ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '-') {
+            escaped += ch;
+        } else {
+            escaped += '_';
+        }
+    }
+    return escaped;
+}
+
 void generate_project(const std::string &type) {
-    const auto name = fs::current_path().stem().string();
+    const auto name = escape_project_name(fs::current_path().stem().string());
     if (fs::exists(fs::current_path() / "cmake.toml")) {
         throw std::runtime_error("Cannot initialize a project when cmake.toml already exists!");
     }
@@ -126,13 +142,17 @@ void generate_project(const std::string &type) {
 
 struct CommandEndl {
     std::stringstream &ss;
-    CommandEndl(std::stringstream &ss) : ss(ss) {}
-    void endl() { ss << '\n'; }
+    CommandEndl(std::stringstream &ss) : ss(ss) {
+    }
+    void endl() {
+        ss << '\n';
+    }
 };
 
 struct RawArg {
     RawArg() = default;
-    RawArg(std::string arg) : arg(std::move(arg)) {}
+    RawArg(std::string arg) : arg(std::move(arg)) {
+    }
 
     std::string arg;
 };
@@ -148,7 +168,8 @@ struct Command {
     std::string post_comment;
 
     Command(std::stringstream &ss, int depth, std::string command, std::string post_comment)
-        : ss(ss), depth(depth), command(std::move(command)), post_comment(std::move(post_comment)) {}
+        : ss(ss), depth(depth), command(std::move(command)), post_comment(std::move(post_comment)) {
+    }
 
     ~Command() noexcept(false) {
         if (!generated) {
@@ -165,7 +186,7 @@ struct Command {
         // https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#unquoted-argument
         // NOTE: Normally '/' does not require quoting according to the documentation but this has been the case here
         //       previously, so for backwards compatibility its still here.
-        if (str.find_first_of("()#\"\\'> |/") == str.npos)
+        if (str.find_first_of("()#\"\\'> |/;") == str.npos)
             return str;
         std::string result;
         result += "\"";
@@ -317,7 +338,8 @@ static std::string tolf(const std::string &str) {
 };
 
 struct Generator {
-    Generator(const parser::Project &project) : project(project) {}
+    Generator(const parser::Project &project) : project(project) {
+    }
     Generator(const Generator &) = delete;
 
     const parser::Project &project;
@@ -343,7 +365,9 @@ struct Generator {
         return CommandEndl(ss);
     }
 
-    void endl() { ss << '\n'; }
+    void endl() {
+        ss << '\n';
+    }
 
     void inject_includes(const std::vector<std::string> &includes) {
         if (!includes.empty()) {
@@ -634,14 +658,12 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             cmd("include")("FetchContent");
             cmd("message")("STATUS", "Fetching vcpkg (" + version_name + ")...");
             cmd("FetchContent_Declare")("vcpkg", "URL", url);
-            cmd("FetchContent_MakeAvailable")("vcpkg");
-            if (!project.vcpkg.crt_linkage.empty()) {
-                cmd("set")("VCPKG_CRT_LINKAGE", project.vcpkg.crt_linkage);
-            }
-            if (!project.vcpkg.library_linkage.empty()) {
-                cmd("set")("VCPKG_LIBRARY_LINKAGE", project.vcpkg.library_linkage);
-            }
-            cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
+            // Not using FetchContent_MakeAvailable here in case vcpkg adds CMakeLists.txt
+            cmd("FetchContent_GetProperties")("vcpkg");
+            cmd("if")("NOT", "vcpkg_POPULATED");
+                cmd("FetchContent_Populate")("vcpkg");
+                cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
+            cmd("endif")();
         cmd("endif")();
         endl();
         // clang-format on
@@ -1051,8 +1073,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 component_name = inst.targets.front();
             }
             auto component = std::make_pair("COMPONENT", component_name);
+            auto optional = inst.optional ? "OPTIONAL" : "";
             ConditionScope cs(gen, inst.condition);
-            cmd("install")(targets, dirs, files, configs, destination, component);
+            cmd("install")(targets, dirs, files, configs, destination, component, optional);
         }
     }
 

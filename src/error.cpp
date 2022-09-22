@@ -1,15 +1,21 @@
 #include "error.hpp"
 
 #include <cassert>
+#include <cstddef>
 
 namespace cmkr {
 namespace error {
 
-Status::Status(Code ec) noexcept : ec_(ec) {}
+Status::Status(Code ec) noexcept : ec_(ec) {
+}
 
-Status::operator int() const noexcept { return static_cast<int>(ec_); }
+Status::operator int() const noexcept {
+    return static_cast<int>(ec_);
+}
 
-Status::Code Status::code() const noexcept { return ec_; }
+Status::Code Status::code() const noexcept {
+    return ec_;
+}
 
 } // namespace error
 } // namespace cmkr
@@ -20,6 +26,6 @@ static const char *err_string[] = {
 };
 
 const char *cmkr_error_status(int i) {
-    assert(i >= 0 && i < (sizeof(err_string) / sizeof(*(err_string))));
+    assert(i >= 0 && static_cast<size_t>(i) < (sizeof(err_string) / sizeof(*(err_string))));
     return err_string[i];
 }

@@ -54,8 +54,10 @@ class TomlChecker {
     tsl::ordered_set<toml::key> m_conditionVisited;
 
   public:
-    TomlChecker(const TomlBasicValue &v, const toml::key &ky) : m_v(toml::find(v, ky)) {}
-    TomlChecker(const TomlBasicValue &v) : m_v(v) {}
+    TomlChecker(const TomlBasicValue &v, const toml::key &ky) : m_v(toml::find(v, ky)) {
+    }
+    TomlChecker(const TomlBasicValue &v) : m_v(v) {
+    }
     TomlChecker(const TomlChecker &) = delete;
     TomlChecker(TomlChecker &&) = delete;
 
@@ -109,9 +111,13 @@ class TomlChecker {
         return toml::find(m_v, ky);
     }
 
-    void visit(const toml::key &ky) { m_visited.emplace(ky); }
+    void visit(const toml::key &ky) {
+        m_visited.emplace(ky);
+    }
 
-    bool visisted(const toml::key &ky) const { return m_visited.contains(ky); }
+    bool visisted(const toml::key &ky) const {
+        return m_visited.contains(ky);
+    }
 
     void check(const tsl::ordered_map<std::string, std::string> &conditions) const {
         for (const auto &itr : m_v.as_table()) {
@@ -152,7 +158,8 @@ class TomlCheckerRoot {
     bool m_checked = false;
 
   public:
-    TomlCheckerRoot(const TomlBasicValue &root) : m_root(root) {}
+    TomlCheckerRoot(const TomlBasicValue &root) : m_root(root) {
+    }
     TomlCheckerRoot(const TomlCheckerRoot &) = delete;
     TomlCheckerRoot(TomlCheckerRoot &&) = delete;
 
@@ -621,6 +628,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             i.optional("configs", inst.configs);
             i.required("destination", inst.destination);
             i.optional("component", inst.component);
+            i.optional("optional", inst.optional);
             installs.push_back(inst);
         }
     }
@@ -629,18 +637,6 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         auto &v = checker.create(toml, "vcpkg");
         v.optional("url", vcpkg.url);
         v.optional("version", vcpkg.version);
-
-        auto handle_linkage = [&v](const toml::key &ky, std::string &value) {
-            if (v.contains(ky)) {
-                v.required(ky, value);
-                if (value != "dynamic" && value != "static") {
-                    throw std::runtime_error(format_key_error("Unknown linkage, expected dynamic/static", value, v.find(ky)));
-                }
-            }
-        };
-
-        handle_linkage("crt-linkage", vcpkg.crt_linkage);
-        handle_linkage("library-linkage", vcpkg.library_linkage);
 
         for (const auto &p : v.find("packages").as_array()) {
             Vcpkg::Package package;

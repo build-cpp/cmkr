@@ -39,8 +39,6 @@ struct Package {
 struct Vcpkg {
     std::string version;
     std::string url;
-    std::string crt_linkage;
-    std::string library_linkage;
 
     struct Package {
         std::string name;
@@ -132,6 +130,7 @@ struct Install {
     std::vector<std::string> configs;
     std::string destination;
     std::string component;
+    bool optional = false;
 };
 
 struct Subdir {
