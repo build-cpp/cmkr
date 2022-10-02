@@ -1,0 +1,11 @@
+# A msvc-static `cmake.toml` project:
+
+[project]
+name = "msvc-static"
+description = "msvc static"
+
+[target.basic]
+type = "executable"
+sources = ["src/msvc-static.cpp"]
+msvc-static = true
+

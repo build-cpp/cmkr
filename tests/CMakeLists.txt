@@ -88,3 +88,13 @@ add_test(
 		build
 )
 
+add_test(
+	NAME
+	msvc-static
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/msvc-static"
+	COMMAND
+		"$<TARGET_FILE:cmkr>"
+		build
+)
+
