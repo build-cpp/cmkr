@@ -1026,6 +1026,10 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 gen.conditional_cmake(tmplate->outline.cmake_after);
             }
 
+            if (target.allow_msvc_static && !target.name.empty()) {
+                cmd("set_property")("TARGET", target.name, "PROPERTY", "MSVC_RUNTIME_LIBRARY", "MultiThreaded$<$<CONFIG:Debug>:Debug>");
+            }
+
             cmd("unset")("CMKR_TARGET");
             cmd("unset")("CMKR_SOURCES");
         }
