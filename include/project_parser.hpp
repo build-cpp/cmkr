@@ -105,6 +105,8 @@ struct Target {
     Condition<std::string> cmake_after;
     ConditionVector include_before;
     ConditionVector include_after;
+
+    bool allow_msvc_static = false;
 };
 
 struct Template {

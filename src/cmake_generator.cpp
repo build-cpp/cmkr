@@ -972,7 +972,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             if (!target.add_definitions.empty()) {
                 cmd("add_definitions")(target.add_definitions);
             }
-             
+
             auto target_cmd = [&](const char *command, const parser::ConditionVector &cargs, const std::string &scope) {
                 gen.handle_condition(cargs,
                                      [&](const std::string &, const std::vector<std::string> &args) { cmd(command)(target.name, scope, args); });
@@ -1028,6 +1028,10 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             if (tmplate != nullptr) {
                 gen.conditional_includes(tmplate->outline.include_after);
                 gen.conditional_cmake(tmplate->outline.cmake_after);
+            }
+
+            if (target.allow_msvc_static && !target.name.empty()) {
+                cmd("set_property")("TARGET", target.name, "PROPERTY", "MSVC_RUNTIME_LIBRARY", "MultiThreaded$<$<CONFIG:Debug>:Debug>");
             }
 
             cmd("unset")("CMKR_TARGET");

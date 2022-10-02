@@ -516,6 +516,8 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         t.optional("precompile-headers", target.precompile_headers);
         t.optional("private-precompile-headers", target.private_precompile_headers);
 
+        t.optional("msvc-static", target.allow_msvc_static);
+
         if (!target.headers.empty()) {
             auto &sources = target.sources.nth(0).value();
             const auto &headers = target.headers.nth(0)->second;
