@@ -525,12 +525,6 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
 
         t.optional("msvc-static", target.allow_msvc_static);
 
-        if (!target.headers.empty()) {
-            auto &sources = target.sources.nth(0).value();
-            const auto &headers = target.headers.nth(0)->second;
-            sources.insert(sources.end(), headers.begin(), headers.end());
-        }
-
         t.optional("condition", target.condition);
         t.optional("alias", target.alias);
 
