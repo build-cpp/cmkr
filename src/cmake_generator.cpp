@@ -523,7 +523,11 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
     if (root_project) {
         cmd("cmake_minimum_required")("VERSION", project.cmake_version).endl();
-
+        // clang-format off
+        cmd("if")("POLICY", "CMP0091");
+            cmd("cmake_policy")("SET", "CMP0091", "NEW");
+        cmd("endif")().endl();
+        // clang-format on
         if (!project.allow_in_tree) {
             // clang-format off
             cmd("if")("CMAKE_SOURCE_DIR", "STREQUAL", "CMAKE_BINARY_DIR");
