@@ -67,7 +67,6 @@ struct Target {
     TargetType type = target_last;
     std::string type_name;
 
-    ConditionVector headers;
     ConditionVector sources;
 
     // https://cmake.org/cmake/help/latest/manual/cmake-commands.7.html#project-commands

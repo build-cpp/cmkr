@@ -487,8 +487,17 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
             throw std::runtime_error(format_key_error(error, target.type_name, t.find("type")));
         }
 
-        t.optional("headers", target.headers);
         t.optional("sources", target.sources);
+
+        // Merge the headers into the sources
+        ConditionVector headers;
+        t.optional("headers", headers);
+        for (const auto &itr : headers) {
+            auto &dest = target.sources[itr.first];
+            for (const auto &jtr : itr.second) {
+                dest.push_back(jtr);
+            }
+        }
 
         t.optional("compile-definitions", target.compile_definitions);
         t.optional("private-compile-definitions", target.private_compile_definitions);
