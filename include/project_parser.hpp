@@ -102,8 +102,6 @@ struct Target {
     Condition<std::string> cmake_after;
     ConditionVector include_before;
     ConditionVector include_after;
-
-    bool allow_msvc_static = false;
 };
 
 struct Template {
@@ -153,7 +151,17 @@ struct Content {
     ConditionVector include_after;
 };
 
+enum MsvcRuntimeType {
+    msvc_dynamic,
+    msvc_static,
+    msvc_last,
+};
+
+extern const char *msvcRuntimeTypeNames[msvc_last];
+
 struct Project {
+    const Project *parent;
+
     // This is the CMake version required to use all cmkr versions.
     std::string cmake_version = "3.15";
     std::string cmkr_include = "cmkr.cmake";
@@ -171,6 +179,7 @@ struct Project {
     std::string project_version;
     std::string project_description;
     std::vector<std::string> project_languages;
+    MsvcRuntimeType project_msvc_runtime = msvc_last;
     Condition<std::string> cmake_before;
     Condition<std::string> cmake_after;
     ConditionVector include_before;
@@ -188,6 +197,7 @@ struct Project {
     std::vector<Subdir> subdirs;
 
     Project(const Project *parent, const std::string &path, bool build);
+    const Project *root() const;
 };
 
 bool is_root_path(const std::string &path);

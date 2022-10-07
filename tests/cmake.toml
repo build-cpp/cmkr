@@ -45,3 +45,10 @@ name = "templates"
 working-directory = "templates"
 command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
+
+[[test]]
+condition = "msvc"
+name = "msvc-runtime"
+working-directory = "msvc-runtime"
+command = "$<TARGET_FILE:cmkr>"
+arguments = ["build"]

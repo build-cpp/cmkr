@@ -523,10 +523,12 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
     if (root_project) {
         cmd("cmake_minimum_required")("VERSION", project.cmake_version).endl();
-        // clang-format off
-        cmd("if")("POLICY", "CMP0091");
-            cmd("cmake_policy")("SET", "CMP0091", "NEW");
-        cmd("endif")().endl();
+
+        if (project.project_msvc_runtime != parser::msvc_last) {
+            comment("Enable support for MSVC_RUNTIME_LIBRARY");
+            cmd("cmake_policy")("SET", "CMP0091", "NEW").endl();
+        }
+
         // clang-format on
         if (!project.allow_in_tree) {
             // clang-format off
@@ -810,6 +812,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     }
 
     if (!project.targets.empty()) {
+        auto root_project = project.root();
         for (size_t i = 0; i < project.targets.size(); i++) {
             if (i > 0) {
                 endl();
@@ -1018,6 +1021,13 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 }
 
                 gen.handle_condition(props, [&](const std::string &, const tsl::ordered_map<std::string, std::string> &properties) {
+                    for (const auto &propItr : properties) {
+                        if (propItr.first == "MSVC_RUNTIME_LIBRARY") {
+                            if (root_project->project_msvc_runtime == parser::msvc_last) {
+                                throw std::runtime_error("You cannot set [target].msvc-runtime without setting the root [project].msvc-runtime");
+                            }
+                        }
+                    }
                     cmd("set_target_properties")(target.name, "PROPERTIES", properties);
                 });
             }
@@ -1028,10 +1038,6 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             if (tmplate != nullptr) {
                 gen.conditional_includes(tmplate->outline.include_after);
                 gen.conditional_cmake(tmplate->outline.cmake_after);
-            }
-
-            if (target.allow_msvc_static && !target.name.empty()) {
-                cmd("set_property")("TARGET", target.name, "PROPERTY", "MSVC_RUNTIME_LIBRARY", "MultiThreaded$<$<CONFIG:Debug>:Debug>");
             }
 
             cmd("unset")("CMKR_TARGET");
