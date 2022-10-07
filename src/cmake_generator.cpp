@@ -524,6 +524,12 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     if (root_project) {
         cmd("cmake_minimum_required")("VERSION", project.cmake_version).endl();
 
+        if (project.project_msvc_runtime != parser::msvc_last) {
+            comment("Enable support for MSVC_RUNTIME_LIBRARY");
+            cmd("cmake_policy")("SET", "CMP0091", "NEW").endl();
+        }
+
+        // clang-format on
         if (!project.allow_in_tree) {
             // clang-format off
             cmd("if")("CMAKE_SOURCE_DIR", "STREQUAL", "CMAKE_BINARY_DIR");
@@ -806,6 +812,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     }
 
     if (!project.targets.empty()) {
+        auto root_project = project.root();
         for (size_t i = 0; i < project.targets.size(); i++) {
             if (i > 0) {
                 endl();
@@ -1014,6 +1021,13 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 }
 
                 gen.handle_condition(props, [&](const std::string &, const tsl::ordered_map<std::string, std::string> &properties) {
+                    for (const auto &propItr : properties) {
+                        if (propItr.first == "MSVC_RUNTIME_LIBRARY") {
+                            if (root_project->project_msvc_runtime == parser::msvc_last) {
+                                throw std::runtime_error("You cannot set [target].msvc-runtime without setting the root [project].msvc-runtime");
+                            }
+                        }
+                    }
                     cmd("set_target_properties")(target.name, "PROPERTIES", properties);
                 });
             }

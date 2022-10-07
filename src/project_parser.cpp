@@ -21,6 +21,17 @@ static TargetType parse_targetType(const std::string &name) {
     return target_last;
 }
 
+const char *msvcRuntimeTypeNames[msvc_last] = {"dynamic", "static"};
+
+static MsvcRuntimeType parse_msvcRuntimeType(const std::string &name) {
+    for (int i = 0; i < msvc_last; i++) {
+        if (name == msvcRuntimeTypeNames[i]) {
+            return static_cast<MsvcRuntimeType>(i);
+        }
+    }
+    return msvc_last;
+}
+
 using TomlBasicValue = toml::basic_value<toml::discard_comments, tsl::ordered_map, std::vector>;
 
 static std::string format_key_error(const std::string &error, const toml::key &ky, const TomlBasicValue &value) {
@@ -192,7 +203,7 @@ class TomlCheckerRoot {
     }
 };
 
-Project::Project(const Project *parent, const std::string &path, bool build) {
+Project::Project(const Project *parent, const std::string &path, bool build) : parent(parent) {
     const auto toml_path = fs::path(path) / "cmake.toml";
     if (!fs::exists(toml_path)) {
         throw std::runtime_error("File not found '" + toml_path.string() + "'");
@@ -276,6 +287,21 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         project.optional("include-before", include_before);
         project.optional("include-after", include_after);
         project.optional("subdirs", project_subdirs);
+
+        std::string msvc_runtime;
+        project.optional("msvc-runtime", msvc_runtime);
+        if (!msvc_runtime.empty()) {
+            project_msvc_runtime = parse_msvcRuntimeType(msvc_runtime);
+            if (project_msvc_runtime == msvc_last) {
+                std::string error = "Unknown runtime '" + msvc_runtime + "'\n";
+                error += "Available types:\n";
+                for (std::string type_name : msvcRuntimeTypeNames) {
+                    error += "  - " + type_name + "\n";
+                }
+                error.pop_back(); // Remove last newline
+                throw std::runtime_error(format_key_error(error, msvc_runtime, project.find("msvc-runtime")));
+            }
+        }
     }
 
     if (checker.contains("subdir")) {
@@ -523,6 +549,34 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
         t.optional("precompile-headers", target.precompile_headers);
         t.optional("private-precompile-headers", target.private_precompile_headers);
 
+        Condition<std::string> msvc_runtime;
+        t.optional("msvc-runtime", msvc_runtime);
+        for (const auto &condItr : msvc_runtime) {
+            switch (parse_msvcRuntimeType(condItr.second)) {
+            case msvc_dynamic:
+                target.properties[condItr.first]["MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL";
+                break;
+            case msvc_static:
+                target.properties[condItr.first]["MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>";
+                break;
+            default: {
+                std::string error = "Unknown runtime '" + condItr.second + "'\n";
+                error += "Available types:\n";
+                for (std::string type_name : msvcRuntimeTypeNames) {
+                    error += "  - " + type_name + "\n";
+                }
+                error.pop_back(); // Remove last newline
+                const TomlBasicValue *report;
+                if (condItr.first.empty()) {
+                    report = &t.find("msvc-runtime");
+                } else {
+                    report = &t.find(condItr.first).as_table().find("msvc-runtime").value();
+                }
+                throw std::runtime_error(format_key_error(error, condItr.second, *report));
+            }
+            }
+        }
+
         t.optional("condition", target.condition);
         t.optional("alias", target.alias);
 
@@ -662,6 +716,13 @@ Project::Project(const Project *parent, const std::string &path, bool build) {
     }
 
     checker.check(conditions, true);
+}
+
+const Project *Project::root() const {
+    auto root = this;
+    while (root->parent != nullptr)
+        root = root->parent;
+    return root;
 }
 
 bool is_root_path(const std::string &path) {

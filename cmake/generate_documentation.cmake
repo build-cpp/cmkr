@@ -1,20 +1,20 @@
 option(CMKR_GENERATE_DOCUMENTATION "Generate cmkr documentation" ${CMKR_ROOT_PROJECT})
-set(CMKR_TESTS "" CACHE INTERNAL "List of test directories in the order declared in tests/cmake.toml")
-
-if(CMKR_GENERATE_DOCUMENTATION)
-    # Hook the add_test function to capture the tests in the order declared in tests/cmake.toml
-    function(add_test)
-        cmake_parse_arguments(TEST "" "WORKING_DIRECTORY" "" ${ARGN})
-        get_filename_component(TEST_WORKING_DIRECTORY "${TEST_WORKING_DIRECTORY}" NAME)
-        list(APPEND CMKR_TESTS "${TEST_WORKING_DIRECTORY}")
-        set(CMKR_TESTS "${CMKR_TESTS}" CACHE INTERNAL "")
-        _add_test(${test} ${ARGN})
-    endfunction()
-endif()
 
 function(generate_documentation)
     if(CMKR_GENERATE_DOCUMENTATION)
         message(STATUS "[cmkr] Generating documentation...")
+
+        # Extract the order of the tests
+        set(CMKR_TESTS "")
+        file(READ "${PROJECT_SOURCE_DIR}/tests/cmake.toml" tests_toml NO_HEX_CONVERSION)
+        string(REGEX MATCHALL "working-directory = \"([^\"]+)\"" tests_match "${tests_toml}")
+        foreach(match ${tests_match})
+            if(match MATCHES "working-directory = \"([^\"]+)\"")
+                list(APPEND CMKR_TESTS "${CMAKE_MATCH_1}")
+            else()
+                message(FATAL_ERROR "This should not happen (wrong regex?)")
+            endif()
+        endforeach()
         
         # Delete previously generated examples
         set(example_folder "${PROJECT_SOURCE_DIR}/docs/examples")
