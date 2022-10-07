@@ -27,6 +27,7 @@ name = "myproject"
 version = "1.0.0"
 description = "Description of the project"
 languages = ["C", "CXX"]
+msvc-runtime = "" # dynamic (implicit default), static
 cmake-before = """
 message(STATUS "CMake injected before the project() call")
 """
@@ -57,6 +58,8 @@ type = "executable"
 sources = ["src/main.cpp"]
 windows.sources = ["src/windows_specific.cpp"]
 ```
+
+### Predefined conditions
 
 The following conditions are predefined (you can override them if you desire):
 
@@ -144,6 +147,7 @@ alias = "mytarget::mytarget"
 type = "static" # executable, shared (DLL), static, interface, object, library, custom
 headers = ["src/mytarget.h"]
 sources = ["src/mytarget.cpp"]
+msvc-runtime = "" # dynamic (implicit default), static
 
 # The keys below match the target_xxx CMake commands
 # Keys prefixed with private- will get PRIVATE visibility
