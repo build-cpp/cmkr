@@ -527,6 +527,15 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         if (project.project_msvc_runtime != parser::msvc_last) {
             comment("Enable support for MSVC_RUNTIME_LIBRARY");
             cmd("cmake_policy")("SET", "CMP0091", "NEW").endl();
+
+            switch (project.project_msvc_runtime) {
+            case parser::msvc_dynamic:
+                cmd("set")("CMAKE_MSVC_RUNTIME_LIBRARY", "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL");
+                break;
+            case parser::msvc_static:
+                cmd("set")("CMAKE_MSVC_RUNTIME_LIBRARY", "MultiThreaded$<$<CONFIG:Debug>:Debug>");
+                break;
+            }
         }
 
         // clang-format on
