@@ -535,6 +535,8 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             case parser::msvc_static:
                 cmd("set")("CMAKE_MSVC_RUNTIME_LIBRARY", "MultiThreaded$<$<CONFIG:Debug>:Debug>");
                 break;
+            default:
+                break;
             }
         }
 
