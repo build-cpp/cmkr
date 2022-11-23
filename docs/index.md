@@ -70,8 +70,10 @@ arguments:
 
 ## Credits
 
-- https://github.com/gulrak/filesystem
-- https://github.com/Tessil/ordered-map
-- https://github.com/ToruNiina/toml11
-- https://github.com/mpark/variant
-- https://www.svgrepo.com/svg/192268/hammer
+- [gulrak/filesystem](https://github.com/gulrak/filesystem)
+- [Tessil/ordered-map](https://github.com/Tessil/ordered-map)
+- [ToruNiina/toml11](https://github.com/ToruNiina/toml11)
+- [mpark/variant](https://github.com/mpark/variant)
+- [SVG Repo Hammer](https://www.svgrepo.com/svg/192268/hammer)
+- [can1357](https://github.com/can1357) for buying `cmkr.build` ❤️
+- [JustasMasiulis](https://github.com/JustasMasiulis) for fixing the dark theme ❤️

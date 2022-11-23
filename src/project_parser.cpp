@@ -4,8 +4,6 @@
 #include <deque>
 #include <stdexcept>
 #include <toml.hpp>
-#include <tsl/ordered_map.h>
-#include <tsl/ordered_set.h>
 
 namespace cmkr {
 namespace parser {

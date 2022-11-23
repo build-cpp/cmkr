@@ -7,11 +7,11 @@ name = "cmkr"
 version = "0.2.16"
 description = "CMakeLists generator from TOML"
 languages = ["CXX"]
-subdirs = ["third_party", "tests"]
 include-after = [
     "cmake/generate_documentation.cmake",
     "cmake/generate_resources.cmake"
 ]
+subdirs = ["third_party", "tests"]
 
 [target.cmkr_generate_documentation]
 type = "interface"

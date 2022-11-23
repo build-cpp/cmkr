@@ -4,6 +4,7 @@
 #include <resources/cmkr.hpp>
 
 #include "fs.hpp"
+#include "project_parser.hpp"
 #include <cstdio>
 #include <fstream>
 #include <memory>
@@ -25,7 +26,7 @@ static std::string format(const char *format, tsl::ordered_map<std::string, std:
     return s;
 }
 
-static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs::path &toml_dir, bool root_project) {
+static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs::path &toml_dir, bool is_root_project) {
     std::vector<std::string> temp;
 
     auto extract_suffix = [](const fs::path &base, const fs::path &full) {
@@ -38,7 +39,7 @@ static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs
     auto stem = name.filename().stem().string();
     auto ext = name.extension();
 
-    if (root_project && stem == "**" && name == name.filename()) {
+    if (is_root_project && stem == "**" && name == name.filename()) {
         throw std::runtime_error("Recursive globbing not allowed in project root: " + name.string());
     }
 
@@ -66,11 +67,11 @@ static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs
     return temp;
 }
 
-static std::vector<std::string> expand_cmake_paths(const std::vector<std::string> &sources, const fs::path &toml_dir, bool root_project) {
+static std::vector<std::string> expand_cmake_paths(const std::vector<std::string> &sources, const fs::path &toml_dir, bool is_root_project) {
     // TODO: add duplicate checking
     std::vector<std::string> result;
     for (const auto &src : sources) {
-        auto expanded = expand_cmake_path(src, toml_dir, root_project);
+        auto expanded = expand_cmake_path(src, toml_dir, is_root_project);
         for (const auto &f : expanded) {
             result.push_back(f);
         }
@@ -416,9 +417,10 @@ struct Generator {
                 }
 
                 if (!condition.empty()) {
-                    cmd("endif")();
+                    cmd("endif")().endl();
+                } else if (!itr.second.empty()) {
+                    endl();
                 }
-                endl();
             }
         }
     }
@@ -505,7 +507,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     }
 
     // Root project doesn't have a parent
-    auto root_project = parent_project == nullptr;
+    auto is_root_project = parent_project == nullptr;
 
     parser::Project project(parent_project, path, false);
     Generator gen(project);
@@ -521,12 +523,12 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     comment("See " + cmkr_url + " for more information");
     endl();
 
-    if (root_project) {
+    if (is_root_project) {
         cmd("cmake_minimum_required")("VERSION", project.cmake_version).endl();
 
         if (project.project_msvc_runtime != parser::msvc_last) {
             comment("Enable support for MSVC_RUNTIME_LIBRARY");
-            cmd("cmake_policy")("SET", "CMP0091", "NEW").endl();
+            cmd("cmake_policy")("SET", "CMP0091", "NEW");
 
             switch (project.project_msvc_runtime) {
             case parser::msvc_dynamic:
@@ -538,6 +540,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             default:
                 break;
             }
+            endl();
         }
 
         // clang-format on
@@ -549,14 +552,13 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             // clang-format on
         }
 
-        comment("Regenerate CMakeLists.txt automatically in the root project");
         cmd("set")("CMKR_ROOT_PROJECT", "OFF");
         // clang-format off
         cmd("if")("CMAKE_CURRENT_SOURCE_DIR", "STREQUAL", "CMAKE_SOURCE_DIR");
             cmd("set")("CMKR_ROOT_PROJECT", "ON").endl();
 
             if (!project.cmkr_include.empty()) {
-                comment("Bootstrap cmkr");
+                comment("Bootstrap cmkr and automatically regenerate CMakeLists.txt");
                 cmd("include")(project.cmkr_include, "OPTIONAL", "RESULT_VARIABLE", "CMKR_INCLUDE_RESULT");
                 cmd("if")("CMKR_INCLUDE_RESULT");
                     cmd("cmkr")();
@@ -564,7 +566,10 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             }
 
             comment("Enable folder support");
-            cmd("set_property")("GLOBAL", "PROPERTY", "USE_FOLDERS", "ON");
+            cmd("set_property")("GLOBAL", "PROPERTY", "USE_FOLDERS", "ON").endl();
+
+            comment("Create a configure-time dependency on cmake.toml to improve IDE support");
+            cmd("configure_file")("cmake.toml", "cmake.toml", "COPYONLY");
         cmd("endif")().endl();
         // clang-format on
 
@@ -572,14 +577,14 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         if (!project.cmkr_include.empty() && !fs::exists(cmkr_include) && cmkr_include.is_relative()) {
             create_file(cmkr_include, resources::cmkr);
         }
+    } else {
+        // clang-format off
+        comment("Create a configure-time dependency on cmake.toml to improve IDE support");
+        cmd("if")("CMKR_ROOT_PROJECT");
+            cmd("configure_file")("cmake.toml", "cmake.toml", "COPYONLY");
+        cmd("endif")().endl();
+        // clang-format on
     }
-
-    // clang-format off
-    comment("Create a configure-time dependency on cmake.toml to improve IDE support");
-    cmd("if")("CMKR_ROOT_PROJECT");
-        cmd("configure_file")("cmake.toml", "cmake.toml", "COPYONLY");
-    cmd("endif")().endl();
-    // clang-format on
 
     // TODO: remove support and replace with global compile-features
     if (!project.cppflags.empty()) {
@@ -616,6 +621,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         endl();
     }
 
+    // TODO: rename to 'variables'?
     if (!project.settings.empty()) {
         comment("Settings");
         for (const auto &set : project.settings) {
@@ -645,6 +651,13 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         auto version = std::make_pair("VERSION", project.project_version);
         auto description = std::make_pair("DESCRIPTION", project.project_description);
         cmd("project")(project.project_name, languages, version, description).endl();
+
+        for (const auto &language : project.project_languages) {
+            if (language == "CSharp") {
+                cmd("include")("CSharpUtilities").endl();
+                break;
+            }
+        }
     }
 
     gen.conditional_includes(project.include_after);
@@ -788,7 +801,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
     auto add_subdir = [&](const std::string &dir) {
         // clang-format off
-        comment(dir);
+        comment("Subdirectory: " + dir);
         cmd("set")("CMKR_CMAKE_FOLDER", "${CMAKE_FOLDER}");
         cmd("if")("CMAKE_FOLDER");
             cmd("set")("CMAKE_FOLDER", "${CMAKE_FOLDER}/" + dir);
@@ -798,17 +811,19 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         // clang-format on
 
         cmd("add_subdirectory")(dir);
-        cmd("set")("CMAKE_FOLDER", "${CMKR_CMAKE_FOLDER}").endl();
+        cmd("set")("CMAKE_FOLDER", "${CMKR_CMAKE_FOLDER}");
     };
 
     // generate_cmake is called on the subdirectories recursively later
     if (!project.project_subdirs.empty()) {
         gen.handle_condition(project.project_subdirs, [&](const std::string &, const std::vector<std::string> &subdirs) {
-            for (const auto &dir : subdirs) {
-                add_subdir(dir);
+            for (size_t i = 0; i < subdirs.size(); i++) {
+                add_subdir(subdirs[i]);
+                if (i + 1 < subdirs.size()) {
+                    endl();
+                }
             }
         });
-        endl();
     }
     for (const auto &subdir : project.subdirs) {
         ConditionScope cs(gen, subdir.condition);
@@ -817,23 +832,20 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         gen.conditional_cmake(subdir.cmake_before);
 
         add_subdir(subdir.name);
+        endl();
 
         gen.conditional_includes(subdir.include_after);
         gen.conditional_cmake(subdir.cmake_after);
     }
 
     if (!project.targets.empty()) {
-        auto root_project = project.root();
+        auto project_root = project.root();
         for (size_t i = 0; i < project.targets.size(); i++) {
-            if (i > 0) {
-                endl();
-            }
-
             const auto &target = project.targets[i];
             const parser::Template *tmplate = nullptr;
             std::unique_ptr<ConditionScope> tmplate_cs{};
 
-            comment("Target " + target.name);
+            comment("Target: " + target.name);
 
             // Check if this target is using a template.
             if (target.type == parser::target_template) {
@@ -847,55 +859,114 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
             ConditionScope cs(gen, target.condition);
 
-            cmd("set")("CMKR_TARGET", target.name);
+            // Detect if there is cmake included before/after the target
+            auto has_include_before = false;
+            auto has_include_after = false;
+            {
+                auto has_include = [](const parser::ConditionVector &includes) {
+                    for (const auto &itr : includes) {
+                        for (const auto &jtr : itr.second) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                auto has_include_helper = [&](const parser::Target &target) {
+                    if (!target.cmake_before.empty() || has_include(target.include_before)) {
+                        has_include_before = true;
+                    }
+                    if (!target.cmake_after.empty() || has_include(target.include_after)) {
+                        has_include_after = true;
+                    }
+                };
+                if (tmplate != nullptr) {
+                    has_include_helper(tmplate->outline);
+                }
+                has_include_helper(target);
+            }
 
+            // Generate the include before
+            if (has_include_before) {
+                cmd("set")("CMKR_TARGET", target.name);
+            }
             if (tmplate != nullptr) {
                 gen.conditional_includes(tmplate->outline.include_before);
                 gen.conditional_cmake(tmplate->outline.cmake_before);
             }
-
             gen.conditional_includes(target.include_before);
             gen.conditional_cmake(target.cmake_before);
 
-            auto sources_var = target.name + "_SOURCES";
+            // Merge the sources from the template and the target. The sources
+            // without condition need to be processed first
+            parser::Condition<tsl::ordered_set<std::string>> msources;
+            msources[""].clear();
 
-            bool added_toml = false;
-            cmd("set")(sources_var, RawArg("\"\"")).endl();
-
-            if (tmplate != nullptr) {
-                gen.handle_condition(tmplate->outline.sources, [&](const std::string &condition, const std::vector<std::string> &condition_sources) {
-                    auto sources = expand_cmake_paths(condition_sources, path, root_project);
-                    if (sources.empty()) {
-                        auto source_key = condition.empty() ? "sources" : (condition + ".sources");
-                        throw std::runtime_error(target.name + " " + source_key + " wildcard found 0 files");
+            auto merge_sources = [&msources](const parser::ConditionVector &sources) {
+                for (const auto &itr : sources) {
+                    auto &source_list = msources[itr.first];
+                    for (const auto &source : itr.second) {
+                        source_list.insert(source);
                     }
-                    cmd("list")("APPEND", sources_var, sources);
-                });
+                }
+            };
+            if (tmplate != nullptr) {
+                merge_sources(tmplate->outline.sources);
+            }
+            merge_sources(target.sources);
+
+            // Improve IDE support
+            if (target.type != parser::target_interface) {
+                msources[""].insert("cmake.toml");
             }
 
-            gen.handle_condition(target.sources, [&](const std::string &condition, const std::vector<std::string> &condition_sources) {
-                auto sources = expand_cmake_paths(condition_sources, path, root_project);
+            // If there are only conditional sources we generate a 'set' to
+            // create an empty source list. The rest is then appended using
+            // 'list(APPEND ...)'
+            auto has_sources = false;
+            for (const auto &itr : msources) {
+                if (!itr.second.empty()) {
+                    has_sources = true;
+                    break;
+                }
+            }
+            auto sources_var = target.name + "_SOURCES";
+            auto sources_with_set = true;
+            if (has_sources && msources[""].empty()) {
+                sources_with_set = false;
+                cmd("set")(sources_var, RawArg("\"\"")).endl();
+            }
+
+            gen.handle_condition(msources, [&](const std::string &condition, const tsl::ordered_set<std::string> &source_set) {
+                std::vector<std::string> condition_sources;
+                condition_sources.reserve(source_set.size());
+                for (const auto &source : source_set) {
+                    condition_sources.push_back(source);
+                }
+                auto sources = expand_cmake_paths(condition_sources, path, is_root_project);
                 if (sources.empty()) {
                     auto source_key = condition.empty() ? "sources" : (condition + ".sources");
                     throw std::runtime_error(target.name + " " + source_key + " wildcard found 0 files");
                 }
-                // Do not add cmake.toml twice
-                if (!added_toml && std::find(sources.begin(), sources.end(), "cmake.toml") != sources.end()) {
-                    added_toml = true;
+                if (sources_with_set) {
+                    // This is a sanity check to make sure the unconditional sources are first
+                    if (!condition.empty()) {
+                        throw std::runtime_error("Unreachable code, make sure unconditional sources are first");
+                    }
+                    cmd("set")(sources_var, sources);
+                    sources_with_set = false;
+                } else {
+                    cmd("list")("APPEND", sources_var, sources);
                 }
-                cmd("list")("APPEND", sources_var, sources);
             });
 
             auto target_type = target.type;
 
             if (tmplate != nullptr) {
+                if (target_type != parser::target_template) {
+                    throw std::runtime_error("Unreachable code, unexpected target type for template");
+                }
                 target_type = tmplate->outline.type;
             }
-
-            if (!added_toml && target_type != parser::target_interface) {
-                cmd("list")("APPEND", sources_var, std::vector<std::string>{"cmake.toml"}).endl();
-            }
-            cmd("set")("CMKR_SOURCES", "${" + sources_var + "}");
 
             std::string add_command;
             std::string target_type_string;
@@ -952,34 +1023,20 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                     cmd(add_command)(target.name, target_type_string, "${" + sources_var + "}");
                 } else {
                     cmd(add_command)(target.name, target_type_string).endl();
-
-                    // clang-format off
-                    cmd("if")(sources_var);
-                        cmd("target_sources")(target.name, target_type == parser::target_interface ? "INTERFACE" : "PRIVATE", "${" + sources_var + "}");
-                    cmd("endif")().endl();
-                    // clang-format on
+                    if (has_sources) {
+                        cmd("target_sources")(target.name, target_type == parser::target_interface ? "INTERFACE" : "PRIVATE",
+                                              "${" + sources_var + "}");
+                    }
                 }
             } else {
                 cmd(add_command)(target.name, target_type_string).endl();
-
-                // clang-format off
-                cmd("if")(sources_var);
+                if (has_sources) {
                     cmd("target_sources")(target.name, target_type == parser::target_interface ? "INTERFACE" : "PRIVATE", "${" + sources_var + "}");
-                cmd("endif")().endl();
-                // clang-format on
+                }
             }
 
-            // The first executable target will become the Visual Studio startup project
-            if (target_type == parser::target_executable) {
-                cmd("get_directory_property")("CMKR_VS_STARTUP_PROJECT", "DIRECTORY", "${PROJECT_SOURCE_DIR}", "DEFINITION", "VS_STARTUP_PROJECT");
-                // clang-format off
-                cmd("if")("NOT", "CMKR_VS_STARTUP_PROJECT");
-                    cmd("set_property")("DIRECTORY", "${PROJECT_SOURCE_DIR}", "PROPERTY", "VS_STARTUP_PROJECT", target.name);
-                cmd("endif")().endl();
-                // clang-format on
-            }
-
-            if (!target.sources.empty()) {
+            // TODO: support sources from other directories
+            if (has_sources) {
                 cmd("source_group")("TREE", "${CMAKE_CURRENT_SOURCE_DIR}", "FILES", "${" + sources_var + "}").endl();
             }
 
@@ -1034,7 +1091,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 gen.handle_condition(props, [&](const std::string &, const tsl::ordered_map<std::string, std::string> &properties) {
                     for (const auto &propItr : properties) {
                         if (propItr.first == "MSVC_RUNTIME_LIBRARY") {
-                            if (root_project->project_msvc_runtime == parser::msvc_last) {
+                            if (project_root->project_msvc_runtime == parser::msvc_last) {
                                 throw std::runtime_error("You cannot set [target].msvc-runtime without setting the root [project].msvc-runtime");
                             }
                         }
@@ -1043,19 +1100,28 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 });
             }
 
+            // The first executable target will become the Visual Studio startup project
+            // TODO: this is not working properly
+            if (target_type == parser::target_executable) {
+                cmd("get_directory_property")("CMKR_VS_STARTUP_PROJECT", "DIRECTORY", "${PROJECT_SOURCE_DIR}", "DEFINITION", "VS_STARTUP_PROJECT");
+                // clang-format off
+                cmd("if")("NOT", "CMKR_VS_STARTUP_PROJECT");
+                    cmd("set_property")("DIRECTORY", "${PROJECT_SOURCE_DIR}", "PROPERTY", "VS_STARTUP_PROJECT", target.name);
+                cmd("endif")().endl();
+                // clang-format on
+            }
+
+            // Generate the include after
+            if (!has_include_before && has_include_after) {
+                cmd("set")("CMKR_TARGET", target.name);
+            }
             gen.conditional_includes(target.include_after);
             gen.conditional_cmake(target.cmake_after);
-
             if (tmplate != nullptr) {
                 gen.conditional_includes(tmplate->outline.include_after);
                 gen.conditional_cmake(tmplate->outline.cmake_after);
             }
-
-            cmd("unset")("CMKR_TARGET");
-            cmd("unset")("CMKR_SOURCES");
         }
-
-        endl();
     }
 
     if (!project.tests.empty()) {
@@ -1081,7 +1147,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             auto dirs = std::make_pair("DIRS", inst.dirs);
             std::vector<std::string> files_data;
             if (!inst.files.empty()) {
-                files_data = expand_cmake_paths(inst.files, path, root_project);
+                files_data = expand_cmake_paths(inst.files, path, is_root_project);
                 if (files_data.empty()) {
                     throw std::runtime_error("[[install]] files wildcard did not resolve to any files");
                 }

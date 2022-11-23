@@ -7,17 +7,14 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 	message(FATAL_ERROR "In-tree builds are not supported. Run CMake from a separate directory: cmake -B build")
 endif()
 
-# Regenerate CMakeLists.txt automatically in the root project
 set(CMKR_ROOT_PROJECT OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 	set(CMKR_ROOT_PROJECT ON)
 
 	# Enable folder support
 	set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-endif()
 
-# Create a configure-time dependency on cmake.toml to improve IDE support
-if(CMKR_ROOT_PROJECT)
+	# Create a configure-time dependency on cmake.toml to improve IDE support
 	configure_file(cmake.toml cmake.toml COPYONLY)
 endif()
 
@@ -33,7 +30,7 @@ project(cmkr
 include("cmake/generate_documentation.cmake")
 include("cmake/generate_resources.cmake")
 
-# third_party
+# Subdirectory: third_party
 set(CMKR_CMAKE_FOLDER ${CMAKE_FOLDER})
 if(CMAKE_FOLDER)
 	set(CMAKE_FOLDER "${CMAKE_FOLDER}/third_party")
@@ -43,7 +40,7 @@ endif()
 add_subdirectory(third_party)
 set(CMAKE_FOLDER ${CMKR_CMAKE_FOLDER})
 
-# tests
+# Subdirectory: tests
 set(CMKR_CMAKE_FOLDER ${CMAKE_FOLDER})
 if(CMAKE_FOLDER)
 	set(CMAKE_FOLDER "${CMAKE_FOLDER}/tests")
@@ -53,29 +50,14 @@ endif()
 add_subdirectory(tests)
 set(CMAKE_FOLDER ${CMKR_CMAKE_FOLDER})
 
-
-
-# Target cmkr_generate_documentation
-set(CMKR_TARGET cmkr_generate_documentation)
-set(cmkr_generate_documentation_SOURCES "")
-
-set(CMKR_SOURCES ${cmkr_generate_documentation_SOURCES})
+# Target: cmkr_generate_documentation
 add_library(cmkr_generate_documentation INTERFACE)
 
-if(cmkr_generate_documentation_SOURCES)
-	target_sources(cmkr_generate_documentation INTERFACE ${cmkr_generate_documentation_SOURCES})
-endif()
-
+set(CMKR_TARGET cmkr_generate_documentation)
 generate_documentation()
 
-unset(CMKR_TARGET)
-unset(CMKR_SOURCES)
-
-# Target cmkr
-set(CMKR_TARGET cmkr)
-set(cmkr_SOURCES "")
-
-list(APPEND cmkr_SOURCES
+# Target: cmkr
+set(cmkr_SOURCES
 	"src/arguments.cpp"
 	"src/build.cpp"
 	"src/cmake_generator.cpp"
@@ -93,24 +75,12 @@ list(APPEND cmkr_SOURCES
 	"include/project_parser.hpp"
 	"cmake/cmkr.cmake"
 	"cmake/version.hpp.in"
-)
-
-list(APPEND cmkr_SOURCES
 	cmake.toml
 )
 
-set(CMKR_SOURCES ${cmkr_SOURCES})
 add_executable(cmkr)
 
-if(cmkr_SOURCES)
-	target_sources(cmkr PRIVATE ${cmkr_SOURCES})
-endif()
-
-get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)
-if(NOT CMKR_VS_STARTUP_PROJECT)
-	set_property(DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT cmkr)
-endif()
-
+target_sources(cmkr PRIVATE ${cmkr_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${cmkr_SOURCES})
 
 target_compile_features(cmkr PRIVATE
@@ -129,10 +99,13 @@ target_link_libraries(cmkr PRIVATE
 	nlohmann_json
 )
 
-generate_resources(${CMKR_TARGET})
+get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)
+if(NOT CMKR_VS_STARTUP_PROJECT)
+	set_property(DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT cmkr)
+endif()
 
-unset(CMKR_TARGET)
-unset(CMKR_SOURCES)
+set(CMKR_TARGET cmkr)
+generate_resources(${CMKR_TARGET})
 
 install(
 	TARGETS
