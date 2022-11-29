@@ -4,5 +4,5 @@
 
 int main()
 {
-    printf("mylib version: %s\n", mylib::version())
+    printf("mylib version: %s\n", mylib::version());
 }
