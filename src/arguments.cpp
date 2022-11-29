@@ -37,17 +37,17 @@ const char *handle_args(int argc, char **argv) {
     } else if (main_arg == "build") {
         auto ret = build::run(argc, argv);
         if (ret)
-            return "CMake build error!";
+            throw std::runtime_error("CMake build failed!");
         return "CMake build completed!";
     } else if (main_arg == "install") {
         auto ret = build::install();
         if (ret)
-            return "CMake install error!";
+            throw std::runtime_error("CMake install failed!");
         return "CMake install completed!";
     } else if (main_arg == "clean") {
         auto ret = build::clean();
         if (ret)
-            return "CMake clean error!";
+            throw std::runtime_error("CMake clean failed!");
         return "Cleaned build directory!";
     } else {
         throw std::runtime_error(cmkr::help::message());
@@ -55,13 +55,3 @@ const char *handle_args(int argc, char **argv) {
 }
 } // namespace args
 } // namespace cmkr
-
-const char *cmkr_args_handle_args(int argc, char **argv) {
-    try {
-        return cmkr::args::handle_args(argc, argv);
-    } catch (const std::exception &e) {
-        return e.what();
-    } catch (...) {
-        return "Unknown error!";
-    }
-}
