@@ -2,7 +2,7 @@
 layout: page
 title: Reference
 permalink: /cmake-toml/
-nav_order: 1
+nav_order: 3
 ---
 
 # Reference

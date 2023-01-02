@@ -6,7 +6,7 @@ nav_order: 0
 
 # Index
 
-`cmkr`, pronounced "cmaker", is a modern build system based on [CMake](https://cmake.org/) and [TOML](https://toml.io).
+[`cmkr`](https://github.com/build-cpp/cmkr), pronounced "cmaker", is a modern build system based on [CMake](https://cmake.org/) and [TOML](https://toml.io).
 
 `cmkr` parses `cmake.toml` files and generates a modern, idiomatic `CMakeLists.txt` for you. A minimal example:
 
@@ -19,27 +19,29 @@ type = "executable"
 sources = ["src/main.cpp"]
 ```
 
-`cmkr` can bootstrap itself from CMake and you only need CMake to use it.
+`cmkr` can bootstrap itself, and you only need CMake and a C++ compiler to use it.
 
 ## Getting started
 
-To get started run the following commands from your project directory:
+To get started, run the following commands from your project directory:
 
 ```sh
 curl https://raw.githubusercontent.com/build-cpp/cmkr/main/cmake/cmkr.cmake -o cmkr.cmake
 cmake -P cmkr.cmake
 ```
 
-After the bootstrapping process finishes, modify [`cmake.toml`](https://build-cpp.github.io/cmkr/cmake-toml) and open the project in your favorite IDE or build with CMake:
+After the bootstrapping process finishes, customize [`cmake.toml`](./cmake-toml) for your project and run CMake:
 
 ```sh
 cmake -B build
 cmake --build build
 ```
 
-Once bootstrapped, `cmkr` does not introduce extra steps to your workflow. After modifying `cmake.toml` you simply build/configure your CMake project and `cmkr` will automatically regenerate `CMakeLists.txt`.
+Once bootstrapped, `cmkr` does not introduce extra steps to your workflow. After modifying `cmake.toml` you simply build/configure your CMake project and `cmkr` will automatically regenerate `CMakeLists.txt` when necessary.
 
-In CI settings the `cmkr` bootstrapping process is skipped so there is no extra configure-time overhead in your pipelines.
+<sub>**Note**: The `cmake.toml` project file, generated `CMakeLists.txt` and `cmkr.cmake` bootstrapping script are all intended to be added to source control.</sub>
+
+In CI environments the `cmkr` bootstrapping process is skipped, so there is no additional overhead in your pipelines.
 
 ## Template repositories
 
@@ -59,10 +61,10 @@ Optionally you can put a [`cmkr` release](https://github.com/build-cpp/cmkr/rele
 ```
 Usage: cmkr [arguments]
 arguments:
-    init    [executable|library|shared|static|interface] Starts a new project in the same directory.
+    init    [executable|library|shared|static|interface] Create a project.
     gen                                                  Generates CMakeLists.txt file.
     build   <extra cmake args>                           Run cmake and build.
-    install                                              Run cmake --install. Needs admin privileges.
+    install                                              Run cmake --install.
     clean                                                Clean the build directory.
     help                                                 Show help.
     version                                              Current cmkr version.
