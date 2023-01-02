@@ -1,11 +1,10 @@
 ---
 layout: page
-# TODO: rename to 'Basics'?
-title: Concepts
-nav_order: 2
+title: Basics
+nav_order: 1
 ---
 
-# Concepts (TODO: rename to "Basics" or "Basic Concepts"?)
+# Basics
 
 To effectively use cmkr it helps to understand the basic concepts of CMake.
 

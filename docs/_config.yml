@@ -22,3 +22,11 @@ gh_edit_view_mode: "edit"
 gh_edit_source: docs
 
 production_url : https://cmkr.build
+footer_content: |
+  <script src="https://utteranc.es/client.js"
+          repo="build-cpp/cmkr-docs-comments"
+          issue-term="pathname"
+          theme="preferred-color-scheme"
+          crossorigin="anonymous"
+          async>
+  </script>
