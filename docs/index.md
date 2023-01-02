@@ -1,10 +1,10 @@
 ---
 layout: home
-title: Index
+title: Documentation
 nav_order: 0
 ---
 
-# Index
+# Documentation
 
 [`cmkr`](https://github.com/build-cpp/cmkr), pronounced "cmaker", is a modern build system based on [CMake](https://cmake.org/) and [TOML](https://toml.io).
 

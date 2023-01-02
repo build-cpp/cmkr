@@ -21,12 +21,22 @@ gh_edit_branch: "main"
 gh_edit_view_mode: "edit"
 gh_edit_source: docs
 
+ga_tracking: G-DY172KY7Z9
+
 production_url : https://cmkr.build
 footer_content: |
-  <script src="https://utteranc.es/client.js"
-          repo="build-cpp/cmkr-docs-comments"
-          issue-term="pathname"
-          theme="preferred-color-scheme"
+  <script src="https://giscus.app/client.js"
+          data-repo="build-cpp/cmkr"
+          data-repo-id="MDEwOlJlcG9zaXRvcnkyOTQwMDc3MzY="
+          data-category="Documentation"
+          data-category-id="DIC_kwDOEYYzuM4CTXeA"
+          data-mapping="pathname"
+          data-strict="1"
+          data-reactions-enabled="1"
+          data-emit-metadata="0"
+          data-input-position="top"
+          data-theme="preferred_color_scheme"
+          data-lang="en"
           crossorigin="anonymous"
           async>
   </script>
