@@ -9,7 +9,8 @@ nav_order: 3
 
 This page is a reference for the options in the `cmake.toml` file. If you think anything is missing or unclear, please [edit this page](https://github.com/build-cpp/cmkr/edit/main/docs/cmake-toml.md) or open an [issue](https://github.com/build-cpp/cmkr/issues).
 
-See the [examples](/examples) section for concrete examples.
+This is a reference page. Check out the [examples](/examples) and the [cmkr topic](https://github.com/topics/cmkr) as well.
+{:.info}
 
 ## CMake configuration
 
@@ -92,6 +93,16 @@ message(STATUS "CMake injected after the add_subdirectory() call")
 include-before = ["cmake/before-subdir.cmake"]
 include-after = ["cmake/after-subdir.cmake"]
 ```
+
+## Variables
+
+```toml
+[variables]
+MYBOOL = true
+MYSTRING = "hello"
+```
+
+Variables emit a [`set`](https://cmake.org/cmake/help/latest/command/set.html) and can be used to configure subprojects and packages.
 
 ## Vcpkg
 
