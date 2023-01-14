@@ -320,8 +320,12 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
     }
 
     if (checker.contains("settings")) {
+        throw std::runtime_error(format_key_error("[settings] has been renamed to [variables]", "", toml.at("settings")));
+    }
+
+    if (checker.contains("variables")) {
         using set_map = tsl::ordered_map<std::string, TomlBasicValue>;
-        const auto &sets = toml::find<set_map>(toml, "settings");
+        const auto &sets = toml::find<set_map>(toml, "variables");
         for (const auto &itr : sets) {
             Setting s;
             s.name = itr.first;
