@@ -22,7 +22,7 @@ project(cmkr
 	LANGUAGES
 		CXX
 	VERSION
-		0.2.17
+		0.2.18
 	DESCRIPTION
 		"CMakeLists generator from TOML"
 )
