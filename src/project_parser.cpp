@@ -219,7 +219,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         cmake.required("version", cmake_version);
 
         if (cmake.contains("bin-dir")) {
-            throw std::runtime_error("bin-dir has been renamed to build-dir");
+            throw std::runtime_error(format_key_error("bin-dir has been renamed to build-dir", "bin-dir", cmake.find("bin-dir")));
         }
 
         cmake.optional("build-dir", build_dir);
@@ -473,7 +473,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
     }
 
     if (checker.contains("bin")) {
-        throw std::runtime_error("[[bin]] has been renamed to [[target]]");
+        throw std::runtime_error(format_key_error("[[bin]] has been renamed to [target.<name>]", "", toml.at("bin")));
     }
 
     auto parse_target = [&](const std::string &name, TomlChecker &t, bool isTemplate) {
@@ -711,7 +711,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                     package.features.emplace_back(feature);
                 }
             } else {
-                throw std::runtime_error("Invalid vcpkg package '" + package_str + "'");
+                throw std::runtime_error(format_key_error("Invalid package name '" + package_str + "'", "packages", p));
             }
             vcpkg.packages.emplace_back(std::move(package));
         }
