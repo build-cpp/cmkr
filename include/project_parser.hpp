@@ -14,7 +14,7 @@ using Condition = tsl::ordered_map<std::string, T>;
 
 using ConditionVector = Condition<std::vector<std::string>>;
 
-struct Setting {
+struct Variable {
     std::string name;
     std::string comment;
     mpark::variant<bool, std::string> val;
@@ -185,7 +185,7 @@ struct Project {
     Condition<std::string> cmake_after;
     ConditionVector include_before;
     ConditionVector include_after;
-    std::vector<Setting> settings;
+    std::vector<Variable> variables;
     std::vector<Option> options;
     std::vector<Package> packages;
     Vcpkg vcpkg;

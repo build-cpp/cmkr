@@ -32,14 +32,14 @@ static MsvcRuntimeType parse_msvcRuntimeType(const std::string &name) {
 
 using TomlBasicValue = toml::basic_value<toml::discard_comments, tsl::ordered_map, std::vector>;
 
-static std::string format_key_error(const std::string &error, const toml::key &ky, const TomlBasicValue &value) {
+static std::string format_key_message(const std::string &message, const toml::key &ky, const TomlBasicValue &value) {
     auto loc = value.location();
     auto line_number_str = std::to_string(loc.line());
     auto line_width = line_number_str.length();
     auto line_str = loc.line_str();
 
     std::ostringstream oss;
-    oss << "[error] " << error << '\n';
+    oss << message << "\n";
     oss << " --> " << loc.file_name() << ':' << loc.line() << '\n';
 
     oss << std::string(line_width + 2, ' ') << "|\n";
@@ -55,6 +55,14 @@ static std::string format_key_error(const std::string &error, const toml::key &k
     }
 
     return oss.str();
+}
+
+static void throw_key_error(const std::string &error, const toml::key &ky, const TomlBasicValue &value) {
+    throw std::runtime_error(format_key_message("[error] " + error, ky, value));
+}
+
+static void print_key_warning(const std::string &message, const toml::key &ky, const TomlBasicValue &value) {
+    puts(format_key_message("[warning] " + message, ky, value).c_str());
 }
 
 class TomlChecker {
@@ -133,27 +141,27 @@ class TomlChecker {
             const auto &ky = itr.first;
             if (m_conditionVisited.contains(ky)) {
                 if (!conditions.contains(ky)) {
-                    throw std::runtime_error(format_key_error("Unknown condition '" + ky + "'", ky, itr.second));
+                    throw_key_error("Unknown condition '" + ky + "'", ky, itr.second);
                 }
 
                 for (const auto &jtr : itr.second.as_table()) {
                     if (!m_visited.contains(jtr.first)) {
-                        throw std::runtime_error(format_key_error("Unknown key '" + jtr.first + "'", jtr.first, jtr.second));
+                        throw_key_error("Unknown key '" + jtr.first + "'", jtr.first, jtr.second);
                     }
                 }
             } else if (!m_visited.contains(ky)) {
                 if (itr.second.is_table()) {
                     for (const auto &jtr : itr.second.as_table()) {
                         if (!m_visited.contains(jtr.first)) {
-                            throw std::runtime_error(format_key_error("Unknown key '" + jtr.first + "'", jtr.first, jtr.second));
+                            throw_key_error("Unknown key '" + jtr.first + "'", jtr.first, jtr.second);
                         }
                     }
                 }
-                throw std::runtime_error(format_key_error("Unknown key '" + ky + "'", ky, itr.second));
+                throw_key_error("Unknown key '" + ky + "'", ky, itr.second);
             } else if (ky == "condition") {
                 std::string condition = itr.second.as_string();
                 if (!conditions.contains(condition)) {
-                    throw std::runtime_error(format_key_error("Unknown condition '" + condition + "'", condition, itr.second));
+                    throw_key_error("Unknown condition '" + condition + "'", condition, itr.second);
                 }
             }
         }
@@ -191,7 +199,7 @@ class TomlCheckerRoot {
         if (check_root) {
             for (const auto &itr : m_root.as_table()) {
                 if (!m_visisted.contains(itr.first)) {
-                    throw std::runtime_error(format_key_error("Unknown key '" + itr.first + "'", itr.first, itr.second));
+                    throw_key_error("Unknown key '" + itr.first + "'", itr.first, itr.second);
                 }
             }
         }
@@ -219,7 +227,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         cmake.required("version", cmake_version);
 
         if (cmake.contains("bin-dir")) {
-            throw std::runtime_error(format_key_error("bin-dir has been renamed to build-dir", "bin-dir", cmake.find("bin-dir")));
+            throw_key_error("bin-dir has been renamed to build-dir", "bin-dir", cmake.find("bin-dir"));
         }
 
         cmake.optional("build-dir", build_dir);
@@ -297,7 +305,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                     error += "  - " + type_name + "\n";
                 }
                 error.pop_back(); // Remove last newline
-                throw std::runtime_error(format_key_error(error, msvc_runtime, project.find("msvc-runtime")));
+                throw_key_error(error, msvc_runtime, project.find("msvc-runtime"));
             }
         }
     }
@@ -319,15 +327,21 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         }
     }
 
-    if (checker.contains("settings")) {
-        throw std::runtime_error(format_key_error("[settings] has been renamed to [variables]", "", toml.at("settings")));
-    }
-
     if (checker.contains("variables")) {
         using set_map = tsl::ordered_map<std::string, TomlBasicValue>;
-        const auto &sets = toml::find<set_map>(toml, "variables");
-        for (const auto &itr : sets) {
-            Setting s;
+        auto vars = toml::find<set_map>(toml, "variables");
+        if (checker.contains("settings")) {
+            print_key_warning("[settings] has been renamed to [variables]", "settings", toml.at("settings"));
+            const auto &sets = toml::find<set_map>(toml, "settings");
+            for (const auto &itr : sets) {
+                if (!vars.insert(itr).second) {
+                    throw_key_error("Key '" + itr.first + "' shadows existing variable", itr.first, itr.second);
+                }
+            }
+        }
+
+        for (const auto &itr : vars) {
+            Variable s;
             s.name = itr.first;
             const auto &value = itr.second;
             if (value.is_boolean()) {
@@ -348,7 +362,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 setting.optional("cache", s.cache);
                 setting.optional("force", s.force);
             }
-            settings.push_back(s);
+            variables.push_back(s);
         }
     }
 
@@ -458,7 +472,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 } else if (is_cmake_arg(key)) {
                     // allow passthrough of ExternalProject options
                 } else if (!c.visisted(key)) {
-                    throw std::runtime_error(format_key_error("Unknown key '" + argItr.first + "'", argItr.first, argItr.second));
+                    throw_key_error("Unknown key '" + argItr.first + "'", argItr.first, argItr.second);
                 }
 
                 // Make sure not to emit keys like "condition" in the FetchContent call
@@ -473,7 +487,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
     }
 
     if (checker.contains("bin")) {
-        throw std::runtime_error(format_key_error("[[bin]] has been renamed to [target.<name>]", "", toml.at("bin")));
+        throw_key_error("[[bin]] has been renamed to [target.<name>]", "", toml.at("bin"));
     }
 
     auto parse_target = [&](const std::string &name, TomlChecker &t, bool isTemplate) {
@@ -512,7 +526,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 }
             }
             error.pop_back(); // Remove last newline
-            throw std::runtime_error(format_key_error(error, target.type_name, t.find("type")));
+            throw_key_error(error, target.type_name, t.find("type"));
         }
 
         t.optional("sources", target.sources);
@@ -574,7 +588,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 } else {
                     report = &t.find(condItr.first).as_table().find("msvc-runtime").value();
                 }
-                throw std::runtime_error(format_key_error(error, condItr.second, *report));
+                throw_key_error(error, condItr.second, *report);
             }
             }
         }
@@ -630,13 +644,13 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
 
             for (const auto &type_name : targetTypeNames) {
                 if (name == type_name) {
-                    throw std::runtime_error(format_key_error("Reserved template name '" + name + "'", name, itr.second));
+                    throw_key_error("Reserved template name '" + name + "'", name, itr.second);
                 }
             }
 
             for (const auto &tmplate : templates) {
                 if (name == tmplate.outline.name) {
-                    throw std::runtime_error(format_key_error("Template '" + name + "' already defined", name, itr.second));
+                    throw_key_error("Template '" + name + "' already defined", name, itr.second);
                 }
             }
 
@@ -711,7 +725,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                     package.features.emplace_back(feature);
                 }
             } else {
-                throw std::runtime_error(format_key_error("Invalid package name '" + package_str + "'", "packages", p));
+                throw_key_error("Invalid package name '" + package_str + "'", "packages", p);
             }
             vcpkg.packages.emplace_back(std::move(package));
         }

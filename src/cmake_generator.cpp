@@ -621,10 +621,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         endl();
     }
 
-    // TODO: rename to 'variables'?
-    if (!project.settings.empty()) {
-        comment("Settings");
-        for (const auto &set : project.settings) {
+    if (!project.variables.empty()) {
+        comment("Variables");
+        for (const auto &set : project.variables) {
             std::string set_val;
             if (set.val.index() == 1) {
                 set_val = mpark::get<1>(set.val);
