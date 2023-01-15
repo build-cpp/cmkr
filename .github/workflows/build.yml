@@ -15,7 +15,7 @@ jobs:
       BUILD_TYPE: Release
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Tag cmkr.cmake
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -38,28 +38,29 @@ jobs:
         ctest -C ${{ env.BUILD_TYPE }} --verbose
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ github.event.repository.name }}-${{ matrix.os }}
         path: install/bin/*
 
     - name: Get lowercase OS name
       id: osname
-      uses: ASzc/change-string-case-action@v1
+      uses: ASzc/change-string-case-action@07c1e24a97f0951e13f88870b99c058fcf0b14cf # v5
       with:
         string: ${{ runner.os }}
 
     - name: Compress artifacts
-      uses: vimtor/action-zip@v1
+      uses: vimtor/action-zip@26a249fb00d43ca98dad77a4b3838025fc226aa1 # v1.1
       with:
         files: install/bin/
         dest: ${{ github.event.repository.name }}-${{ steps.osname.outputs.lowercase }}.zip
 
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
       with:
         prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') || contains(github.ref, '-pre') }}
         files: ${{ github.event.repository.name }}-${{ steps.osname.outputs.lowercase }}.zip
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
