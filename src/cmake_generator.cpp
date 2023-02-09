@@ -14,6 +14,13 @@
 namespace cmkr {
 namespace gen {
 
+using LanguageExtensions = std::vector<std::string>;
+static tsl::ordered_map<std::string, LanguageExtensions> known_languages = {
+    {"C", {".c", ".m"}},
+    {"CXX", {".C", ".M", ".c++", ".cc", ".cpp", ".cxx", ".mm", ".CPP"}},
+    {"CSharp", {".cs"}},
+};
+
 static std::string format(const char *format, tsl::ordered_map<std::string, std::string> variables) {
     std::string s = format;
     for (const auto &itr : variables) {
@@ -510,6 +517,13 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     auto is_root_project = parent_project == nullptr;
 
     parser::Project project(parent_project, path, false);
+
+    for (auto const &lang : project.project_languages) {
+        if (known_languages.find(lang) == known_languages.end()) {
+            throw std::runtime_error("Unknown language specified: " + lang);
+        }
+    }
+
     Generator gen(project);
 
     // Helper lambdas for more convenient CMake generation
@@ -946,6 +960,60 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                     auto source_key = condition.empty() ? "sources" : (condition + ".sources");
                     throw std::runtime_error(target.name + " " + source_key + " wildcard found 0 files");
                 }
+
+                // For non-interface targets, ensure there is a source file linked for the project's languages.
+                if (target.type != parser::target_interface) {
+                    // The implicit default is ["C", "CXX"], so make sure this list isn't
+                    // empty or projects without languages explicitly defined will error.
+                    auto proj_languages = project.project_languages;
+                    if (proj_languages.empty())
+                        proj_languages = {"C", "CXX"};
+
+                    // All acceptable extensions based off our given languages.
+                    tsl::ordered_set<std::string> proj_extensions = [&]() {
+                        tsl::ordered_set<std::string> exts;
+                        for (auto it = known_languages.begin(); it != known_languages.end(); ++it) {
+                            if (std::find(proj_languages.begin(), proj_languages.end(), it->first) == proj_languages.end()) {
+                                continue;
+                            }
+                            // Add all extensions of this language into the list
+                            for (auto const &ext : it->second) {
+                                exts.insert(ext);
+                            }
+                        }
+                        return exts;
+                    }();
+
+                    bool has_hit_def = false;
+                    for (auto &source : sources) {
+                        fs::path path = source;
+                        if (!path.has_extension()) {
+                            continue;
+                        }
+
+                        auto ext = path.extension().string();
+
+                        // Only test lower-case variant of the extension
+                        static auto asciitolower = [](char in) -> char {
+                            if (in <= 'Z' && in >= 'A')
+                                return in - ('Z' - 'z');
+                            return in;
+                        };
+
+                        std::transform(ext.begin(), ext.end(), ext.begin(), asciitolower);
+
+                        // Check if we've hit an acceptable project extensions
+                        if (std::find(proj_extensions.begin(), proj_extensions.end(), ext) != proj_extensions.end()) {
+                            has_hit_def = true;
+                            break;
+                        }
+                    }
+
+                    if (!has_hit_def) {
+                        throw std::runtime_error("There were no source files linked within the target " + target.name);
+                    }
+                }
+
                 if (sources_with_set) {
                     // This is a sanity check to make sure the unconditional sources are first
                     if (!condition.empty()) {
