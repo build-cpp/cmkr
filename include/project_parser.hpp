@@ -16,16 +16,16 @@ using ConditionVector = Condition<std::vector<std::string>>;
 
 struct Variable {
     std::string name;
-    std::string comment;
-    mpark::variant<bool, std::string> val;
+    std::string help;
+    mpark::variant<bool, std::string> value;
     bool cache = false;
     bool force = false;
 };
 
 struct Option {
     std::string name;
-    std::string comment;
-    bool val = false;
+    std::string help;
+    bool value = false;
 };
 
 struct Package {
