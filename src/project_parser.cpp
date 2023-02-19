@@ -741,6 +741,26 @@ const Project *Project::root() const {
     return root;
 }
 
+bool Project::cmake_minimum_version(int major, int minor) const {
+    // NOTE: this code is like pulling teeth, sorry
+    auto root_version = root()->cmake_version;
+    puts(root_version.c_str());
+    auto range_index = root_version.find("...");
+    if (range_index != std::string::npos) {
+        root_version.resize(range_index);
+    }
+
+    auto period_index = root_version.find('.');
+    auto root_major = atoi(root_version.substr(0, period_index).c_str());
+    int root_minor = 0;
+    if (period_index != std::string::npos) {
+        auto end_index = root_version.find('.', period_index + 1);
+        root_minor = atoi(root_version.substr(period_index + 1, end_index).c_str());
+    }
+
+    return std::tie(root_major, root_minor) >= std::tie(major, minor);
+}
+
 bool is_root_path(const std::string &path) {
     const auto toml_path = fs::path(path) / "cmake.toml";
     if (!fs::exists(toml_path)) {
