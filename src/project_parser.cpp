@@ -265,7 +265,8 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         conditions["bsd"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "BSD")cmake";
         conditions["linux"] = conditions["lunix"] = R"cmake(CMAKE_SYSTEM_NAME MATCHES "Linux")cmake";
         conditions["gcc"] = R"cmake(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "GNU")cmake";
-        conditions["clang"] = R"cmake(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_C_COMPILER_ID MATCHES "Clang")cmake";
+        conditions["clang"] =
+            R"cmake((CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$") OR (CMAKE_C_COMPILER_ID MATCHES "Clang" AND NOT CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "^MSVC$"))cmake";
         conditions["msvc"] = R"cmake(MSVC)cmake";
         conditions["root"] = R"cmake(CMKR_ROOT_PROJECT)cmake";
         conditions["x64"] = R"cmake(CMAKE_SIZEOF_VOID_P EQUAL 8)cmake";
@@ -739,6 +740,26 @@ const Project *Project::root() const {
     while (root->parent != nullptr)
         root = root->parent;
     return root;
+}
+
+bool Project::cmake_minimum_version(int major, int minor) const {
+    // NOTE: this code is like pulling teeth, sorry
+    auto root_version = root()->cmake_version;
+    puts(root_version.c_str());
+    auto range_index = root_version.find("...");
+    if (range_index != std::string::npos) {
+        root_version.resize(range_index);
+    }
+
+    auto period_index = root_version.find('.');
+    auto root_major = atoi(root_version.substr(0, period_index).c_str());
+    int root_minor = 0;
+    if (period_index != std::string::npos) {
+        auto end_index = root_version.find('.', period_index + 1);
+        root_minor = atoi(root_version.substr(period_index + 1, end_index).c_str());
+    }
+
+    return std::tie(root_major, root_minor) >= std::tie(major, minor);
 }
 
 bool is_root_path(const std::string &path) {

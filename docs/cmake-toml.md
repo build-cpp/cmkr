@@ -72,7 +72,7 @@ unix = "UNIX"
 bsd = "CMAKE_SYSTEM_NAME MATCHES \"BSD\""
 linux = "CMAKE_SYSTEM_NAME MATCHES \"Linux\""
 gcc = "CMAKE_CXX_COMPILER_ID STREQUAL \"GNU\" OR CMAKE_C_COMPILER_ID STREQUAL \"GNU\""
-clang = "CMAKE_CXX_COMPILER_ID MATCHES \"Clang\" OR CMAKE_C_COMPILER_ID MATCHES \"Clang\""
+clang = "(CMAKE_CXX_COMPILER_ID MATCHES \"Clang\" AND NOT CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES \"^MSVC$\") OR (CMAKE_C_COMPILER_ID MATCHES \"Clang\" AND NOT CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES \"^MSVC$\")"
 msvc = "MSVC"
 root = "CMKR_ROOT_PROJECT"
 x64 = "CMAKE_SIZEOF_VOID_P EQUAL 8"
@@ -137,6 +137,7 @@ components = ["mycomponent"]
 condition = "mycondition"
 git = "https://github.com/myuser/gitcontent"
 tag = "v0.1"
+shallow = false
 
 [fetch-content.svncontent]
 condition = "mycondition"
@@ -146,7 +147,10 @@ rev = "svn_rev"
 [fetch-content.urlcontent]
 condition = "mycondition"
 url = "https://content-host.com/urlcontent.zip"
-hash = "123123123123"
+# These are equivalent, supported algorithms:
+# md5, sha1, sha224, sha256, sha384, sha512, sha3_224, sha3_256, sha3_384, sha3_512
+hash = "SHA1 502a4e25b8b209889c99c7fa0732102682c2e4ff"
+sha1 = "502a4e25b8b209889c99c7fa0732102682c2e4ff"
 ```
 
 ## Targets
