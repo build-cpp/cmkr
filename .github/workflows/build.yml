@@ -46,11 +46,13 @@ jobs:
     - name: Get lowercase OS name
       id: osname
       uses: ASzc/change-string-case-action@07c1e24a97f0951e13f88870b99c058fcf0b14cf # v5
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
       with:
         string: ${{ runner.os }}
 
     - name: Compress artifacts
       uses: vimtor/action-zip@26a249fb00d43ca98dad77a4b3838025fc226aa1 # v1.1
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
       with:
         files: install/bin/
         dest: ${{ github.event.repository.name }}-${{ steps.osname.outputs.lowercase }}.zip
