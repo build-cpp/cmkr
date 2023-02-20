@@ -288,6 +288,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         project.optional("version", project_version);
         project.optional("description", project_description);
         project.optional("languages", project_languages);
+        project.optional("allow-unknown-languages", project_allow_unknown_languages);
         project.optional("cmake-before", cmake_before);
         project.optional("cmake-after", cmake_after);
         project.optional("include-before", include_before);

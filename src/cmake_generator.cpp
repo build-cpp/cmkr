@@ -14,11 +14,33 @@
 namespace cmkr {
 namespace gen {
 
-using LanguageExtensions = std::vector<std::string>;
-static tsl::ordered_map<std::string, LanguageExtensions> known_languages = {
+/*
+Location: CMake/share/cmake-3.26/Modules
+rg "set\(CMAKE_(.+)_SOURCE_FILE_EXTENSIONS"
+
+Links:
+- https://gitlab.kitware.com/cmake/cmake/-/issues/24340
+- https://cmake.org/cmake/help/latest/command/enable_language.html
+*/
+
+static tsl::ordered_map<std::string, std::vector<std::string>> known_languages = {
+    {"ASM", {".s", ".S", ".asm", ".abs", ".msa", ".s90", ".s43", ".s85", ".s51"}},
+    {"ASM-ATT", {".s", ".asm"}},
+    {"ASM_MARMASM", {".asm"}},
+    {"ASM_MASM", {".asm"}},
+    {"ASM_NASM", {".nasm", ".asm"}},
     {"C", {".c", ".m"}},
-    {"CXX", {".C", ".M", ".c++", ".cc", ".cpp", ".cxx", ".mm", ".CPP"}},
     {"CSharp", {".cs"}},
+    {"CUDA", {".cu"}},
+    {"CXX", {".C", ".M", ".c++", ".cc", ".cpp", ".cxx", ".m", ".mm", ".mpp", ".CPP", ".ixx", ".cppm"}},
+    {"Fortran", {".f", ".F", ".fpp", ".FPP", ".f77", ".F77", ".f90", ".F90", ".for", ".For", ".FOR", ".f95", ".F95", ".cuf", ".CUF"}},
+    {"HIP", {".hip"}},
+    {"ISPC", {".ispc"}},
+    {"Java", {".java"}},
+    {"OBJC", {".m"}},
+    {"OBJCXX", {".M", ".m", ".mm"}},
+    {"RC", {".rc", ".RC"}},
+    {"Swift", {".swift"}},
 };
 
 static std::string format(const char *format, tsl::ordered_map<std::string, std::string> variables) {
@@ -520,7 +542,11 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
     for (auto const &lang : project.project_languages) {
         if (known_languages.find(lang) == known_languages.end()) {
-            throw std::runtime_error("Unknown language specified: " + lang);
+            if (project.project_allow_unknown_languages) {
+                printf("Unknown language '%s' specified\n", lang.c_str());
+            } else {
+                throw std::runtime_error("Unknown language '" + lang + "' specified");
+            }
         }
     }
 
@@ -851,6 +877,31 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         gen.conditional_cmake(subdir.cmake_after);
     }
 
+    // The implicit default is ["C", "CXX"], so make sure this list isn't
+    // empty or projects without languages explicitly defined will error.
+    auto project_languages = project.project_languages;
+    if (project_languages.empty())
+        project_languages = {"C", "CXX"};
+
+    // All acceptable extensions based off our given languages.
+    tsl::ordered_set<std::string> project_extensions;
+    for (const auto &language : project_languages) {
+        auto itr = known_languages.find(language);
+        if (itr != known_languages.end()) {
+            project_extensions.insert(itr->second.begin(), itr->second.end());
+        }
+    }
+
+    auto contains_language_source = [&project_extensions](const std::vector<std::string>& sources) {
+        for (const auto &source : sources) {
+            auto extension = fs::path(source).extension().string();
+            if (project_extensions.count(extension) > 0) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     if (!project.targets.empty()) {
         auto project_root = project.root();
         for (size_t i = 0; i < project.targets.size(); i++) {
@@ -961,57 +1012,19 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                     throw std::runtime_error(target.name + " " + source_key + " wildcard found 0 files");
                 }
 
-                // For non-interface targets, ensure there is a source file linked for the project's languages.
-                if (target.type != parser::target_interface) {
-                    // The implicit default is ["C", "CXX"], so make sure this list isn't
-                    // empty or projects without languages explicitly defined will error.
-                    auto proj_languages = project.project_languages;
-                    if (proj_languages.empty())
-                        proj_languages = {"C", "CXX"};
-
-                    // All acceptable extensions based off our given languages.
-                    tsl::ordered_set<std::string> proj_extensions = [&]() {
-                        tsl::ordered_set<std::string> exts;
-                        for (auto it = known_languages.begin(); it != known_languages.end(); ++it) {
-                            if (std::find(proj_languages.begin(), proj_languages.end(), it->first) == proj_languages.end()) {
-                                continue;
-                            }
-                            // Add all extensions of this language into the list
-                            for (auto const &ext : it->second) {
-                                exts.insert(ext);
-                            }
-                        }
-                        return exts;
-                    }();
-
-                    bool has_hit_def = false;
-                    for (auto &source : sources) {
-                        fs::path path = source;
-                        if (!path.has_extension()) {
-                            continue;
-                        }
-
-                        auto ext = path.extension().string();
-
-                        // Only test lower-case variant of the extension
-                        static auto asciitolower = [](char in) -> char {
-                            if (in <= 'Z' && in >= 'A')
-                                return in - ('Z' - 'z');
-                            return in;
-                        };
-
-                        std::transform(ext.begin(), ext.end(), ext.begin(), asciitolower);
-
-                        // Check if we've hit an acceptable project extensions
-                        if (std::find(proj_extensions.begin(), proj_extensions.end(), ext) != proj_extensions.end()) {
-                            has_hit_def = true;
-                            break;
-                        }
-                    }
-
-                    if (!has_hit_def) {
+                // Make sure there are source files for the languages used by the project
+                switch (target.type) {
+                case parser::target_executable:
+                case parser::target_library:
+                case parser::target_shared:
+                case parser::target_static:
+                case parser::target_object:
+                    if (!contains_language_source(sources)) {
                         throw std::runtime_error("There were no source files linked within the target " + target.name);
                     }
+                    break;
+                default:
+                    break;
                 }
 
                 if (sources_with_set) {
