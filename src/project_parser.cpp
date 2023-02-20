@@ -347,18 +347,18 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
             s.name = itr.first;
             const auto &value = itr.second;
             if (value.is_boolean()) {
-                s.val = value.as_boolean();
+                s.value = value.as_boolean();
             } else if (value.is_string()) {
-                s.val = value.as_string();
+                s.value = value.as_string();
             } else {
                 auto &setting = checker.create(value);
-                setting.optional("comment", s.comment);
+                setting.optional("help", s.help);
                 if (setting.contains("value")) {
                     const auto &v = setting.find("value");
                     if (v.is_boolean()) {
-                        s.val = v.as_boolean();
+                        s.value = v.as_boolean();
                     } else {
-                        s.val = v.as_string();
+                        s.value = v.as_string();
                     }
                 }
                 setting.optional("cache", s.cache);
@@ -376,13 +376,14 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
             o.name = itr.first;
             const auto &value = itr.second;
             if (value.is_boolean()) {
-                o.val = value.as_boolean();
+                o.value = value.as_boolean();
             } else {
                 auto &option = checker.create(value);
-                option.optional("comment", o.comment);
-                option.optional("value", o.val);
+                option.optional("help", o.help);
+                option.optional("value", o.value);
             }
             options.push_back(o);
+            conditions.emplace(o.name, o.name);
         }
     }
 
@@ -661,6 +662,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
 
             t.optional("add-function", tmplate.add_function);
             t.optional("pass-sources-to-add-function", tmplate.pass_sources_to_add_function);
+            t.optional("pass-sources", tmplate.pass_sources_to_add_function);
 
             templates.push_back(tmplate);
         }

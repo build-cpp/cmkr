@@ -94,6 +94,16 @@ include-before = ["cmake/before-subdir.cmake"]
 include-after = ["cmake/after-subdir.cmake"]
 ```
 
+## Options
+
+```toml
+[options]
+MYPROJECT_BUILD_TESTS = false
+MYPROJECT_SPECIAL_OPTION = { value = true, help = "Docstring for this option." }
+```
+
+Options correspond to [CMake cache variables](https://cmake.org/cmake/help/book/mastering-cmake/chapter/CMake%20Cache.html) that can be used to customize your project at configure-time. You can configure with `cmake -DMYPROJECT_BUILD_TESTS=ON` to enable the option. Every options automatically gets a corresponding [condition](#conditions).
+
 ## Variables
 
 ```toml

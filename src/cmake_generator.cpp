@@ -656,7 +656,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     if (!project.options.empty()) {
         comment("Options");
         for (const auto &opt : project.options) {
-            cmd("option")(opt.name, RawArg(Command::quote(opt.comment)), opt.val ? "ON" : "OFF");
+            cmd("option")(opt.name, RawArg(Command::quote(opt.help)), opt.value ? "ON" : "OFF");
         }
         endl();
     }
@@ -665,16 +665,16 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         comment("Variables");
         for (const auto &set : project.variables) {
             std::string set_val;
-            if (set.val.index() == 1) {
-                set_val = mpark::get<1>(set.val);
+            if (set.value.index() == 1) {
+                set_val = mpark::get<1>(set.value);
             } else {
-                set_val = mpark::get<0>(set.val) ? "ON" : "OFF";
+                set_val = mpark::get<0>(set.value) ? "ON" : "OFF";
             }
 
             if (set.cache) {
-                auto typ = set.val.index() == 1 ? "STRING" : "BOOL";
+                auto typ = set.value.index() == 1 ? "STRING" : "BOOL";
                 auto force = set.force ? "FORCE" : "";
-                cmd("set")(set.name, set_val, typ, set.comment, force);
+                cmd("set")(set.name, set_val, typ, set.help, force);
             } else {
                 cmd("set")(set.name, set_val);
             }
