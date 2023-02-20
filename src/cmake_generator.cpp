@@ -14,6 +14,35 @@
 namespace cmkr {
 namespace gen {
 
+/*
+Location: CMake/share/cmake-3.26/Modules
+rg "set\(CMAKE_(.+)_SOURCE_FILE_EXTENSIONS"
+
+Links:
+- https://gitlab.kitware.com/cmake/cmake/-/issues/24340
+- https://cmake.org/cmake/help/latest/command/enable_language.html
+*/
+
+static tsl::ordered_map<std::string, std::vector<std::string>> known_languages = {
+    {"ASM", {".s", ".S", ".asm", ".abs", ".msa", ".s90", ".s43", ".s85", ".s51"}},
+    {"ASM-ATT", {".s", ".asm"}},
+    {"ASM_MARMASM", {".asm"}},
+    {"ASM_MASM", {".asm"}},
+    {"ASM_NASM", {".nasm", ".asm"}},
+    {"C", {".c", ".m"}},
+    {"CSharp", {".cs"}},
+    {"CUDA", {".cu"}},
+    {"CXX", {".C", ".M", ".c++", ".cc", ".cpp", ".cxx", ".m", ".mm", ".mpp", ".CPP", ".ixx", ".cppm"}},
+    {"Fortran", {".f", ".F", ".fpp", ".FPP", ".f77", ".F77", ".f90", ".F90", ".for", ".For", ".FOR", ".f95", ".F95", ".cuf", ".CUF"}},
+    {"HIP", {".hip"}},
+    {"ISPC", {".ispc"}},
+    {"Java", {".java"}},
+    {"OBJC", {".m"}},
+    {"OBJCXX", {".M", ".m", ".mm"}},
+    {"RC", {".rc", ".RC"}},
+    {"Swift", {".swift"}},
+};
+
 static std::string format(const char *format, tsl::ordered_map<std::string, std::string> variables) {
     std::string s = format;
     for (const auto &itr : variables) {
@@ -510,6 +539,17 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     auto is_root_project = parent_project == nullptr;
 
     parser::Project project(parent_project, path, false);
+
+    for (auto const &lang : project.project_languages) {
+        if (known_languages.find(lang) == known_languages.end()) {
+            if (project.project_allow_unknown_languages) {
+                printf("Unknown language '%s' specified\n", lang.c_str());
+            } else {
+                throw std::runtime_error("Unknown language '" + lang + "' specified");
+            }
+        }
+    }
+
     Generator gen(project);
 
     // Helper lambdas for more convenient CMake generation
@@ -837,6 +877,31 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         gen.conditional_cmake(subdir.cmake_after);
     }
 
+    // The implicit default is ["C", "CXX"], so make sure this list isn't
+    // empty or projects without languages explicitly defined will error.
+    auto project_languages = project.project_languages;
+    if (project_languages.empty())
+        project_languages = {"C", "CXX"};
+
+    // All acceptable extensions based off our given languages.
+    tsl::ordered_set<std::string> project_extensions;
+    for (const auto &language : project_languages) {
+        auto itr = known_languages.find(language);
+        if (itr != known_languages.end()) {
+            project_extensions.insert(itr->second.begin(), itr->second.end());
+        }
+    }
+
+    auto contains_language_source = [&project_extensions](const std::vector<std::string>& sources) {
+        for (const auto &source : sources) {
+            auto extension = fs::path(source).extension().string();
+            if (project_extensions.count(extension) > 0) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     if (!project.targets.empty()) {
         auto project_root = project.root();
         for (size_t i = 0; i < project.targets.size(); i++) {
@@ -946,6 +1011,22 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                     auto source_key = condition.empty() ? "sources" : (condition + ".sources");
                     throw std::runtime_error(target.name + " " + source_key + " wildcard found 0 files");
                 }
+
+                // Make sure there are source files for the languages used by the project
+                switch (target.type) {
+                case parser::target_executable:
+                case parser::target_library:
+                case parser::target_shared:
+                case parser::target_static:
+                case parser::target_object:
+                    if (!contains_language_source(sources)) {
+                        throw std::runtime_error("There were no source files linked within the target " + target.name);
+                    }
+                    break;
+                default:
+                    break;
+                }
+
                 if (sources_with_set) {
                     // This is a sanity check to make sure the unconditional sources are first
                     if (!condition.empty()) {
