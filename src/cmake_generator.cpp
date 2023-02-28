@@ -119,6 +119,19 @@ static void create_file(const fs::path &path, const std::string &contents) {
     ofs << contents;
 }
 
+static std::string read_file(const fs::path &path) {
+    std::ifstream ifs(path, std::ios::binary);
+    if (!ifs) {
+        throw std::runtime_error("Failed to read " + path.string());
+    }
+    std::string contents;
+    ifs.seekg(0, std::ios::end);
+    contents.resize(ifs.tellg());
+    ifs.seekg(0, std::ios::beg);
+    ifs.read(&contents[0], contents.size());
+    return contents;
+}
+
 // CMake target name rules: https://cmake.org/cmake/help/latest/policy/CMP0037.html [A-Za-z0-9_.+\-]
 // TOML bare keys: non-empty strings composed only of [A-Za-z0-9_-]
 // We replace all non-TOML bare key characters with _
@@ -135,11 +148,73 @@ static std::string escape_project_name(const std::string &name) {
     return escaped;
 }
 
+static void generate_gitfile(const char *gitfile, const std::vector<std::string> &desired_lines) {
+    // Reference: https://github.com/github/linguist/blob/master/docs/overrides.md#summary
+    auto lines = desired_lines;
+    auto generate = [&lines](const char *newline) {
+        std::string generated;
+        generated += "# cmkr";
+        generated += newline;
+        for (const auto &line : lines) {
+            generated += line;
+            generated += newline;
+        }
+        return generated;
+    };
+    if (!fs::exists(gitfile)) {
+        create_file(gitfile, generate("\n"));
+    } else {
+        auto contents = read_file(gitfile);
+        std::string line;
+        auto cr = 0, lf = 0;
+        auto flush_line = [&line, &lines]() {
+            auto itr = std::find(lines.begin(), lines.end(), line);
+            if (itr != lines.end()) {
+                printf("erase:%s\n", line.c_str());
+                lines.erase(itr);
+            }
+            line.clear();
+        };
+        for (size_t i = 0; i < contents.length(); i++) {
+            if (contents[i] == '\r') {
+                cr++;
+                continue;
+            }
+            if (contents[i] == '\n') {
+                lf++;
+                flush_line();
+            } else {
+                line += contents[i];
+            }
+        }
+        if (!line.empty()) {
+            flush_line();
+        }
+
+        if (!lines.empty()) {
+            // Append the cmkr .gitattributes using the detected newline
+            auto newline = cr == lf ? "\r\n" : "\n";
+            if (!contents.empty() && contents.back() != '\n') {
+                contents += newline;
+            }
+            contents += newline;
+            contents += generate(newline);
+            create_file(gitfile, contents);
+        }
+    }
+}
+
 void generate_project(const std::string &type) {
     const auto name = escape_project_name(fs::current_path().stem().string());
     if (fs::exists(fs::current_path() / "cmake.toml")) {
         throw std::runtime_error("Cannot initialize a project when cmake.toml already exists!");
     }
+
+    // Automatically generate .gitattributes to not skew the statistics of the repo
+    generate_gitfile(".gitattributes", {"/**/CMakeLists.txt linguist-generated", "/**/cmkr.cmake linguist-vendored"});
+
+    // Generate .gitignore with reasonable defaults for CMake
+    generate_gitfile(".gitignore", {"build*/", "cmake-build*/", ".idea/", ".vscode/"});
 
     tsl::ordered_map<std::string, std::string> variables = {
         {"@name", name},
@@ -898,7 +973,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         }
     }
 
-    auto contains_language_source = [&project_extensions](const std::vector<std::string>& sources) {
+    auto contains_language_source = [&project_extensions](const std::vector<std::string> &sources) {
         for (const auto &source : sources) {
             auto extension = fs::path(source).extension().string();
             if (project_extensions.count(extension) > 0) {
