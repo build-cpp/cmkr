@@ -377,10 +377,33 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
             const auto &value = itr.second;
             if (value.is_boolean()) {
                 o.value = value.as_boolean();
-            } else {
+            } else if (value.is_string()) {
+                auto str = std::string(value.as_string());
+                if (str == "root") {
+                    o.value = std::string("${CMKR_ROOT_PROJECT}");
+                } else {
+                    throw_key_error("Unsupported option value '" + str + "'", str, value);
+                }
+            } else if (value.is_table()) {
                 auto &option = checker.create(value);
                 option.optional("help", o.help);
-                option.optional("value", o.value);
+                if (option.contains("value")) {
+                    const auto &ovalue = option.find("value");
+                    if (ovalue.is_boolean()) {
+                        o.value = ovalue.as_boolean();
+                    } else if (ovalue.is_string()) {
+                        auto str = std::string(ovalue.as_string());
+                        if (str == "root") {
+                            o.value = std::string("${CMKR_ROOT_PROJECT}");
+                        } else {
+                            throw_key_error("Unsupported option value '" + str + "'", str, value);
+                        }
+                    } else {
+                        throw_key_error(toml::concat_to_string("Unsupported value type: ", ovalue.type()), "value", value);
+                    }
+                }
+            } else {
+                throw_key_error(toml::concat_to_string("Unsupported value type: ", itr.second.type()), itr.first, itr.second);
             }
             options.push_back(o);
             conditions.emplace(o.name, o.name);

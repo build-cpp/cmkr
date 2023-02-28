@@ -25,7 +25,7 @@ struct Variable {
 struct Option {
     std::string name;
     std::string help;
-    bool value = false;
+    mpark::variant<bool, std::string> value;
 };
 
 struct Package {
