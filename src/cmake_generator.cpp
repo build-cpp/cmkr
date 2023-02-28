@@ -656,7 +656,13 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     if (!project.options.empty()) {
         comment("Options");
         for (const auto &opt : project.options) {
-            cmd("option")(opt.name, RawArg(Command::quote(opt.help)), opt.value ? "ON" : "OFF");
+            std::string default_val;
+            if (opt.value.index() == 0) {
+                default_val = mpark::get<0>(opt.value) ? "ON" : "OFF";
+            } else {
+                default_val = mpark::get<1>(opt.value);
+            }
+            cmd("option")(opt.name, RawArg(Command::quote(opt.help)), default_val);
         }
         endl();
     }

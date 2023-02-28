@@ -100,9 +100,12 @@ include-after = ["cmake/after-subdir.cmake"]
 [options]
 MYPROJECT_BUILD_TESTS = false
 MYPROJECT_SPECIAL_OPTION = { value = true, help = "Docstring for this option." }
+MYPROJECT_BUILD_EXAMPLES = "root"
 ```
 
-Options correspond to [CMake cache variables](https://cmake.org/cmake/help/book/mastering-cmake/chapter/CMake%20Cache.html) that can be used to customize your project at configure-time. You can configure with `cmake -DMYPROJECT_BUILD_TESTS=ON` to enable the option. Every options automatically gets a corresponding [condition](#conditions).
+Options correspond to [CMake cache variables](https://cmake.org/cmake/help/book/mastering-cmake/chapter/CMake%20Cache.html) that can be used to customize your project at configure-time. You can configure with `cmake -DMYPROJECT_BUILD_TESTS=ON` to enable the option. Every option automatically gets a corresponding [condition](#conditions).
+
+The special value `root` can be used to set the option to `true` if the project is compiled as the root project (it will be `false` if someone is including your project via `[fetch-content]` or `[subdir]`).
 
 ## Variables
 
