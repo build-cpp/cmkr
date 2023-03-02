@@ -170,7 +170,6 @@ static void generate_gitfile(const char *gitfile, const std::vector<std::string>
         auto flush_line = [&line, &lines]() {
             auto itr = std::find(lines.begin(), lines.end(), line);
             if (itr != lines.end()) {
-                printf("erase:%s\n", line.c_str());
                 lines.erase(itr);
             }
             line.clear();
@@ -618,7 +617,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     for (auto const &lang : project.project_languages) {
         if (known_languages.find(lang) == known_languages.end()) {
             if (project.project_allow_unknown_languages) {
-                printf("Unknown language '%s' specified\n", lang.c_str());
+                printf("[warning] Unknown language '%s' specified\n", lang.c_str());
             } else {
                 throw std::runtime_error("Unknown language '" + lang + "' specified");
             }
