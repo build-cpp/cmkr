@@ -212,6 +212,29 @@ CXX_STANDARD_REQUIRED = true
 FOLDER = "MyFolder"
 ```
 
+## Templates
+
+To avoid repeating yourself you can create your own target type and use it in your targets:
+
+```toml
+[template.example]
+condition = "MYPROJECT_BUILD_EXAMPLES"
+type = "executable"
+link-libraries = ["myproject::mylib"]
+add-function = ""
+pass-sources = false
+
+# Properties from the template are merged with the ones here
+[target.myexample]
+type = "example"
+sources = ["src/myexample.cpp"]
+```
+
+The properties declared on a `template` are the same as the ones you use for targets. The only exceptions are:
+
+- `add-function`: Specifies a custom add function. Projects like [pybind11](https://pybind11.readthedocs.io/en/stable/cmake/index.html#new-findpython-mode) have their own `add_xxx` function, which you can specify here.
+- `pass-sources`: Pass sources directly to the add function instead of using `target_sources`.
+
 ## Tests and installation (unfinished)
 
 **Note**: The `[[test]]` and `[[install]]` are unfinished features and will likely change in a future release.
