@@ -986,6 +986,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         auto project_root = project.root();
         for (size_t i = 0; i < project.targets.size(); i++) {
             const auto &target = project.targets[i];
+
+            auto throw_target_error = [&target](const std::string &message) { throw std::runtime_error("[target." + target.name + "] " + message); };
+
             const parser::Template *tmplate = nullptr;
             std::unique_ptr<ConditionScope> tmplate_cs{};
 
@@ -1089,7 +1092,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 auto sources = expand_cmake_paths(condition_sources, path, is_root_project);
                 if (sources.empty()) {
                     auto source_key = condition.empty() ? "sources" : (condition + ".sources");
-                    throw std::runtime_error(target.name + " " + source_key + " wildcard found 0 files");
+                    throw_target_error(source_key + " wildcard found 0 files");
                 }
 
                 // Make sure there are source files for the languages used by the project
@@ -1100,7 +1103,25 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 case parser::target_static:
                 case parser::target_object:
                     if (!contains_language_source(sources)) {
-                        throw std::runtime_error("There were no source files linked within the target " + target.name);
+                        std::string extensions;
+                        for (const auto &language : project_extensions) {
+                            if (!extensions.empty()) {
+                                extensions += " ";
+                            }
+                            extensions += language;
+                        }
+                        throw_target_error("No sources found with valid extensions (" + extensions + ")");
+                    }
+
+                    // Make sure relative source files exist
+                    for (const auto &source : sources) {
+                        auto var_index = source.find("${");
+                        if (var_index != std::string::npos)
+                            continue;
+                        const auto &source_path = fs::path(path) / source;
+                        if (!fs::exists(source_path)) {
+                            throw_target_error("Source file does not exist " + source);
+                        }
                     }
                     break;
                 default:
@@ -1110,7 +1131,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 if (sources_with_set) {
                     // This is a sanity check to make sure the unconditional sources are first
                     if (!condition.empty()) {
-                        throw std::runtime_error("Unreachable code, make sure unconditional sources are first");
+                        throw_target_error("Unreachable code, make sure unconditional sources are first");
                     }
                     cmd("set")(sources_var, sources);
                     sources_with_set = false;
@@ -1123,7 +1144,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
             if (tmplate != nullptr) {
                 if (target_type != parser::target_template) {
-                    throw std::runtime_error("Unreachable code, unexpected target type for template");
+                    throw_target_error("Unreachable code, unexpected target type for template");
                 }
                 target_type = tmplate->outline.type;
             }
@@ -1171,7 +1192,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 target_scope = "PUBLIC";
                 break;
             default:
-                throw std::runtime_error("Unimplemented enum value");
+                throw_target_error("Unimplemented enum value");
             }
 
             // Handle custom add commands from templates.
@@ -1252,7 +1273,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                     for (const auto &propItr : properties) {
                         if (propItr.first == "MSVC_RUNTIME_LIBRARY") {
                             if (project_root->project_msvc_runtime == parser::msvc_last) {
-                                throw std::runtime_error("You cannot set [target].msvc-runtime without setting the root [project].msvc-runtime");
+                                throw_target_error("You cannot set msvc-runtime without setting the root [project].msvc-runtime");
                             }
                         }
                     }
