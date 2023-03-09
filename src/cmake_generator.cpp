@@ -209,6 +209,9 @@ void generate_project(const std::string &type) {
         throw std::runtime_error("Cannot initialize a project when cmake.toml already exists!");
     }
 
+    // Check if the folder is empty before creating any files
+    auto is_empty = fs::is_empty(fs::current_path());
+
     // Automatically generate .gitattributes to not skew the statistics of the repo
     generate_gitfile(".gitattributes", {"/**/CMakeLists.txt linguist-generated", "/**/cmkr.cmake linguist-vendored"});
 
@@ -220,7 +223,7 @@ void generate_project(const std::string &type) {
         {"@type", type},
     };
 
-    if (!fs::is_empty(fs::current_path())) {
+    if (!is_empty) {
         // Make a backup of an existing CMakeLists.txt if it exists
         std::error_code ec;
         fs::rename("CMakeLists.txt", "CMakeLists.txt.bak", ec);
