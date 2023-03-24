@@ -1,3 +1,4 @@
 #include <Windows.h>
 
-void foo() { }
+void foo() {
+}

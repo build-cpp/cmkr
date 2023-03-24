@@ -2,7 +2,6 @@
 
 #include <string>
 
-namespace mylib
-{
+namespace mylib {
 std::string message();
 }

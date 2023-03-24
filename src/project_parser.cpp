@@ -36,7 +36,7 @@ static std::string format_key_message(const std::string &message, const toml::ke
     auto loc = value.location();
     auto line_number_str = std::to_string(loc.line());
     auto line_width = line_number_str.length();
-    const auto& line_str = loc.line_str();
+    const auto &line_str = loc.line_str();
 
     std::ostringstream oss;
     oss << message << "\n";
