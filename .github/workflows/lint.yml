@@ -1,0 +1,27 @@
+name: lint
+
+on: [push]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: clang-format
+        id: clang-format
+        uses: DoozyX/clang-format-lint-action@c3b2c943e924028b93a707a5b1b017976ab8d50c # v0.15
+        with:
+          exclude: './third_party'
+          extensions: 'c,h,cpp,hpp'
+          clangFormatVersion: 15
+          style: file
+
+      - name: clang-format instructions
+        if: ${{ failure() && steps.clang-format.outcome == 'failure' }}
+        run: |
+          # Instructions for fixing the formatting errors
+          echo -e "\n\033[0;31mTo fix the formatting, run:\nclang-format -style=file -i \$(git ls-files \"*.c\" \"*.h\" \"*.cpp\" \"*.hpp\")\033[0m\n"
+          exit 1
