@@ -784,7 +784,11 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     gen.conditional_includes(project.include_after);
     gen.conditional_cmake(project.cmake_after);
 
-    if (!project.vcpkg.packages.empty()) {
+    if (project.vcpkg.enabled()) {
+        if (!is_root_project) {
+            throw std::runtime_error("[vcpkg] is only supported in the root project");
+        }
+
         // Allow the user to specify a url or derive it from the version
         auto url = project.vcpkg.url;
         auto version_name = url;
@@ -797,7 +801,8 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         }
 
         // Show a nicer error than vcpkg when specifying an invalid package name
-        for (const auto &package : project.vcpkg.packages) {
+        const auto &packages = project.vcpkg.packages;
+        for (const auto &package : packages) {
             if (!vcpkg_valid_identifier(package.name)) {
                 throw std::runtime_error("Invalid [vcpkg].packages name '" + package.name + "' (needs to be lowercase alphanumeric)");
             }
@@ -831,7 +836,6 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
   "dependencies": [
 )";
 
-        const auto &packages = project.vcpkg.packages;
         for (size_t i = 0; i < packages.size(); i++) {
             const auto &package = packages[i];
             const auto &features = package.features;

@@ -47,6 +47,10 @@ struct Vcpkg {
     };
 
     std::vector<Package> packages;
+
+    bool enabled() const {
+        return !packages.empty();
+    }
 };
 
 enum TargetType {
