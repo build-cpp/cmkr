@@ -812,14 +812,20 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         // clang-format off
         cmd("if")("CMKR_ROOT_PROJECT", "AND", "NOT", "CMKR_DISABLE_VCPKG");
             cmd("include")("FetchContent");
-            cmd("message")("STATUS", "Fetching vcpkg (" + version_name + ")...");
-            cmd("FetchContent_Declare")("vcpkg", "URL", url);
-            // Not using FetchContent_MakeAvailable here in case vcpkg adds CMakeLists.txt
-            cmd("FetchContent_GetProperties")("vcpkg");
-            cmd("if")("NOT", "vcpkg_POPULATED");
-                cmd("FetchContent_Populate")("vcpkg");
-                cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
+            comment("Fix warnings about DOWNLOAD_EXTRACT_TIMESTAMP");
+            // clang-format off
+            cmd("if")("POLICY", "CMP0135");
+                cmd("cmake_policy")("SET", "CMP0135", "NEW");
             cmd("endif")();
+        // clang-format on
+        cmd("message")("STATUS", "Fetching vcpkg (" + version_name + ")...");
+        cmd("FetchContent_Declare")("vcpkg", "URL", url);
+        // Not using FetchContent_MakeAvailable here in case vcpkg adds CMakeLists.txt
+        cmd("FetchContent_GetProperties")("vcpkg");
+        cmd("if")("NOT", "vcpkg_POPULATED");
+        cmd("FetchContent_Populate")("vcpkg");
+        cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
+        cmd("endif")();
         cmd("endif")();
         endl();
         // clang-format on
@@ -889,6 +895,14 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
     if (!project.contents.empty()) {
         cmd("include")("FetchContent").endl();
+        if (!project.root()->vcpkg.enabled()) {
+            comment("Fix warnings about DOWNLOAD_EXTRACT_TIMESTAMP");
+            // clang-format off
+            cmd("if")("POLICY", "CMP0135");
+                cmd("cmake_policy")("SET", "CMP0135", "NEW");
+            cmd("endif")();
+            // clang-format on
+        }
         for (const auto &content : project.contents) {
             ConditionScope cs(gen, content.condition);
 
