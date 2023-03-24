@@ -23,11 +23,3 @@ arguments:
 }
 } // namespace help
 } // namespace cmkr
-
-const char *cmkr_help_version(void) {
-    return cmkr::help::version();
-}
-
-const char *cmkr_help_message(void) {
-    return cmkr::help::message();
-}

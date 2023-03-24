@@ -10,3 +10,4 @@ build*/
 cmake-build*/
 CMakeLists.txt.user
 .vscode/
+.DS_Store

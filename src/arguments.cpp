@@ -2,10 +2,8 @@
 #include "build.hpp"
 #include "cmake_generator.hpp"
 #include "help.hpp"
-
 #include "fs.hpp"
-#include <exception>
-#include <iostream>
+
 #include <stdexcept>
 #include <string>
 #include <vector>
