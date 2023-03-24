@@ -1,12 +1,10 @@
 #include "cmake_generator.hpp"
-#include "error.hpp"
 #include "literals.hpp"
 #include <resources/cmkr.hpp>
 
 #include "fs.hpp"
 #include "project_parser.hpp"
 #include <cstdio>
-#include <fstream>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -43,7 +41,7 @@ static tsl::ordered_map<std::string, std::vector<std::string>> known_languages =
     {"Swift", {".swift"}},
 };
 
-static std::string format(const char *format, tsl::ordered_map<std::string, std::string> variables) {
+static std::string format(const char *format, const tsl::ordered_map<std::string, std::string> &variables) {
     std::string s = format;
     for (const auto &itr : variables) {
         size_t start_pos = 0;
@@ -249,7 +247,7 @@ void generate_project(const std::string &type) {
 
 struct CommandEndl {
     std::stringstream &ss;
-    CommandEndl(std::stringstream &ss) : ss(ss) {
+    explicit CommandEndl(std::stringstream &ss) : ss(ss) {
     }
     void endl() {
         ss << '\n';
@@ -258,7 +256,7 @@ struct CommandEndl {
 
 struct RawArg {
     RawArg() = default;
-    RawArg(std::string arg) : arg(std::move(arg)) {
+    explicit RawArg(std::string arg) : arg(std::move(arg)) {
     }
 
     std::string arg;
@@ -293,7 +291,7 @@ struct Command {
         // https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#unquoted-argument
         // NOTE: Normally '/' does not require quoting according to the documentation but this has been the case here
         //       previously, so for backwards compatibility its still here.
-        if (str.find_first_of("()#\"\\'> |/;") == str.npos)
+        if (str.find_first_of("()#\"\\'> |/;") == std::string::npos)
             return str;
         std::string result;
         result += "\"";
@@ -442,10 +440,10 @@ static std::string tolf(const std::string &str) {
         }
     }
     return result;
-};
+}
 
 struct Generator {
-    Generator(const parser::Project &project, const fs::path &path) : project(project), path(path) {
+    Generator(const parser::Project &project, fs::path path) : project(project), path(std::move(path)) {
     }
     Generator(const Generator &) = delete;
 
@@ -893,7 +891,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             gen.conditional_includes(content.include_before);
             gen.conditional_cmake(content.cmake_before);
 
-            std::string version_info = "";
+            std::string version_info;
             if (content.arguments.contains("GIT_TAG")) {
                 version_info = " (" + content.arguments.at("GIT_TAG") + ")";
             } else if (content.arguments.contains("SVN_REVISION")) {

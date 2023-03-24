@@ -36,7 +36,7 @@ static std::string format_key_message(const std::string &message, const toml::ke
     auto loc = value.location();
     auto line_number_str = std::to_string(loc.line());
     auto line_width = line_number_str.length();
-    auto line_str = loc.line_str();
+    const auto& line_str = loc.line_str();
 
     std::ostringstream oss;
     oss << message << "\n";
@@ -73,7 +73,7 @@ class TomlChecker {
   public:
     TomlChecker(const TomlBasicValue &v, const toml::key &ky) : m_v(toml::find(v, ky)) {
     }
-    TomlChecker(const TomlBasicValue &v) : m_v(v) {
+    explicit TomlChecker(const TomlBasicValue &v) : m_v(v) {
     }
     TomlChecker(const TomlChecker &) = delete;
     TomlChecker(TomlChecker &&) = delete;
@@ -175,7 +175,7 @@ class TomlCheckerRoot {
     bool m_checked = false;
 
   public:
-    TomlCheckerRoot(const TomlBasicValue &root) : m_root(root) {
+    explicit TomlCheckerRoot(const TomlBasicValue &root) : m_root(root) {
     }
     TomlCheckerRoot(const TomlCheckerRoot &) = delete;
     TomlCheckerRoot(TomlCheckerRoot &&) = delete;
