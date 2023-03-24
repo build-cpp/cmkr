@@ -445,11 +445,12 @@ static std::string tolf(const std::string &str) {
 };
 
 struct Generator {
-    Generator(const parser::Project &project) : project(project) {
+    Generator(const parser::Project &project, const fs::path &path) : project(project), path(path) {
     }
     Generator(const Generator &) = delete;
 
     const parser::Project &project;
+    fs::path path;
     std::stringstream ss;
     int indent = 0;
 
@@ -479,8 +480,8 @@ struct Generator {
     void inject_includes(const std::vector<std::string> &includes) {
         if (!includes.empty()) {
             for (const auto &file : includes) {
-                if (!fs::is_regular_file(file)) {
-                    throw std::runtime_error("Include '" + file + "' does not exist");
+                if (!fs::exists(path / file)) {
+                    throw std::runtime_error("Include not found: " + file);
                 }
                 cmd("include")(file);
             }
@@ -627,7 +628,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         }
     }
 
-    Generator gen(project);
+    Generator gen(project, path);
 
     // Helper lambdas for more convenient CMake generation
     auto &ss = gen.ss;
@@ -1123,7 +1124,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                             continue;
                         const auto &source_path = fs::path(path) / source;
                         if (!fs::exists(source_path)) {
-                            throw_target_error("Source file does not exist " + source);
+                            throw_target_error("Source file not found: " + source);
                         }
                     }
                     break;
