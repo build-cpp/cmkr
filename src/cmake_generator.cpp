@@ -8,6 +8,7 @@
 #include <memory>
 #include <sstream>
 #include <stdexcept>
+#include <fstream>
 
 namespace cmkr {
 namespace gen {
