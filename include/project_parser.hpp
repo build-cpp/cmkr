@@ -1,10 +1,11 @@
 #pragma once
 
-#include <mpark/variant.hpp>
+#include <vector>
 #include <string>
+
+#include <mpark/variant.hpp>
 #include <tsl/ordered_map.h>
 #include <tsl/ordered_set.h>
-#include <vector>
 
 namespace cmkr {
 namespace parser {
@@ -47,6 +48,10 @@ struct Vcpkg {
     };
 
     std::vector<Package> packages;
+
+    bool enabled() const {
+        return !packages.empty();
+    }
 };
 
 enum TargetType {

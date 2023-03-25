@@ -1,14 +1,10 @@
 #include "build.hpp"
 #include "cmake_generator.hpp"
-#include "error.hpp"
 #include "project_parser.hpp"
 
 #include "fs.hpp"
-#include <cstddef>
 #include <cstdlib>
 #include <sstream>
-#include <stdexcept>
-#include <system_error>
 
 namespace cmkr {
 namespace build {
@@ -17,7 +13,7 @@ int run(int argc, char **argv) {
     parser::Project project(nullptr, ".", true);
     if (argc > 2) {
         for (int i = 2; i < argc; ++i) {
-            project.build_args.push_back(argv[i]);
+            project.build_args.emplace_back(argv[i]);
         }
     }
     std::stringstream ss;
@@ -48,13 +44,13 @@ int run(int argc, char **argv) {
 }
 
 int clean() {
-    bool ret = false;
+    bool success = false;
     parser::Project project(nullptr, ".", true);
     if (fs::exists(project.build_dir)) {
-        ret = fs::remove_all(project.build_dir);
+        success = fs::remove_all(project.build_dir);
         fs::create_directory(project.build_dir);
     }
-    return !ret;
+    return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 int install() {
@@ -64,33 +60,3 @@ int install() {
 }
 } // namespace build
 } // namespace cmkr
-
-int cmkr_build_run(int argc, char **argv) {
-    try {
-        return cmkr::build::run(argc, argv);
-    } catch (const std::system_error &e) {
-        return e.code().value();
-    } catch (...) {
-        return cmkr::error::Status(cmkr::error::Status::Code::BuildError);
-    }
-}
-
-int cmkr_build_clean(void) {
-    try {
-        return cmkr::build::clean();
-    } catch (const std::system_error &e) {
-        return e.code().value();
-    } catch (...) {
-        return cmkr::error::Status(cmkr::error::Status::Code::CleanError);
-    }
-}
-
-int cmkr_build_install(void) {
-    try {
-        return cmkr::build::install();
-    } catch (const std::system_error &e) {
-        return e.code().value();
-    } catch (...) {
-        return cmkr::error::Status(cmkr::error::Status::Code::InstallError);
-    }
-}

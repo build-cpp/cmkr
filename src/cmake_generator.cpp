@@ -1,15 +1,14 @@
 #include "cmake_generator.hpp"
-#include "error.hpp"
 #include "literals.hpp"
 #include <resources/cmkr.hpp>
 
 #include "fs.hpp"
 #include "project_parser.hpp"
 #include <cstdio>
-#include <fstream>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
+#include <fstream>
 
 namespace cmkr {
 namespace gen {
@@ -43,7 +42,7 @@ static tsl::ordered_map<std::string, std::vector<std::string>> known_languages =
     {"Swift", {".swift"}},
 };
 
-static std::string format(const char *format, tsl::ordered_map<std::string, std::string> variables) {
+static std::string format(const char *format, const tsl::ordered_map<std::string, std::string> &variables) {
     std::string s = format;
     for (const auto &itr : variables) {
         size_t start_pos = 0;
@@ -249,7 +248,7 @@ void generate_project(const std::string &type) {
 
 struct CommandEndl {
     std::stringstream &ss;
-    CommandEndl(std::stringstream &ss) : ss(ss) {
+    explicit CommandEndl(std::stringstream &ss) : ss(ss) {
     }
     void endl() {
         ss << '\n';
@@ -258,7 +257,7 @@ struct CommandEndl {
 
 struct RawArg {
     RawArg() = default;
-    RawArg(std::string arg) : arg(std::move(arg)) {
+    explicit RawArg(std::string arg) : arg(std::move(arg)) {
     }
 
     std::string arg;
@@ -293,7 +292,7 @@ struct Command {
         // https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#unquoted-argument
         // NOTE: Normally '/' does not require quoting according to the documentation but this has been the case here
         //       previously, so for backwards compatibility its still here.
-        if (str.find_first_of("()#\"\\'> |/;") == str.npos)
+        if (str.find_first_of("()#\"\\'> |/;") == std::string::npos)
             return str;
         std::string result;
         result += "\"";
@@ -442,10 +441,10 @@ static std::string tolf(const std::string &str) {
         }
     }
     return result;
-};
+}
 
 struct Generator {
-    Generator(const parser::Project &project, const fs::path &path) : project(project), path(path) {
+    Generator(const parser::Project &project, fs::path path) : project(project), path(std::move(path)) {
     }
     Generator(const Generator &) = delete;
 
@@ -786,7 +785,11 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     gen.conditional_includes(project.include_after);
     gen.conditional_cmake(project.cmake_after);
 
-    if (!project.vcpkg.packages.empty()) {
+    if (project.vcpkg.enabled()) {
+        if (!is_root_project) {
+            throw std::runtime_error("[vcpkg] is only supported in the root project");
+        }
+
         // Allow the user to specify a url or derive it from the version
         auto url = project.vcpkg.url;
         auto version_name = url;
@@ -799,7 +802,8 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         }
 
         // Show a nicer error than vcpkg when specifying an invalid package name
-        for (const auto &package : project.vcpkg.packages) {
+        const auto &packages = project.vcpkg.packages;
+        for (const auto &package : packages) {
             if (!vcpkg_valid_identifier(package.name)) {
                 throw std::runtime_error("Invalid [vcpkg].packages name '" + package.name + "' (needs to be lowercase alphanumeric)");
             }
@@ -809,14 +813,20 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         // clang-format off
         cmd("if")("CMKR_ROOT_PROJECT", "AND", "NOT", "CMKR_DISABLE_VCPKG");
             cmd("include")("FetchContent");
-            cmd("message")("STATUS", "Fetching vcpkg (" + version_name + ")...");
-            cmd("FetchContent_Declare")("vcpkg", "URL", url);
-            // Not using FetchContent_MakeAvailable here in case vcpkg adds CMakeLists.txt
-            cmd("FetchContent_GetProperties")("vcpkg");
-            cmd("if")("NOT", "vcpkg_POPULATED");
-                cmd("FetchContent_Populate")("vcpkg");
-                cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
+            comment("Fix warnings about DOWNLOAD_EXTRACT_TIMESTAMP");
+            // clang-format off
+            cmd("if")("POLICY", "CMP0135");
+                cmd("cmake_policy")("SET", "CMP0135", "NEW");
             cmd("endif")();
+        // clang-format on
+        cmd("message")("STATUS", "Fetching vcpkg (" + version_name + ")...");
+        cmd("FetchContent_Declare")("vcpkg", "URL", url);
+        // Not using FetchContent_MakeAvailable here in case vcpkg adds CMakeLists.txt
+        cmd("FetchContent_GetProperties")("vcpkg");
+        cmd("if")("NOT", "vcpkg_POPULATED");
+        cmd("FetchContent_Populate")("vcpkg");
+        cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
+        cmd("endif")();
         cmd("endif")();
         endl();
         // clang-format on
@@ -833,7 +843,6 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
   "dependencies": [
 )";
 
-        const auto &packages = project.vcpkg.packages;
         for (size_t i = 0; i < packages.size(); i++) {
             const auto &package = packages[i];
             const auto &features = package.features;
@@ -887,13 +896,21 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
     if (!project.contents.empty()) {
         cmd("include")("FetchContent").endl();
+        if (!project.root()->vcpkg.enabled()) {
+            comment("Fix warnings about DOWNLOAD_EXTRACT_TIMESTAMP");
+            // clang-format off
+            cmd("if")("POLICY", "CMP0135");
+                cmd("cmake_policy")("SET", "CMP0135", "NEW");
+            cmd("endif")();
+            // clang-format on
+        }
         for (const auto &content : project.contents) {
             ConditionScope cs(gen, content.condition);
 
             gen.conditional_includes(content.include_before);
             gen.conditional_cmake(content.cmake_before);
 
-            std::string version_info = "";
+            std::string version_info;
             if (content.arguments.contains("GIT_TAG")) {
                 version_info = " (" + content.arguments.at("GIT_TAG") + ")";
             } else if (content.arguments.contains("SVN_REVISION")) {

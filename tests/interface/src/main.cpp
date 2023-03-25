@@ -2,7 +2,6 @@
 
 #include "mylib/mylib.hpp"
 
-int main()
-{
+int main() {
     printf("mylib version: %s\n", mylib::version());
 }
