@@ -780,7 +780,6 @@ const Project *Project::root() const {
 bool Project::cmake_minimum_version(int major, int minor) const {
     // NOTE: this code is like pulling teeth, sorry
     auto root_version = root()->cmake_version;
-    puts(root_version.c_str());
     auto range_index = root_version.find("...");
     if (range_index != std::string::npos) {
         root_version.resize(range_index);
