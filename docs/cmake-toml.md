@@ -49,7 +49,7 @@ arch64 = "CMAKE_SIZEOF_VOID_P EQUAL 8"
 arch32 = "CMAKE_SIZEOF_VOID_P EQUAL 4"
 ```
 
-This will make the `arch64` and `arch32` conditions available with their respective CMake expressions. 
+This will make the `arch64` and `arch32` conditions available with their respective CMake expressions.
 
 You can also prefix most keys with `condition.` to represent a conditional:
 
