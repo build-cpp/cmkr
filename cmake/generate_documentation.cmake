@@ -15,7 +15,7 @@ function(generate_documentation)
                 message(FATAL_ERROR "This should not happen (wrong regex?)")
             endif()
         endforeach()
-        
+
         # Delete previously generated examples
         set(example_folder "${PROJECT_SOURCE_DIR}/docs/examples")
         file(GLOB example_files "${example_folder}/*.md")
@@ -41,21 +41,21 @@ function(generate_documentation)
                 # Read cmake.toml file
                 file(READ "${test_toml}" test_contents NO_HEX_CONVERSION)
                 string(LENGTH "${test_contents}" toml_length)
-                
+
                 # Extract header text
                 string(REGEX MATCH "^(\n*(#[^\n]+\n)+\n*)" EXAMPLE_HEADER "${test_contents}")
                 string(LENGTH "${EXAMPLE_HEADER}" header_length)
                 string(STRIP "${EXAMPLE_HEADER}" EXAMPLE_HEADER)
                 string(REGEX REPLACE "\n# ?" "\n\n" EXAMPLE_HEADER "\n${EXAMPLE_HEADER}")
                 string(STRIP "${EXAMPLE_HEADER}" EXAMPLE_HEADER)
-                
+
                 # Extract footer text
                 string(REGEX MATCH "(((#[^\n]+)(\n+|$))+)$" EXAMPLE_FOOTER "${test_contents}")
                 string(LENGTH "${EXAMPLE_FOOTER}" footer_length)
                 string(STRIP "${EXAMPLE_FOOTER}" EXAMPLE_FOOTER)
                 string(REGEX REPLACE "\n# ?" "\n\n" EXAMPLE_FOOTER "\n${EXAMPLE_FOOTER}")
                 string(STRIP "${EXAMPLE_FOOTER}" EXAMPLE_FOOTER)
-                
+
                 # Extract toml body
                 math(EXPR toml_length "${toml_length}-${header_length}-${footer_length}")
                 string(SUBSTRING "${test_contents}" ${header_length} ${toml_length} EXAMPLE_TOML)
@@ -64,7 +64,7 @@ function(generate_documentation)
                 # Extract title from description
                 if("${EXAMPLE_TOML}" MATCHES "description *= *\"([^\"]+)\"")
                     set(EXAMPLE_TITLE "${CMAKE_MATCH_1}")
-    
+
                     # Generate documentation markdown page
                     configure_file("${PROJECT_SOURCE_DIR}/cmake/example.md.in" "${example_folder}/${EXAMPLE_PERMALINK}.md" @ONLY NEWLINE_STYLE LF)
                 else()
