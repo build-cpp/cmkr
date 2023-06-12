@@ -917,7 +917,11 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 version_info = " (" + content.arguments.at("SVN_REVISION") + ")";
             }
             cmd("message")("STATUS", "Fetching " + content.name + version_info + "...");
-            cmd("FetchContent_Declare")(content.name, content.arguments);
+            if (content.system) {
+                cmd("FetchContent_Declare")(content.name, "SYSTEM", content.arguments);
+            } else {
+                cmd("FetchContent_Declare")(content.name, content.arguments);
+            }
             cmd("FetchContent_MakeAvailable")(content.name).endl();
 
             gen.conditional_includes(content.include_after);

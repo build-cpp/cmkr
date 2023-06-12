@@ -443,6 +443,15 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
             c.optional("cmake-after", content.cmake_after);
             c.optional("include-before", content.include_before);
             c.optional("include-after", content.include_after);
+            c.optional("system", content.system);
+
+            // Check if the minimum version requirement is satisfied (CMake 3.25)
+            if (c.contains("system") && !this->cmake_minimum_version(3, 25)) {
+                throw_key_error("The system argument is only supported on CMake version 3.25 and above.\nSet the CMake version in cmake.toml:\n"
+                                "[cmake]\n"
+                                "version = \"3.25\"\n",
+                                "system", "");
+            }
 
             for (const auto &argItr : itr.second.as_table()) {
                 std::string value;

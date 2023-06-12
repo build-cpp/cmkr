@@ -151,6 +151,7 @@ condition = "mycondition"
 git = "https://github.com/myuser/gitcontent"
 tag = "v0.1"
 shallow = false
+system = false
 
 [fetch-content.svncontent]
 condition = "mycondition"
