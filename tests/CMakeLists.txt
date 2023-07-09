@@ -100,3 +100,13 @@ if(MSVC) # msvc
 	)
 
 endif()
+add_test(
+	NAME
+		compile-options
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/compile-options"
+	COMMAND
+		"$<TARGET_FILE:cmkr>"
+		build
+)
+

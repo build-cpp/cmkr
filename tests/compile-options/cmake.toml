@@ -1,0 +1,15 @@
+# Example project that sets compiler/linker flags for various platforms.
+
+[project]
+name = "compile-options"
+description = "Compiler flags"
+
+[target.hello]
+type = "executable"
+sources = ["src/main.cpp"]
+msvc.compile-options = ["/W2"]
+gcc.compile-options = ["-Wall"]
+clang.compile-options = ["-Wall"]
+
+# The `hello` target uses [conditions](/cmake-toml#conditions) to set different compiler flags depending on the platform. See the [targets](/cmake-toml/#targets) documentation for other things you can set.
+# _Note_: In general you only want to specify flags _required_ to compile your code without errors.

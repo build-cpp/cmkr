@@ -52,3 +52,9 @@ name = "msvc-runtime"
 working-directory = "msvc-runtime"
 command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
+
+[[test]]
+name = "compile-options"
+working-directory = "compile-options"
+command = "$<TARGET_FILE:cmkr>"
+arguments = ["build"]
