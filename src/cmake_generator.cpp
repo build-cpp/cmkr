@@ -562,28 +562,26 @@ struct ConditionScope {
 };
 
 static bool vcpkg_valid_identifier(const std::string &name) {
-    // prn|aux|nul|con|lpt[1-9]|com[1-9]|core|default
-    auto is_reserved = [](const std::string &s) {
-        if (s == "prn" || s == "aux" || s == "nul" || s == "con" || s == "core" || s == "default") {
-            return true;
-        }
-        if (s.length() == 4 && (s.compare(0, 3, "lpt") == 0 || s.compare(0, 3, "com") == 0) && (s[3] >= '1' && s[3] <= '9')) {
-            return true;
+    // [a-z0-9]+(-[a-z0-9]+)*
+    for (size_t i = 0; i < name.length(); i++) {
+        auto c = name[i];
+        if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (i > 0 && c == '-')) {
+            continue;
         }
         return false;
-    };
-    // [a-z0-9]+(-[a-z0-9]+)*
-    auto is_identifier = [](const std::string &s) {
-        for (size_t i = 0; i < s.length(); i++) {
-            auto c = s[i];
-            if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (i > 0 && c == '-')) {
-                continue;
-            }
-            return false;
-        }
+    }
+    return true;
+}
+
+static bool vcpkg_identifier_reserved(const std::string &name) {
+    // prn|aux|nul|con|lpt[1-9]|com[1-9]|core|default
+    if (name == "prn" || name == "aux" || name == "nul" || name == "con" || name == "core" || name == "default") {
         return true;
-    };
-    return is_identifier(name) && !is_reserved(name);
+    }
+    if (name.length() == 4 && (name.compare(0, 3, "lpt") == 0 || name.compare(0, 3, "com") == 0) && (name[3] >= '1' && name[3] <= '9')) {
+        return true;
+    }
+    return false;
 }
 
 static std::string vcpkg_escape_identifier(const std::string &name) {
@@ -600,9 +598,11 @@ static std::string vcpkg_escape_identifier(const std::string &name) {
 
         escaped += std::tolower(ch);
     }
-
     if (!vcpkg_valid_identifier(escaped)) {
         throw std::runtime_error("The escaped project name '" + escaped + "' is not usable with [vcpkg]");
+    }
+    if (vcpkg_identifier_reserved(escaped)) {
+        throw std::runtime_error("The escaped project name '" + escaped + "' is a reserved name [vcpkg]");
     }
     return escaped;
 }
@@ -847,11 +847,17 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             const auto &package = packages[i];
             const auto &features = package.features;
             if (!vcpkg_valid_identifier(package.name)) {
-                throw std::runtime_error("Invalid vcpkg package name '" + package.name + "'");
+                throw std::runtime_error("Invalid vcpkg package name '" + package.name + "', name is not valid");
+            }
+            if (vcpkg_identifier_reserved(package.name)) {
+                throw std::runtime_error("Invalid vcpkg package name '" + package.name + "', name is reserved");
             }
             for (const auto &feature : features) {
                 if (!vcpkg_valid_identifier(feature)) {
-                    throw std::runtime_error("Invalid vcpkg package feature '" + feature + "'");
+                    throw std::runtime_error("Invalid vcpkg package feature '" + feature + "', name is not valid");
+                }
+                if (vcpkg_identifier_reserved(feature)) {
+                    throw std::runtime_error("Invalid vcpkg package feature '" + feature + "', name is reserved");
                 }
             }
             if (features.empty()) {
