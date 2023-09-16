@@ -1378,10 +1378,19 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         }
     }
 
+    // Fetch the generated CMakeLists.txt output from the stringstream buffer
+    auto generated_cmake = ss.str();
+
+    // Make sure the file ends in a single newline
+    while (!generated_cmake.empty() && std::isspace(generated_cmake.back())) {
+        generated_cmake.pop_back();
+    }
+    generated_cmake += '\n';
+
     // Generate CMakeLists.txt
     auto list_path = fs::path(path) / "CMakeLists.txt";
 
-    auto should_regenerate = [&list_path, &ss]() {
+    auto should_regenerate = [&list_path, &generated_cmake]() {
         if (!fs::exists(list_path))
             return true;
 
@@ -1391,11 +1400,11 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         }
 
         std::string data((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-        return data != ss.str();
+        return data != generated_cmake;
     }();
 
     if (should_regenerate) {
-        create_file(list_path, ss.str());
+        create_file(list_path, generated_cmake);
     }
 
     auto generate_subdir = [path, &project](const fs::path &sub) {
