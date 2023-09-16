@@ -109,4 +109,3 @@ add_test(
 		"$<TARGET_FILE:cmkr>"
 		build
 )
-
