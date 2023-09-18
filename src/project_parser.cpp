@@ -597,6 +597,23 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         t.optional("link-libraries", target.link_libraries);
         t.optional("private-link-libraries", target.private_link_libraries);
 
+        // Add support for relative paths for (private-)link-libraries
+        const auto fix_relative_paths = [](ConditionVector &libraries) {
+            for (const auto &library_entries : libraries) {
+                for (auto &path : libraries[library_entries.first]) {
+                    // Skip absolute paths and paths which do not include a parent path
+                    const fs::path library_file_path {path};
+                    if (library_file_path.is_absolute() || !library_file_path.has_parent_path())
+                        continue;
+
+                    // Prepend ${CMAKE_CURRENT_SOURCE_DIR} to the path
+                    path.insert(0, "${CMAKE_CURRENT_SOURCE_DIR}/");
+                }
+            }
+        };
+        fix_relative_paths(target.link_libraries);
+        fix_relative_paths(target.private_link_libraries);
+
         t.optional("link-options", target.link_options);
         t.optional("private-link-options", target.private_link_options);
 
