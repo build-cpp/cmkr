@@ -109,3 +109,13 @@ add_test(
 		"$<TARGET_FILE:cmkr>"
 		build
 )
+
+add_test(
+	NAME
+		relative-paths
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/relative-paths"
+	COMMAND
+		"$<TARGET_FILE:cmkr>"
+		build
+)
