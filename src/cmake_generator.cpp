@@ -1347,7 +1347,12 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             }
             auto working_directory = std::make_pair("WORKING_DIRECTORY", dir);
             auto command = std::make_pair("COMMAND", test.command);
-            auto arguments = std::make_pair("", test.arguments);
+
+            // Transform the provided arguments into raw arguments to prevent them from being quoted when the generator runs
+            std::vector<RawArg> raw_arguments{};
+            for (const auto &argument : test.arguments)
+                raw_arguments.emplace_back(argument);
+            auto arguments = std::make_pair("", raw_arguments);
             ConditionScope cs(gen, test.condition);
             cmd("add_test")(name, configurations, working_directory, command, arguments).endl();
         }
