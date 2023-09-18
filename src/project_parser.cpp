@@ -598,21 +598,37 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         t.optional("private-link-libraries", target.private_link_libraries);
 
         // Add support for relative paths for (private-)link-libraries
-        const auto fix_relative_paths = [](ConditionVector &libraries) {
+        const auto fix_relative_paths = [&name, &path](ConditionVector &libraries, const char *key) {
             for (const auto &library_entries : libraries) {
-                for (auto &path : libraries[library_entries.first]) {
-                    // Skip absolute paths and paths which do not include a parent path
-                    const fs::path library_file_path {path};
-                    if (library_file_path.is_absolute() || !library_file_path.has_parent_path())
+                for (auto &library_path : libraries[library_entries.first]) {
+                    // Skip processing paths with potential CMake macros in them (this check isn't perfect)
+                    // https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#variable-references
+                    if ((library_path.find("${") != std::string::npos || library_path.find("$ENV{") != std::string::npos ||
+                         library_path.find("$CACHE{") != std::string::npos) &&
+                        library_path.find('}') != std::string::npos) {
                         continue;
+                    }
+
+                    // Skip absolute paths and paths which do not include a parent path
+                    const fs::path library_file_path{library_path};
+                    if (library_file_path.is_absolute() || !library_file_path.has_parent_path()) {
+                        continue;
+                    }
+
+                    // Check if the new file path exists, otherwise emit an error
+                    const auto expected_library_file_path = fs::path{path} / library_file_path;
+                    if (!fs::exists(expected_library_file_path)) {
+                        throw std::runtime_error("Attempted to link against a library file that doesn't exist for target \"" + name + "\" in \"" +
+                                                 key + "\": " + library_path);
+                    }
 
                     // Prepend ${CMAKE_CURRENT_SOURCE_DIR} to the path
-                    path.insert(0, "${CMAKE_CURRENT_SOURCE_DIR}/");
+                    library_path.insert(0, "${CMAKE_CURRENT_SOURCE_DIR}/");
                 }
             }
         };
-        fix_relative_paths(target.link_libraries);
-        fix_relative_paths(target.private_link_libraries);
+        fix_relative_paths(target.link_libraries, "link-libraries");
+        fix_relative_paths(target.private_link_libraries, "private-link-libraries");
 
         t.optional("link-options", target.link_options);
         t.optional("private-link-options", target.private_link_options);
