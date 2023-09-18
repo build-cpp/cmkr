@@ -60,7 +60,13 @@ command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
 
 [[test]]
+name = "relative-paths-setup"
+working-directory = "relative-paths"
+command = "$<TARGET_FILE:cmkr>"
+arguments = ["build --target test-library"]
+
+[[test]]
 name = "relative-paths"
 working-directory = "relative-paths"
 command = "$<TARGET_FILE:cmkr>"
-arguments = ["build"]
+arguments = ["build --target example"]

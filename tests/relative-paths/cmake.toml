@@ -19,6 +19,3 @@ add_custom_command(
 type = "executable"
 sources = ["src/main.cpp"]
 link-libraries = ["libs/test-library-file.lib"]
-cmake-after = """
-add_dependencies(${CMKR_TARGET} ${TEST_LIBRARY_TARGET_NAME})
-"""
