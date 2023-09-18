@@ -8,4 +8,4 @@ sources = ["src/library-code.cpp"]
 [target.example]
 type = "executable"
 sources = ["src/main.cpp"]
-link-libraries = ["libs/test-library-file.lib"]
+windows.link-libraries = ["libs/test-library-x64-Release.lib"]
