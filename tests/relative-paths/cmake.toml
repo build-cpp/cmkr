@@ -1,0 +1,24 @@
+[project]
+name = "relative-paths"
+
+[target.test-library]
+type = "static"
+sources = ["src/library-code.cpp"]
+cmake-after = """
+set(TEST_LIBRARY_TARGET_NAME ${CMKR_TARGET})
+set(LIBRARIES_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/libs")
+add_custom_command(
+    TARGET ${CMKR_TARGET} POST_BUILD
+    COMMAND mkdir "${LIBRARIES_OUTPUT_DIRECTORY}"
+    COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE:${CMKR_TARGET}>" "${LIBRARIES_OUTPUT_DIRECTORY}/test-library-file.lib"
+    VERBATIM
+)
+"""
+
+[target.example]
+type = "executable"
+sources = ["src/main.cpp"]
+link-libraries = ["libs/test-library-file.lib"]
+cmake-after = """
+add_dependencies(${CMKR_TARGET} ${TEST_LIBRARY_TARGET_NAME})
+"""
