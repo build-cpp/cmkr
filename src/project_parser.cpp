@@ -609,14 +609,13 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                         continue;
                     }
 
-                    // Skip absolute paths and paths which do not include a parent path
-                    const fs::path library_file_path{library_path};
-                    if (library_file_path.is_absolute() || !library_file_path.has_parent_path()) {
+                    // Skip paths that don't contain backwards or forwards slashes
+                    if (library_path.find_first_of(R"(\/)") == std::string::npos) {
                         continue;
                     }
 
                     // Check if the new file path exists, otherwise emit an error
-                    const auto expected_library_file_path = fs::path{path} / library_file_path;
+                    const auto expected_library_file_path = fs::path{path} / library_path;
                     if (!fs::exists(expected_library_file_path)) {
                         throw std::runtime_error("Attempted to link against a library file that doesn't exist for target \"" + name + "\" in \"" +
                                                  key + "\": " + library_path);
