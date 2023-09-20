@@ -493,7 +493,7 @@ struct Generator {
                 throw std::runtime_error("Detected additional \" at the end of cmake block");
             }
             auto cmake_lf = tolf(cmake);
-            while (cmake_lf.back() == '\n')
+            while (!cmake_lf.empty() && cmake_lf.back() == '\n')
                 cmake_lf.pop_back();
             bool did_indent = false;
             for (char ch : cmake_lf) {
