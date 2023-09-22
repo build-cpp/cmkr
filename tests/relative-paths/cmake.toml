@@ -1,0 +1,11 @@
+[project]
+name = "relative-paths"
+
+[target.test-library]
+type = "static"
+sources = ["src/library-code.cpp"]
+
+[target.example]
+type = "executable"
+sources = ["src/main.cpp"]
+windows.link-libraries = ["libs/test-library-x64-Release.lib"]

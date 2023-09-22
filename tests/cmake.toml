@@ -58,3 +58,10 @@ name = "compile-options"
 working-directory = "compile-options"
 command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
+
+[[test]]
+condition = "windows"
+name = "relative-paths"
+working-directory = "relative-paths"
+command = "$<TARGET_FILE:cmkr>"
+arguments = ["build"]
