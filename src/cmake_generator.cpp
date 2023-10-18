@@ -215,7 +215,7 @@ void generate_project(const std::string &type) {
     generate_gitfile(".gitattributes", {"/**/CMakeLists.txt linguist-generated", "/**/cmkr.cmake linguist-vendored"});
 
     // Generate .gitignore with reasonable defaults for CMake
-    generate_gitfile(".gitignore", {"build*/", "cmake-build*/", ".idea/", ".vscode/"});
+    generate_gitfile(".gitignore", {"build*/", "cmake-build*/", "CMakerLists.txt", "CMakeLists.txt.user"});
 
     tsl::ordered_map<std::string, std::string> variables = {
         {"@name", name},
