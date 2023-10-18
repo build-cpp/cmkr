@@ -39,6 +39,32 @@ include-before = ["cmake/before-project.cmake"]
 include-after = ["cmake/after-project.cmake"]
 ```
 
+### Languages
+
+Supported languages are (see [`enable_language`](https://cmake.org/cmake/help/latest/command/enable_language.html) for more information):
+
+- `C`
+- `CXX` → C++
+- `CSharp` → C#
+- `CUDA`
+- `OBJC` → Objective-C
+- `OBJCXX` → Objective-C++
+- `Fortran`
+- `HIP`
+- `ISPC`
+- `Swift`
+- `ASM`
+- `ASM_MASM` → [Microsoft Macro Assembler (MASM)](https://learn.microsoft.com/en-US/cpp/assembler/masm/masm-for-x64-ml64-exe)
+- `ASM_NASM` → [Netwide Assembler (NASM)](https://www.nasm.us)
+- `ASM_MARMASM` [Microsoft ARM Assembler](https://learn.microsoft.com/en-us/cpp/assembler/arm/arm-assembler-command-line-reference)
+- `ASM-ATT`
+- `Java` (undocumented)
+- `RC` (undocumented)
+
+After a language is enabled, adding sources files with the corresponding extension to your target will automatically use the appropriate compiler/assembler for it.
+
+_Note_: It is generally discouraged to disable the `C` language, unless you are absolutely sure it is not used. Sometimes projects added with `fetch-content` implicitly require it and the error messages can be extremely confusing.
+
 ## Conditions
 
 You can specify your own conditions and use them in any `condition` field:
