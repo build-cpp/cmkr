@@ -180,6 +180,7 @@ git = "https://github.com/myuser/gitcontent"
 tag = "v0.1"
 shallow = false
 system = false
+subdir = ""
 
 [fetch-content.svncontent]
 condition = "mycondition"
@@ -194,6 +195,8 @@ url = "https://content-host.com/urlcontent.zip"
 hash = "SHA1 502a4e25b8b209889c99c7fa0732102682c2e4ff"
 sha1 = "502a4e25b8b209889c99c7fa0732102682c2e4ff"
 ```
+
+Table keys that match CMake variable names (`[A-Z_]+`) will be passed to the [`FetchContent_Declare`](https://cmake.org/cmake/help/latest/module/FetchContent.html#command:fetchcontent_declare) command.
 
 ## Targets
 

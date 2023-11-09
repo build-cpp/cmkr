@@ -507,6 +507,8 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                     value = algo + "=" + value;
                 } else if (key == "hash") {
                     key = "URL_HASH";
+                } else if (key == "subdir") {
+                    key = "SOURCE_SUBDIR";
                 } else if (is_cmake_arg(key)) {
                     // allow passthrough of ExternalProject options
                 } else if (!c.visisted(key)) {
