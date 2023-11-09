@@ -156,6 +156,7 @@ struct Content {
     ConditionVector include_before;
     ConditionVector include_after;
     bool system;
+    std::string subdir;
 };
 
 enum MsvcRuntimeType {
