@@ -111,7 +111,7 @@ static void create_file(const fs::path &path, const std::string &contents) {
     if (!path.parent_path().empty()) {
         fs::create_directories(path.parent_path());
     }
-    std::ofstream ofs(path, std::ios::binary);
+    std::ofstream ofs(path);
     if (!ofs) {
         throw std::runtime_error("Failed to create " + path.string());
     }
@@ -119,7 +119,7 @@ static void create_file(const fs::path &path, const std::string &contents) {
 }
 
 static std::string read_file(const fs::path &path) {
-    std::ifstream ifs(path, std::ios::binary);
+    std::ifstream ifs(path);
     if (!ifs) {
         throw std::runtime_error("Failed to read " + path.string());
     }
@@ -832,7 +832,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         // clang-format on
 
         // Generate vcpkg.json (sorry for the ugly string handling, nlohmann compiles very slowly)
-        std::ofstream ofs("vcpkg.json", std::ios::binary);
+        std::ofstream ofs("vcpkg.json");
         if (!ofs) {
             throw std::runtime_error("Failed to create a vcpkg.json manifest file!");
         }
@@ -1399,7 +1399,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         if (!fs::exists(list_path))
             return true;
 
-        std::ifstream ifs(list_path, std::ios::binary);
+        std::ifstream ifs(list_path);
         if (!ifs.is_open()) {
             throw std::runtime_error("Failed to read " + list_path.string());
         }
