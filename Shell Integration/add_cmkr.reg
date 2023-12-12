@@ -1,0 +1,8 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\Run Batch File]
+@="cmkr"
+"Icon"="H:\\tools\\cmkr\\hammer.ico"
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\Run Batch File\command]
+@="\"H:\\tools\\cmkr\\cmkr.bat\" \"%V\" && msg *  \"cmkr project setup in %V" 
