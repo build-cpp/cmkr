@@ -4,7 +4,7 @@ cmkr-include = false
 
 [project]
 name = "cmkr"
-version = "0.2.26"
+version = "0.2.27"
 description = "CMakeLists generator from TOML"
 languages = ["CXX"]
 include-after = [
