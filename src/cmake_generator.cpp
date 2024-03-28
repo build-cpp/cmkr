@@ -900,6 +900,20 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         ofs << "}\n";
     }
 
+    if (!project.packages.empty()) {
+        comment("Packages");
+        for (const auto &dep : project.packages) {
+            auto version = dep.version;
+            if (version == "*")
+                version.clear();
+            auto required = dep.required ? "REQUIRED" : "";
+            auto config = dep.config ? "CONFIG" : "";
+            auto components = std::make_pair("COMPONENTS", dep.components);
+            ConditionScope cs(gen, dep.condition);
+            cmd("find_package")(dep.name, version, required, config, components).endl();
+        }
+    }
+
     if (!project.contents.empty()) {
         cmd("include")("FetchContent").endl();
         if (!project.root()->vcpkg.enabled()) {
@@ -932,20 +946,6 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
             gen.conditional_includes(content.include_after);
             gen.conditional_cmake(content.cmake_after);
-        }
-    }
-
-    if (!project.packages.empty()) {
-        comment("Packages");
-        for (const auto &dep : project.packages) {
-            auto version = dep.version;
-            if (version == "*")
-                version.clear();
-            auto required = dep.required ? "REQUIRED" : "";
-            auto config = dep.config ? "CONFIG" : "";
-            auto components = std::make_pair("COMPONENTS", dep.components);
-            ConditionScope cs(gen, dep.condition);
-            cmd("find_package")(dep.name, version, required, config, components).endl();
         }
     }
 
