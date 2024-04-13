@@ -814,19 +814,20 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         cmd("if")("CMKR_ROOT_PROJECT", "AND", "NOT", "CMKR_DISABLE_VCPKG");
             cmd("include")("FetchContent");
             comment("Fix warnings about DOWNLOAD_EXTRACT_TIMESTAMP");
-            // clang-format off
             cmd("if")("POLICY", "CMP0135");
                 cmd("cmake_policy")("SET", "CMP0135", "NEW");
             cmd("endif")();
-        // clang-format on
-        cmd("message")("STATUS", "Fetching vcpkg (" + version_name + ")...");
-        cmd("FetchContent_Declare")("vcpkg", "URL", url);
-        // Not using FetchContent_MakeAvailable here in case vcpkg adds CMakeLists.txt
-        cmd("FetchContent_GetProperties")("vcpkg");
-        cmd("if")("NOT", "vcpkg_POPULATED");
-        cmd("FetchContent_Populate")("vcpkg");
-        cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
-        cmd("endif")();
+            cmd("message")("STATUS", "Fetching vcpkg (" + version_name + ")...");
+            cmd("FetchContent_Declare")("vcpkg", "URL", url);
+            // Not using FetchContent_MakeAvailable here in case vcpkg adds CMakeLists.txt
+            cmd("FetchContent_GetProperties")("vcpkg");
+            cmd("if")("NOT", "vcpkg_POPULATED");
+                cmd("FetchContent_Populate")("vcpkg");
+                cmd("if")("CMAKE_HOST_SYSTEM_NAME", "STREQUAL", "Darwin", "AND", "CMAKE_OSX_ARCHITECTURES", "STREQUAL", RawArg("\"\""));
+                    cmd("set")("CMAKE_OSX_ARCHITECTURES", "${CMAKE_HOST_SYSTEM_PROCESSOR}", "CACHE", "STRING", RawArg("\"\""), "FORCE");
+                cmd("endif")();
+                cmd("include")("${vcpkg_SOURCE_DIR}/scripts/buildsystems/vcpkg.cmake");
+            cmd("endif")();
         cmd("endif")();
         endl();
         // clang-format on
