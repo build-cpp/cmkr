@@ -2,6 +2,9 @@
 name = "conditions"
 cmake-after = "set(CUSTOM ON)"
 
+[options]
+CONDITIONS_BUILD_TESTS = false
+
 [conditions]
 custom = "CUSTOM"
 
@@ -15,6 +18,7 @@ macos.cmake-after = "message(STATUS macos-after)"
 linux.cmake-after = "message(STATUS linux-after)"
 unix.cmake-after = "message(STATUS unix-after)"
 custom.cmake-after = "message(STATUS custom-after)"
+build-tests.cmake-after = "message(STATUS build-tests)"
 
 [target.example.properties]
 AUTOMOC = false

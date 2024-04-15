@@ -514,15 +514,13 @@ struct Generator {
         if (!value.empty()) {
             for (const auto &itr : value) {
                 const auto &condition = itr.first;
-                if (!condition.empty()) {
-                    cmd("if", condition)(RawArg(project.conditions.at(condition)));
-                }
+                auto endif = if_condition(condition);
 
                 if (!itr.second.empty()) {
                     fn(condition, itr.second);
                 }
 
-                if (!condition.empty()) {
+                if (endif) {
                     cmd("endif")().endl();
                 } else if (!itr.second.empty()) {
                     endl();
@@ -538,6 +536,23 @@ struct Generator {
     void conditional_cmake(const parser::Condition<std::string> &cmake) {
         handle_condition(cmake, [this](const std::string &, const std::string &cmake) { inject_cmake(cmake); });
     }
+
+    bool if_condition(const std::string &condition) {
+        if (condition.empty()) {
+            return false;
+        }
+        auto found = project.conditions.find(condition);
+        if (found == project.conditions.end()) {
+            if (cmkr::parser::Project::is_condition_name(condition)) {
+                // NOTE: this should have been caught by the parser already
+                throw std::runtime_error("Condition '" + condition + "' is not defined");
+            }
+            cmd("if", "NOTE: unnamed condition")(RawArg(condition));
+        } else {
+            cmd("if", condition)(RawArg(found->second));
+        }
+        return true;
+    }
 };
 
 struct ConditionScope {
@@ -545,10 +560,7 @@ struct ConditionScope {
     bool endif = false;
 
     ConditionScope(Generator &gen, const std::string &condition) : gen(gen) {
-        if (!condition.empty()) {
-            gen.cmd("if", condition)(RawArg(gen.project.conditions.at(condition)));
-            endif = true;
-        }
+        endif = gen.if_condition(condition);
     }
 
     ConditionScope(const ConditionScope &) = delete;

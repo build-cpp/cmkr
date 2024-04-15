@@ -208,6 +208,7 @@ struct Project {
     Project(const Project *parent, const std::string &path, bool build);
     const Project *root() const;
     bool cmake_minimum_version(int major, int minor) const;
+    static bool is_condition_name(const std::string &name);
 };
 
 bool is_root_path(const std::string &path);
