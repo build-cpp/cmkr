@@ -547,11 +547,56 @@ struct Generator {
                 // NOTE: this should have been caught by the parser already
                 throw std::runtime_error("Condition '" + condition + "' is not defined");
             }
-            cmd("if", "NOTE: unnamed condition")(RawArg(condition));
+            cmd("if", "NOTE: unnamed condition")(RawArg(cmake_condition(condition)));
         } else {
             cmd("if", condition)(RawArg(found->second));
         }
         return true;
+    }
+
+  private:
+    std::string cmake_condition(const std::string &condition) {
+        // HACK: this replaces '$<name>' with the value of the 'name' condition. We can safely
+        // reuse the generator expression syntax, because it is not valid in CMake conditions.
+        // TODO: properly handle quoted arguments (using a simple state machine):
+        // https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#quoted-argument
+        std::string result = "";
+        bool in_replacement = false;
+        std::string temp;
+        for (size_t i = 0; i < condition.length(); i++) {
+            if (in_replacement) {
+                if (condition[i] == '>') {
+                    in_replacement = false;
+                    if (temp.empty()) {
+                        throw std::runtime_error("Empty replacement in condition '" + condition + "'");
+                    }
+                    auto found = project.conditions.find(temp);
+                    if (found == project.conditions.end()) {
+                        throw std::runtime_error("Unknown condition '" + temp + "' in replacement");
+                    }
+                    auto has_space = found->second.find(' ') != std::string::npos;
+                    if (has_space) {
+                        result += '(';
+                    }
+                    result += found->second;
+                    if (has_space) {
+                        result += ')';
+                    }
+                    temp.clear();
+                } else {
+                    temp += condition[i];
+                }
+            } else if (condition[i] == '$' && i + 1 < condition.length() && condition[i + 1] == '<') {
+                i++;
+                in_replacement = true;
+            } else {
+                result += condition[i];
+            }
+        }
+        if (!temp.empty()) {
+            throw std::runtime_error("Unterminated replacement in condition '" + condition + "'");
+        }
+        return result;
     }
 };
 

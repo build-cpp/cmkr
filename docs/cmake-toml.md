@@ -88,7 +88,7 @@ sources = ["src/main.cpp"]
 ptr64.sources = ["src/ptr64_only.cpp"]
 ```
 
-Instead of a named condition you can also specify a [CMake expression](https://cmake.org/cmake/help/latest/command/if.html#condition-syntax) directly.
+Instead of a named condition you can also specify a [CMake expression](https://cmake.org/cmake/help/latest/command/if.html#condition-syntax) in quotes. Instances of `$<name>` are replaced with the corresponding condition. For example: `"CONDITIONS_BUILD_TESTS AND $<linux>"` becomes `CONDITIONS_BUILD_TESTS AND (CMAKE_SYSTEM_NAME MATCHES "Linux")` in the final `CMakeLists.txt` file.
 
 ### Predefined conditions
 
