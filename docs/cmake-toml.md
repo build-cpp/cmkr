@@ -67,15 +67,17 @@ _Note_: It is generally discouraged to disable the `C` language, unless you are 
 
 ## Conditions
 
-You can specify your own conditions and use them in any `condition` field:
+You can specify your own named conditions and use them in any `condition` field:
 
 ```toml
 [conditions]
-arch64 = "CMAKE_SIZEOF_VOID_P EQUAL 8"
-arch32 = "CMAKE_SIZEOF_VOID_P EQUAL 4"
+ptr64 = "CMAKE_SIZEOF_VOID_P EQUAL 8"
+ptr32 = "CMAKE_SIZEOF_VOID_P EQUAL 4"
 ```
 
-This will make the `arch64` and `arch32` conditions available with their respective CMake expressions.
+This will make the `ptr64` and `ptr32` conditions available with their respective CMake expressions.
+
+**Note**: condition names can only contain lower-case alphanumeric characters (`[0-9a-z]`) and dashes (`-`).
 
 You can also prefix most keys with `condition.` to represent a conditional:
 
@@ -83,8 +85,10 @@ You can also prefix most keys with `condition.` to represent a conditional:
 [target]
 type = "executable"
 sources = ["src/main.cpp"]
-windows.sources = ["src/windows_specific.cpp"]
+ptr64.sources = ["src/ptr64_only.cpp"]
 ```
+
+Instead of a named condition you can also specify a [CMake expression](https://cmake.org/cmake/help/latest/command/if.html#condition-syntax) in quotes. Instances of `$<name>` are replaced with the corresponding condition. For example: `"CONDITIONS_BUILD_TESTS AND $<linux>"` becomes `CONDITIONS_BUILD_TESTS AND (CMAKE_SYSTEM_NAME MATCHES "Linux")` in the final `CMakeLists.txt` file.
 
 ### Predefined conditions
 
@@ -131,7 +135,7 @@ MYPROJECT_SPECIAL_OPTION = { value = true, help = "Docstring for this option." }
 MYPROJECT_BUILD_EXAMPLES = "root"
 ```
 
-Options correspond to [CMake cache variables](https://cmake.org/cmake/help/book/mastering-cmake/chapter/CMake%20Cache.html) that can be used to customize your project at configure-time. You can configure with `cmake -DMYPROJECT_BUILD_TESTS=ON` to enable the option. Every option automatically gets a corresponding [condition](#conditions).
+Options correspond to [CMake cache variables](https://cmake.org/cmake/help/book/mastering-cmake/chapter/CMake%20Cache.html) that can be used to customize your project at configure-time. You can configure with `cmake -DMYPROJECT_BUILD_TESTS=ON` to enable the option. Every option automatically gets a corresponding [condition](#conditions). Additionally, a normalized condition is created based on the `[project].name` (i.e. `MYPROJECT_BUILD_TESTS` becomes `build-tests`).
 
 The special value `root` can be used to set the option to `true` if the project is compiled as the root project (it will be `false` if someone is including your project via `[fetch-content]` or `[subdir]`).
 
@@ -149,8 +153,8 @@ Variables emit a [`set`](https://cmake.org/cmake/help/latest/command/set.html) a
 
 ```toml
 [vcpkg]
-version = "2021.05.12"
-url = "https://github.com/microsoft/vcpkg/archive/refs/tags/2021.05.12.tar.gz"
+version = "2024.03.25"
+url = "https://github.com/microsoft/vcpkg/archive/refs/tags/2024.03.25.tar.gz"
 packages = ["fmt", "zlib"]
 ```
 

@@ -140,7 +140,7 @@ class TomlChecker {
         for (const auto &itr : m_v.as_table()) {
             const auto &ky = itr.first;
             if (m_conditionVisited.contains(ky)) {
-                if (!conditions.contains(ky)) {
+                if (!conditions.contains(ky) && Project::is_condition_name(ky)) {
                     throw_key_error("Unknown condition '" + ky + "'", ky, itr.second);
                 }
 
@@ -160,7 +160,7 @@ class TomlChecker {
                 throw_key_error("Unknown key '" + ky + "'", ky, itr.second);
             } else if (ky == "condition") {
                 std::string condition = itr.second.as_string();
-                if (!conditions.contains(condition)) {
+                if (!conditions.contains(condition) && Project::is_condition_name(condition)) {
                     throw_key_error("Unknown condition '" + condition + "'", condition, itr.second);
                 }
             }
@@ -282,6 +282,9 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
     if (checker.contains("conditions")) {
         auto conds = toml::find<decltype(conditions)>(toml, "conditions");
         for (const auto &cond : conds) {
+            if (!is_condition_name(cond.first)) {
+                throw_key_error("Invalid condition name '" + cond.first + "'", cond.first, toml::find(toml::find(toml, "conditions"), cond.first));
+            }
             conditions[cond.first] = cond.second;
         }
     }
@@ -372,6 +375,24 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
     }
 
     if (checker.contains("options")) {
+        auto normalize = [](const std::string &name) {
+            std::string normalized;
+            for (char ch : name) {
+                if (ch == '_') {
+                    normalized += '-';
+                } else if (ch >= 'A' && ch <= 'Z') {
+                    normalized += std::tolower(ch);
+                } else if (ch == '-' || (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z')) {
+                    normalized += ch;
+                } else {
+                    // Ignore all other characters
+                }
+            }
+            return normalized;
+        };
+        auto nproject_prefix = normalize(project_name);
+        nproject_prefix += '-';
+
         using opts_map = tsl::ordered_map<std::string, TomlBasicValue>;
         const auto &opts = toml::find<opts_map>(toml, "options");
         for (const auto &itr : opts) {
@@ -409,7 +430,18 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 throw_key_error(toml::concat_to_string("Unsupported value type: ", itr.second.type()), itr.first, itr.second);
             }
             options.push_back(o);
-            conditions.emplace(o.name, o.name);
+
+            // Add an implicit condition for the option
+            auto ncondition = normalize(o.name);
+            if (ncondition.find(nproject_prefix) == 0) {
+                ncondition = ncondition.substr(nproject_prefix.size());
+            }
+            if (!ncondition.empty()) {
+                if (conditions.contains(ncondition)) {
+                    print_key_warning("Option '" + o.name + "' would create a condition '" + ncondition + "' that already exists", o.name, value);
+                }
+                conditions.emplace(ncondition, o.name);
+            }
         }
     }
 
@@ -639,28 +671,28 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
 
         Condition<std::string> msvc_runtime;
         t.optional("msvc-runtime", msvc_runtime);
-        for (const auto &condItr : msvc_runtime) {
-            switch (parse_msvcRuntimeType(condItr.second)) {
+        for (const auto &cond_itr : msvc_runtime) {
+            switch (parse_msvcRuntimeType(cond_itr.second)) {
             case msvc_dynamic:
-                target.properties[condItr.first]["MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL";
+                target.properties[cond_itr.first]["MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL";
                 break;
             case msvc_static:
-                target.properties[condItr.first]["MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>";
+                target.properties[cond_itr.first]["MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>";
                 break;
             default: {
-                std::string error = "Unknown runtime '" + condItr.second + "'\n";
+                std::string error = "Unknown runtime '" + cond_itr.second + "'\n";
                 error += "Available types:\n";
                 for (std::string type_name : msvcRuntimeTypeNames) {
                     error += "  - " + type_name + "\n";
                 }
                 error.pop_back(); // Remove last newline
                 const TomlBasicValue *report;
-                if (condItr.first.empty()) {
+                if (cond_itr.first.empty()) {
                     report = &t.find("msvc-runtime");
                 } else {
-                    report = &t.find(condItr.first).as_table().find("msvc-runtime").value();
+                    report = &t.find(cond_itr.first).as_table().find("msvc-runtime").value();
                 }
-                throw_key_error(error, condItr.second, *report);
+                throw_key_error(error, cond_itr.second, *report);
             }
             }
         }
@@ -831,6 +863,16 @@ bool Project::cmake_minimum_version(int major, int minor) const {
     }
 
     return std::tie(root_major, root_minor) >= std::tie(major, minor);
+}
+
+bool Project::is_condition_name(const std::string &name) {
+    auto is_named_condition = true;
+    for (auto ch : name) {
+        if (!(ch == '-' || (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z'))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool is_root_path(const std::string &path) {
