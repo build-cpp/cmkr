@@ -55,31 +55,38 @@ static std::string format(const char *format, const tsl::ordered_map<std::string
 }
 
 static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs::path &toml_dir, bool is_root_project) {
-    std::vector<std::string> temp;
 
-    auto extract_suffix = [](const fs::path &base, const fs::path &full) {
+    auto const extract_suffix = [](const fs::path &base, const fs::path &full) {
         auto fullpath = full.string();
         auto base_len = base.string().length();
-        auto delet = fullpath.substr(base_len + 1, fullpath.length() - base_len);
-        return delet;
+        return fullpath.substr(base_len + 1, fullpath.length() - base_len);
     };
-
-    auto stem = name.filename().stem().string();
-    auto ext = name.extension();
+    auto const extract_path_parts = [](const fs::path &file_path) -> std::pair<std::string, std::string> {
+        const auto path_as_string = file_path.string();
+        auto const dot_position = path_as_string.find('.');
+        if (dot_position != std::string::npos) {
+            return {path_as_string.substr(0, dot_position), path_as_string.substr(dot_position)};
+        }
+        return {path_as_string, {}};
+    };
+    auto const path_parts = extract_path_parts(name.filename());
+    auto const &stem = path_parts.first;
+    auto const &extension = path_parts.second;
 
     if (is_root_project && stem == "**" && name == name.filename()) {
         throw std::runtime_error("Recursive globbing not allowed in project root: " + name.string());
     }
 
+    std::vector<std::string> temp;
     if (stem == "*") {
         for (const auto &f : fs::directory_iterator(toml_dir / name.parent_path(), fs::directory_options::follow_directory_symlink)) {
-            if (!f.is_directory() && f.path().extension() == ext) {
+            if (!f.is_directory() && extract_path_parts(f.path().filename()).second == extension) {
                 temp.push_back(extract_suffix(toml_dir, f));
             }
         }
     } else if (stem == "**") {
         for (const auto &f : fs::recursive_directory_iterator(toml_dir / name.parent_path(), fs::directory_options::follow_directory_symlink)) {
-            if (!f.is_directory() && f.path().extension() == ext) {
+            if (!f.is_directory() && extract_path_parts(f.path().filename()).second == extension) {
                 temp.push_back(extract_suffix(toml_dir, f.path()));
             }
         }
