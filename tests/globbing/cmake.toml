@@ -6,7 +6,7 @@ description = "Globbing sources"
 [target.mylib]
 type = "static"
 alias = "mylib::mylib"
-sources = ["mylib/**.hpp", "mylib/**.cpp", "mylib/**.gen.cxx"]
+sources = ["mylib/**.hpp", "mylib/**.cpp"]
 include-directories = ["mylib/include"]
 
 # Single-folder glob in example/src/

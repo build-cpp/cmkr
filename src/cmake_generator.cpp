@@ -54,64 +54,85 @@ static std::string format(const char *format, const tsl::ordered_map<std::string
     return s;
 }
 
-static std::vector<std::string> expand_cmake_path(const fs::path &name, const fs::path &toml_dir, bool is_root_project) {
-
-    auto const extract_suffix = [](const fs::path &base, const fs::path &full) {
-        auto fullpath = full.string();
-        auto base_len = base.string().length();
-        return fullpath.substr(base_len + 1, fullpath.length() - base_len);
-    };
-    auto const extract_path_parts = [](const fs::path &file_path) -> std::pair<std::string, std::string> {
-        const auto path_as_string = file_path.string();
-        auto const dot_position = path_as_string.find('.');
-        if (dot_position != std::string::npos) {
-            return {path_as_string.substr(0, dot_position), path_as_string.substr(dot_position)};
+static std::vector<fs::path> expand_cmake_path(const fs::path &source_path, const fs::path &toml_dir, bool is_root_project) {
+    auto is_subdir = [](fs::path p, const fs::path &root) {
+        while (true) {
+            if (p == root) {
+                return true;
+            }
+            auto parent = p.parent_path();
+            if (parent == p) {
+                break;
+            }
+            p = parent;
         }
-        return {path_as_string, {}};
+        return false;
     };
-    auto const path_parts = extract_path_parts(name.filename());
-    auto const &stem = path_parts.first;
-    auto const &extension = path_parts.second;
-
-    if (is_root_project && stem == "**" && name == name.filename()) {
-        throw std::runtime_error("Recursive globbing not allowed in project root: " + name.string());
+    if (!is_subdir(fs::absolute(toml_dir / source_path), toml_dir)) {
+        throw std::runtime_error("Path traversal is not allowed: " + source_path.string());
     }
 
-    std::vector<std::string> temp;
+    // Split the path at the first period (since fs::path::stem() and fs::path::extension() split at the last period)
+    std::string stem, extension;
+    auto filename = source_path.filename().string();
+    auto dot_position = filename.find('.');
+    if (dot_position != std::string::npos) {
+        stem = filename.substr(0, dot_position);
+        extension = filename.substr(dot_position);
+    } else {
+        stem = filename;
+    }
+
+    if (is_root_project && stem == "**" && !source_path.has_parent_path()) {
+        throw std::runtime_error("Recursive globbing not allowed in project root: " + source_path.string());
+    }
+
+    auto has_extension = [](const fs::path &file_path, const std::string &extension) {
+        auto path = file_path.string();
+        return path.rfind(extension) == path.length() - extension.length();
+    };
+
+    std::vector<fs::path> paths;
     if (stem == "*") {
-        for (const auto &f : fs::directory_iterator(toml_dir / name.parent_path(), fs::directory_options::follow_directory_symlink)) {
-            if (!f.is_directory() && extract_path_parts(f.path().filename()).second == extension) {
-                temp.push_back(extract_suffix(toml_dir, f));
+        for (const auto &f : fs::directory_iterator(toml_dir / source_path.parent_path(), fs::directory_options::follow_directory_symlink)) {
+            if (!f.is_directory() && has_extension(f.path(), extension)) {
+                paths.push_back(fs::relative(f, toml_dir));
             }
         }
     } else if (stem == "**") {
-        for (const auto &f : fs::recursive_directory_iterator(toml_dir / name.parent_path(), fs::directory_options::follow_directory_symlink)) {
-            if (!f.is_directory() && extract_path_parts(f.path().filename()).second == extension) {
-                temp.push_back(extract_suffix(toml_dir, f.path()));
+        for (const auto &f :
+             fs::recursive_directory_iterator(toml_dir / source_path.parent_path(), fs::directory_options::follow_directory_symlink)) {
+            if (!f.is_directory() && has_extension(f.path(), extension)) {
+                paths.push_back(fs::relative(f, toml_dir));
             }
         }
     } else {
-        temp.push_back(name.string());
+        paths.push_back(source_path);
     }
-    // Normalize all paths to work with CMake (it needs a / on Windows as well)
-    for (auto &path : temp) {
-        std::replace(path.begin(), path.end(), '\\', '/');
-    }
-    // Sort paths alphabetically for consistent cross-OS generation
-    std::sort(temp.begin(), temp.end());
-    return temp;
+
+    return paths;
 }
 
 static std::vector<std::string> expand_cmake_paths(const std::vector<std::string> &sources, const fs::path &toml_dir, bool is_root_project) {
-    // TODO: add duplicate checking
-    std::vector<std::string> result;
+    std::vector<std::string> paths;
     for (const auto &src : sources) {
         auto expanded = expand_cmake_path(src, toml_dir, is_root_project);
         for (const auto &f : expanded) {
-            result.push_back(f);
+            paths.push_back(f.string());
         }
     }
-    return result;
+
+    // Normalize all paths to work with CMake (it needs a / on Windows as well)
+    for (auto &path : paths) {
+        std::replace(path.begin(), path.end(), '\\', '/');
+    }
+
+    // Sort paths alphabetically for consistent cross-OS generation
+    std::sort(paths.begin(), paths.end());
+
+    // TODO: remove duplicates
+
+    return paths;
 }
 
 static void create_file(const fs::path &path, const std::string &contents) {
@@ -681,7 +702,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
     parser::Project project(parent_project, path, false);
 
-    for (auto const &lang : project.project_languages) {
+    for (const auto &lang : project.project_languages) {
         if (known_languages.find(lang) == known_languages.end()) {
             if (project.project_allow_unknown_languages) {
                 printf("[warning] Unknown language '%s' specified\n", lang.c_str());

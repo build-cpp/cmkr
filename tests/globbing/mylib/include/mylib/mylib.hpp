@@ -4,5 +4,4 @@
 
 namespace mylib {
 std::string message();
-std::string message2();
-}
+} // namespace mylib
