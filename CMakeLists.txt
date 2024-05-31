@@ -102,7 +102,7 @@ if(NOT CMKR_VS_STARTUP_PROJECT)
 endif()
 
 set(CMKR_TARGET cmkr)
-generate_resources(${CMKR_TARGET})
+include("cmake/custom_targets.cmake")
 
 install(
 	TARGETS

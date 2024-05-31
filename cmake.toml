@@ -37,9 +37,7 @@ link-libraries = [
     "mpark_variant",
     "ordered_map",
 ]
-cmake-after = """
-generate_resources(${CMKR_TARGET})
-"""
+include-after = ["cmake/custom_targets.cmake"]
 
 [[install]]
 targets = ["cmkr"]
