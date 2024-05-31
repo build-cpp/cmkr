@@ -4,6 +4,8 @@ on: [push, pull_request]
 
 jobs:
   clang-format:
+    # Skip building pull requests from the same repository
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) }}
     runs-on: ubuntu-latest
 
     steps:
@@ -27,6 +29,8 @@ jobs:
           exit 1
 
   editorconfig:
+    # Skip building pull requests from the same repository
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) }}
     runs-on: ubuntu-latest
 
     steps:

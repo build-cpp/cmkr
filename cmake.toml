@@ -36,11 +36,8 @@ link-libraries = [
     "ghc_filesystem",
     "mpark_variant",
     "ordered_map",
-    "nlohmann_json",
 ]
-cmake-after = """
-generate_resources(${CMKR_TARGET})
-"""
+include-after = ["cmake/custom_targets.cmake"]
 
 [[install]]
 targets = ["cmkr"]
