@@ -681,7 +681,10 @@ static std::string vcpkg_escape_identifier(const std::string &name) {
             ch = '-';
         }
 
-        escaped += std::tolower(ch);
+        if (ch >= 'A' && ch <= 'Z') {
+            ch += ('a' - 'A');
+        }
+        escaped += ch;
     }
     if (!vcpkg_valid_identifier(escaped)) {
         throw std::runtime_error("The escaped project name '" + escaped + "' is not usable with [vcpkg]");

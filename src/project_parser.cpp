@@ -381,7 +381,8 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 if (ch == '_') {
                     normalized += '-';
                 } else if (ch >= 'A' && ch <= 'Z') {
-                    normalized += std::tolower(ch);
+                    ch += ('a' - 'A');
+                    normalized += ch;
                 } else if (ch == '-' || (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z')) {
                     normalized += ch;
                 } else {
@@ -532,8 +533,11 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                     key = "URL";
                 } else if (hash_algorithms.contains(key)) {
                     std::string algo;
-                    for (auto c : key) {
-                        algo.push_back(std::toupper(c));
+                    for (auto ch : key) {
+                        if (ch >= 'a' && ch <= 'z') {
+                            ch -= ('a' - 'A');
+                        }
+                        algo.push_back(ch);
                     }
                     key = "URL_HASH";
                     value = algo + "=" + value;
