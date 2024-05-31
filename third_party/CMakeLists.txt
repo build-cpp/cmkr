@@ -16,7 +16,3 @@ target_include_directories(toml11 INTERFACE toml11-3.6.0)
 # https://github.com/mpark/variant (BSL-1.0)
 add_library(mpark_variant INTERFACE)
 target_include_directories(mpark_variant INTERFACE variant-1.4.0/include)
-
-# https://github.com/nlohmann/json (MIT)
-add_library(nlohmann_json INTERFACE)
-target_include_directories(nlohmann_json INTERFACE nlohmann-3.9.1/include)

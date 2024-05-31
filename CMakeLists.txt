@@ -94,7 +94,6 @@ target_link_libraries(cmkr PRIVATE
 	ghc_filesystem
 	mpark_variant
 	ordered_map
-	nlohmann_json
 )
 
 get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)
