@@ -577,7 +577,7 @@ struct Generator {
             }
             cmd("if", "NOTE: unnamed condition")(RawArg(cmake_condition(condition)));
         } else {
-            cmd("if", condition)(RawArg(found->second));
+            cmd("if", condition)(RawArg(cmake_condition(found->second)));
         }
         return true;
     }

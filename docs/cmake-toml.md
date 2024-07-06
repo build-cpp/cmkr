@@ -109,6 +109,13 @@ clang-any = "CMAKE_CXX_COMPILER_ID MATCHES \"Clang\" OR CMAKE_C_COMPILER_ID MATC
 root = "CMKR_ROOT_PROJECT"
 x64 = "CMAKE_SIZEOF_VOID_P EQUAL 8"
 x32 = "CMAKE_SIZEOF_VOID_P EQUAL 4"
+android = "ANDROID"
+apple = "APPLE"
+bsd = "BSD"
+cygwin = "CYGWIN"
+ios = "IOS"
+xcode = "XCODE"
+wince = "WINCE"
 ```
 
 ## Subdirectories

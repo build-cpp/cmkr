@@ -274,6 +274,13 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         conditions["root"] = R"cmake(CMKR_ROOT_PROJECT)cmake";
         conditions["x64"] = R"cmake(CMAKE_SIZEOF_VOID_P EQUAL 8)cmake";
         conditions["x32"] = R"cmake(CMAKE_SIZEOF_VOID_P EQUAL 4)cmake";
+        conditions["android"] = R"cmake(ANDROID)cmake";
+        conditions["apple"] = R"cmake(APPLE)cmake";
+        conditions["bsd"] = R"cmake(BSD)cmake";
+        conditions["cygwin"] = R"cmake(CYGWIN)cmake";
+        conditions["ios"] = R"cmake(IOS)cmake";
+        conditions["xcode"] = R"cmake(XCODE)cmake";
+        conditions["wince"] = R"cmake(WINCE)cmake";
     } else {
         conditions = parent->conditions;
         templates = parent->templates;
@@ -431,6 +438,9 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 throw_key_error(toml::concat_to_string("Unsupported value type: ", itr.second.type()), itr.first, itr.second);
             }
             options.push_back(o);
+
+            // Add a condition matching the option name
+            conditions.emplace(o.name, o.name);
 
             // Add an implicit condition for the option
             auto ncondition = normalize(o.name);
@@ -870,9 +880,8 @@ bool Project::cmake_minimum_version(int major, int minor) const {
 }
 
 bool Project::is_condition_name(const std::string &name) {
-    auto is_named_condition = true;
     for (auto ch : name) {
-        if (!(ch == '-' || (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z'))) {
+        if (!std::isalnum(ch) && ch != '-' && ch != '_') {
             return false;
         }
     }
