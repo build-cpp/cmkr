@@ -879,7 +879,7 @@ bool Project::cmake_minimum_version(int major, int minor) const {
 bool Project::is_condition_name(const std::string &name) {
     auto is_named_condition = true;
     for (auto ch : name) {
-        if (!(ch == '-' || (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'z'))) {
+        if (!std::isalnum(ch) && ch != '-' && ch != '_') {
             return false;
         }
     }
