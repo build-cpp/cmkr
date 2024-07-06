@@ -439,6 +439,9 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
             }
             options.push_back(o);
 
+            // Add a condition matching the option name
+            conditions.emplace(o.name, o.name);
+
             // Add an implicit condition for the option
             auto ncondition = normalize(o.name);
             if (ncondition.find(nproject_prefix) == 0) {
@@ -877,7 +880,6 @@ bool Project::cmake_minimum_version(int major, int minor) const {
 }
 
 bool Project::is_condition_name(const std::string &name) {
-    auto is_named_condition = true;
     for (auto ch : name) {
         if (!std::isalnum(ch) && ch != '-' && ch != '_') {
             return false;
