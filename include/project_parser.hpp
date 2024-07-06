@@ -155,7 +155,7 @@ struct Content {
     Condition<std::string> cmake_after;
     ConditionVector include_before;
     ConditionVector include_after;
-    bool system;
+    bool system = false;
     std::string subdir;
 };
 
