@@ -725,6 +725,8 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                         property_list += list_val.as_string();
                     }
                     target.properties[condition][k] = property_list;
+                } else if (v.is_integer()) {
+                    target.properties[condition][k] = std::to_string(v.as_integer());
                 } else if (v.is_boolean()) {
                     target.properties[condition][k] = v.as_boolean() ? "ON" : "OFF";
                 } else {
