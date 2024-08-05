@@ -1086,6 +1086,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     if (project_languages.empty())
         project_languages = {"C", "CXX"};
 
+    // Reference: https://gitlab.kitware.com/cmake/cmake/-/issues/24340#note_1304703
+    project_languages.push_back("RC");
+
     // All acceptable extensions based off our given languages.
     tsl::ordered_set<std::string> project_extensions;
     for (const auto &language : project_languages) {
