@@ -731,13 +731,17 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     if (is_root_project) {
         cmd("cmake_minimum_required")("VERSION", project.cmake_version).endl();
 
-        // clang-format on
         if (!project.allow_in_tree) {
             // clang-format off
             cmd("if")("CMAKE_SOURCE_DIR", "STREQUAL", "CMAKE_BINARY_DIR");
                 cmd("message")("FATAL_ERROR", "In-tree builds are not supported. Run CMake from a separate directory: cmake -B build");
             cmd("endif")().endl();
             // clang-format on
+        }
+
+        if (project.project_msvc_runtime != parser::msvc_last) {
+            comment("Enable support for MSVC_RUNTIME_LIBRARY");
+            cmd("cmake_policy")("SET", "CMP0091", "NEW").endl();
         }
 
         cmd("set")("CMKR_ROOT_PROJECT", "OFF");
@@ -758,15 +762,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
             comment("Create a configure-time dependency on cmake.toml to improve IDE support");
             cmd("configure_file")("cmake.toml", "cmake.toml", "COPYONLY");
-        cmd("endif")().endl();
-        // clang-format on
 
-        if (project.project_msvc_runtime != parser::msvc_last) {
-            comment("Enable support for MSVC_RUNTIME_LIBRARY");
-            cmd("cmake_policy")("SET", "CMP0091", "NEW");
-
-            // clang-format off
-            cmd("if")("NOT", "DEFINED", "CMAKE_MSVC_RUNTIME_LIBRARY");
+            if (project.project_msvc_runtime != parser::msvc_last) {
+                cmd("if")("NOT", "DEFINED", "CMAKE_MSVC_RUNTIME_LIBRARY");
                 switch (project.project_msvc_runtime) {
                 case parser::msvc_dynamic:
                     cmd("set")("CMAKE_MSVC_RUNTIME_LIBRARY", "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL");
@@ -777,9 +775,10 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 default:
                     break;
                 }
-            cmd("endif")().endl();
-            // clang-format on
-        }
+                cmd("endif")().endl();
+            }
+        cmd("endif")().endl();
+        // clang-format on
 
         fs::path cmkr_include(project.cmkr_include);
         if (!project.cmkr_include.empty() && !fs::exists(cmkr_include) && cmkr_include.is_relative()) {
