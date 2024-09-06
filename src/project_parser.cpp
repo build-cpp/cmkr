@@ -657,20 +657,16 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                         continue;
                     }
 
-                    // Skip paths that don't contain backwards or forwards slashes
-                    if (library_path.find_first_of(R"(\/)") == std::string::npos) {
-                        continue;
-                    }
-
-                    // Check if the new file path exists, otherwise emit an error
-                    const auto expected_library_file_path = fs::path{path} / library_path;
-                    if (!fs::exists(expected_library_file_path)) {
+                    if (fs::exists(fs::path(path) / library_path)) {
+                        // If the file path is relative, prepend ${CMAKE_CURRENT_SOURCE_DIR}
+                        library_path.insert(0, "${CMAKE_CURRENT_SOURCE_DIR}/");
+                    } else if (library_path.find_first_of(R"(\/)") != std::string::npos) {
+                        // Error if the path contains a directory separator and the file doesn't exist
                         throw std::runtime_error("Attempted to link against a library file that doesn't exist for target \"" + name + "\" in \"" +
                                                  key + "\": " + library_path);
+                    } else {
+                        // NOTE: We cannot check if system libraries exist, so we leave them as-is
                     }
-
-                    // Prepend ${CMAKE_CURRENT_SOURCE_DIR} to the path
-                    library_path.insert(0, "${CMAKE_CURRENT_SOURCE_DIR}/");
                 }
             }
         };
