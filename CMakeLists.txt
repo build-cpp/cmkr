@@ -22,7 +22,7 @@ project(cmkr
 	LANGUAGES
 		CXX
 	VERSION
-		0.2.34
+		0.2.35
 	DESCRIPTION
 		"CMakeLists generator from TOML"
 )
@@ -58,9 +58,12 @@ generate_documentation()
 
 # Target: cmkr
 set(cmkr_SOURCES
-	cmake.toml
-	"cmake/cmkr.cmake"
-	"cmake/version.hpp.in"
+	"src/arguments.cpp"
+	"src/build.cpp"
+	"src/cmake_generator.cpp"
+	"src/help.cpp"
+	"src/main.cpp"
+	"src/project_parser.cpp"
 	"include/arguments.hpp"
 	"include/build.hpp"
 	"include/cmake_generator.hpp"
@@ -68,12 +71,9 @@ set(cmkr_SOURCES
 	"include/help.hpp"
 	"include/literals.hpp"
 	"include/project_parser.hpp"
-	"src/arguments.cpp"
-	"src/build.cpp"
-	"src/cmake_generator.cpp"
-	"src/help.cpp"
-	"src/main.cpp"
-	"src/project_parser.cpp"
+	"cmake/cmkr.cmake"
+	"cmake/version.hpp.in"
+	cmake.toml
 )
 
 add_executable(cmkr)
