@@ -58,12 +58,9 @@ generate_documentation()
 
 # Target: cmkr
 set(cmkr_SOURCES
-	"src/arguments.cpp"
-	"src/build.cpp"
-	"src/cmake_generator.cpp"
-	"src/help.cpp"
-	"src/main.cpp"
-	"src/project_parser.cpp"
+	cmake.toml
+	"cmake/cmkr.cmake"
+	"cmake/version.hpp.in"
 	"include/arguments.hpp"
 	"include/build.hpp"
 	"include/cmake_generator.hpp"
@@ -71,9 +68,12 @@ set(cmkr_SOURCES
 	"include/help.hpp"
 	"include/literals.hpp"
 	"include/project_parser.hpp"
-	"cmake/cmkr.cmake"
-	"cmake/version.hpp.in"
-	cmake.toml
+	"src/arguments.cpp"
+	"src/build.cpp"
+	"src/cmake_generator.cpp"
+	"src/help.cpp"
+	"src/main.cpp"
+	"src/project_parser.cpp"
 )
 
 add_executable(cmkr)
