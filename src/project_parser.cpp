@@ -550,6 +550,9 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                         algo.push_back(ch);
                     }
                     key = "URL_HASH";
+                    if(!is_valid_hex(value)){
+                        throw_key_error("Invalid hash value '" + argItr.first + "'", argItr.first, argItr.second);
+                    }
                     value = algo + "=" + value;
                 } else if (key == "hash") {
                     key = "URL_HASH";
@@ -893,6 +896,18 @@ bool is_root_path(const std::string &path) {
     }
     const auto toml = toml::parse<toml::discard_comments, tsl::ordered_map, std::vector>(toml_path.string());
     return toml.contains("project");
+}
+
+bool Project::is_valid_hex(std::string value){
+    if (value.empty()){
+        return false;
+    }
+    for(char c : value){
+        if(!std::isxdigit(c)){
+            return false;
+        }
+    }
+    return true;
 }
 
 } // namespace parser
