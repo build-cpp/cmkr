@@ -761,7 +761,11 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             cmd("set_property")("GLOBAL", "PROPERTY", "USE_FOLDERS", "ON").endl();
 
             comment("Create a configure-time dependency on cmake.toml to improve IDE support");
-            cmd("configure_file")("cmake.toml", "cmake.toml", "COPYONLY");
+            if (project.cmake_minimum_version(3, 0)) {
+                cmd("set_property")("DIRECTORY", "APPEND", "PROPERTY", "CMAKE_CONFIGURE_DEPENDS", "cmake.toml");
+            } else {
+                cmd("configure_file")("cmake.toml", "cmake.toml", "COPYONLY");
+            }
 
             if (project.project_msvc_runtime != parser::msvc_last) {
                 cmd("if")("NOT", "DEFINED", "CMAKE_MSVC_RUNTIME_LIBRARY");
@@ -785,12 +789,14 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             create_file(cmkr_include, resources::cmkr);
         }
     } else {
-        // clang-format off
         comment("Create a configure-time dependency on cmake.toml to improve IDE support");
         cmd("if")("CMKR_ROOT_PROJECT");
+        if (project.cmake_minimum_version(3, 0)) {
+            cmd("set_property")("DIRECTORY", "APPEND", "PROPERTY", "CMAKE_CONFIGURE_DEPENDS", "cmake.toml");
+        } else {
             cmd("configure_file")("cmake.toml", "cmake.toml", "COPYONLY");
+        }
         cmd("endif")().endl();
-        // clang-format on
     }
 
     // TODO: remove support and replace with global compile-features
