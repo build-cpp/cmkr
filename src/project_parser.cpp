@@ -550,12 +550,12 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                         algo.push_back(ch);
                     }
                     key = "URL_HASH";
-                    if (value.empty()){
-                        throw_key_error("Invalid hash value '" + argItr.first + "'", argItr.first, argItr.second);
+                    if (value.empty()) {
+                        throw_key_error("Empty hash value", argItr.first, argItr.second);
                     }
-                    for(char c : value){
-                        if(!std::isxdigit(c)){
-                            throw_key_error("Invalid hash value '" + argItr.first + "'", argItr.first, argItr.second);
+                    for (char c : value) {
+                        if (!std::isxdigit(c)) {
+                            throw_key_error("Hash value must be a hex string", argItr.first, argItr.second);
                         }
                     }
                     value = algo + "=" + value;
