@@ -48,6 +48,7 @@ struct Vcpkg {
     };
 
     std::vector<Package> packages;
+    std::vector<std::string> overlay_ports;
 
     bool enabled() const {
         return !packages.empty();

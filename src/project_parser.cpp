@@ -854,6 +854,8 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
             }
             vcpkg.packages.emplace_back(std::move(package));
         }
+
+        v.optional("overlay-ports", vcpkg.overlay_ports);
     }
 
     checker.check(conditions, true);
