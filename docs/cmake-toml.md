@@ -163,11 +163,14 @@ Variables emit a [`set`](https://cmake.org/cmake/help/latest/command/set.html) a
 version = "2024.03.25"
 url = "https://github.com/microsoft/vcpkg/archive/refs/tags/2024.03.25.tar.gz"
 packages = ["fmt", "zlib"]
+overlay-ports = ["my-ports"]
 ```
 
 The vcpkg `version` will automatically generate the `url` from the [official repository](https://github.com/microsoft/vcpkg/releases). For a custom registry you can specify your own `url` (and omit the `version`). You can browse available packages on [vcpkg.io](https://vcpkg.io/en/packages.html).
 
 To specify package features you can use the following syntax: `imgui[docking-experimental,freetype,sdl2-binding,opengl3-binding]`.
+
+The `overlay-ports` feature allows you to embed vcpkg ports inside your project, without having to fork the main vcpkg registry or creating a custom registry. You can find more information in the relevant [documentation](https://learn.microsoft.com/en-us/vcpkg/concepts/overlay-ports).
 
 ## Packages
 
