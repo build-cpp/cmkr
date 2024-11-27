@@ -45,6 +45,7 @@ struct Vcpkg {
     struct Package {
         std::string name;
         std::vector<std::string> features;
+        bool default_features = true;
     };
 
     std::vector<Package> packages;
