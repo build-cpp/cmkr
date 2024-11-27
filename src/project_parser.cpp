@@ -847,7 +847,12 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 std::istringstream feature_stream{features};
                 std::string feature;
                 while (std::getline(feature_stream, feature, ',')) {
-                    package.features.emplace_back(feature);
+                    // Disable default features with package-name[core,feature1]
+                    if (feature == "core") {
+                        package.default_features = false;
+                    } else {
+                        package.features.emplace_back(feature);
+                    }
                 }
             } else {
                 throw_key_error("Invalid package name '" + package_str + "'", "packages", p);

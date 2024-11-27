@@ -957,17 +957,20 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                     throw std::runtime_error("Invalid vcpkg package feature '" + feature + "', name is reserved");
                 }
             }
-            if (features.empty()) {
+            if (features.empty() && package.default_features) {
                 ofs << "    \"" << package.name << '\"';
             } else {
                 ofs << "    {\n";
                 ofs << "      \"name\": \"" << package.name << "\",\n";
+                if (!package.default_features) {
+                    ofs << "      \"default-features\": false,\n";
+                }
                 ofs << "      \"features\": [";
                 for (size_t j = 0; j < features.size(); j++) {
                     const auto &feature = features[j];
                     ofs << '\"' << feature << '\"';
                     if (j + 1 < features.size()) {
-                        ofs << ',';
+                        ofs << ", ";
                     }
                 }
                 ofs << "]\n";
