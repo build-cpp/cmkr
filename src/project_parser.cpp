@@ -860,7 +860,20 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
             vcpkg.packages.emplace_back(std::move(package));
         }
 
-        v.optional("overlay-ports", vcpkg.overlay_ports);
+        if (v.contains("overlay")) {
+            std::string overlay;
+            v.optional("overlay", overlay);
+            vcpkg.overlay_triplets = vcpkg.overlay_ports = {overlay};
+            if (v.contains("overlay-ports")) {
+                throw_key_error("[vcpkg].overlay was already specified", "overlay-ports", v.find("overlay-ports"));
+            }
+            if (v.contains("overlay-triplets")) {
+                throw_key_error("[vcpkg].overlay was already specified", "overlay-triplets", v.find("overlay-triplets"));
+            }
+        } else {
+            v.optional("overlay-ports", vcpkg.overlay_ports);
+            v.optional("overlay-triplets", vcpkg.overlay_triplets);
+        }
     }
 
     checker.check(conditions, true);

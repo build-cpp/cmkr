@@ -1,17 +1,16 @@
-# Downloads [fmt v7.1.3](https://fmt.dev/7.1.3/) using [vcpkg](https://vcpkg.io/) and links an `example` target to it:
+# Downloads [fmt v7.1.3](https://fmt.dev/7.1.3/) using [vcpkg](https://github.com/microsoft/vcpkg) and links an `example` target to it:
 
 [project]
 name = "vcpkg"
 description = "Dependencies from vcpkg"
 
 # See https://github.com/microsoft/vcpkg/releases for vcpkg versions
-# See https://vcpkg.io/en/packages.html for available packages
+# See https://vcpkg.io/en/packages or https://vcpkg.link for available packages
 [vcpkg]
-version = "2024.03.25"
+version = "2024.11.16"
 packages = ["fmt"]
 
-[find-package]
-fmt = {}
+[find-package.fmt]
 
 [target.example]
 type = "executable"
