@@ -865,12 +865,17 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         comment("vcpkg settings");
         auto emit_overlay = [&cmd](const std::string &name, const std::vector<std::string> &overlay) {
             if (!overlay.empty()) {
+                std::vector<std::string> set_args;
                 for (const auto &directory : overlay) {
+                    if (!fs::path(directory).is_relative()) {
+                        throw std::runtime_error("[vcpkg] overlay is not a relative path: " + directory);
+                    }
                     if (!fs::is_directory(directory)) {
                         throw std::runtime_error("[vcpkg] overlay is not a directory: " + directory);
                     }
+                    set_args.emplace_back("${CMAKE_CURRENT_SOURCE_DIR}/" + directory);
                 }
-                cmd("set")(name, overlay);
+                cmd("set")(name, set_args);
             }
         };
         emit_overlay("VCPKG_OVERLAY_PORTS", project.vcpkg.overlay_ports);
