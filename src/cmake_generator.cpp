@@ -921,6 +921,13 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             }
         }
 
+        tsl::ordered_map<std::string, std::string> vcpkg_args = {
+            {"URL", url},
+            {"SUBBUILD_DIR", "CMakeFiles/vcpkg-subbuild"},
+            {"SOURCE_DIR", "vcpkg"},
+            {"BINARY_DIR", "CMakeFiles/vcpkg-build"},
+        };
+
         // CMake to bootstrap vcpkg and download the packages
         // clang-format off
         cmd("if")("CMKR_ROOT_PROJECT", "AND", "NOT", "CMKR_DISABLE_VCPKG");
@@ -930,7 +937,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 cmd("cmake_policy")("SET", "CMP0135", "NEW");
             cmd("endif")();
             cmd("message")("STATUS", "Fetching vcpkg (" + version_name + ")...");
-            cmd("FetchContent_Declare")("vcpkg", "URL", url);
+            cmd("FetchContent_Declare")("vcpkg", vcpkg_args);
             // Not using FetchContent_MakeAvailable here in case vcpkg adds CMakeLists.txt
             cmd("FetchContent_GetProperties")("vcpkg");
             cmd("if")("NOT", "vcpkg_POPULATED");
