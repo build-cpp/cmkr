@@ -9,7 +9,7 @@ nav_order: 9
 
 # Compiler flags
 
-Example project that sets compiler/linker flags for various platforms.
+Example project that sets compiler flags and preprocessor defines for various platforms.
 
 ```toml
 [project]
@@ -20,11 +20,14 @@ description = "Compiler flags"
 type = "executable"
 sources = ["src/main.cpp"]
 msvc.compile-options = ["/W2"]
+msvc.compile-definitions = ["PLATFORM=\"msvc\""]
 gcc.compile-options = ["-Wall"]
+gcc.compile-definitions = ["PLATFORM=\"gcc\""]
 clang.compile-options = ["-Wall"]
+clang.compile-definitions = ["PLATFORM=\"clang\""]
 ```
 
-The `hello` target uses [conditions](/cmake-toml#conditions) to set different compiler flags depending on the platform. See the [targets](/cmake-toml/#targets) documentation for other things you can set.
+The `hello` target uses [conditions](/cmake-toml#conditions) to set different compiler flags and definitions depending on the platform. See the [targets](/cmake-toml/#targets) documentation for other things you can set.
 
 _Note_: In general you only want to specify flags _required_ to compile your code without errors.
 

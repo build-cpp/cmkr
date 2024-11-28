@@ -49,7 +49,10 @@ struct Vcpkg {
     };
 
     std::vector<Package> packages;
+
+    // https://github.com/Microsoft/vcpkg-docs/blob/main/vcpkg/users/buildsystems/cmake-integration.md
     std::vector<std::string> overlay_ports;
+    std::vector<std::string> overlay_triplets;
 
     bool enabled() const {
         return !packages.empty();

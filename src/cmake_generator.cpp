@@ -861,6 +861,22 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         endl();
     }
 
+    if (project.vcpkg.enabled()) {
+        comment("vcpkg settings");
+        auto emit_overlay = [&cmd](const std::string &name, const std::vector<std::string> &overlay) {
+            if (!overlay.empty()) {
+                for (const auto &directory : overlay) {
+                    if (!fs::is_directory(directory)) {
+                        throw std::runtime_error("[vcpkg] overlay is not a directory: " + directory);
+                    }
+                }
+                cmd("set")(name, overlay);
+            }
+        };
+        emit_overlay("VCPKG_OVERLAY_PORTS", project.vcpkg.overlay_ports);
+        emit_overlay("VCPKG_OVERLAY_TRIPLETS", project.vcpkg.overlay_triplets);
+    }
+
     gen.conditional_includes(project.include_before);
     gen.conditional_cmake(project.cmake_before);
 
@@ -996,29 +1012,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         ofs << "  ],\n";
         ofs << "  \"description\": \"" << escape(project.project_description) << "\",\n";
         ofs << "  \"name\": \"" << escape(vcpkg_escape_identifier(project.project_name)) << "\",\n";
-        ofs << "  \"version-string\": \"none\"";
-        const auto &overlay_ports = project.vcpkg.overlay_ports;
-        if (!overlay_ports.empty()) {
-            ofs << ",\n";
-            // Reference: https://learn.microsoft.com/en-us/vcpkg/reference/vcpkg-json#vcpkg-configuration
-            ofs << "  \"vcpkg-configuration\": {\n";
-            ofs << "    \"overlay-ports\": [\n";
-            for (size_t i = 0; i < overlay_ports.size(); i++) {
-                const auto &directory = overlay_ports[i];
-                if (!fs::is_directory(directory)) {
-                    throw std::runtime_error("[vcpkg].overlay-ports is not a directory: " + directory);
-                }
-                ofs << "      \"" << escape(directory) << "\"";
-                if (i > 0) {
-                    ofs << ",";
-                }
-                ofs << "\n";
-            }
-            ofs << "    ]\n";
-            ofs << "  }\n";
-        } else {
-            ofs << "\n";
-        }
+        ofs << "  \"version-string\": \"none\"\n";
         ofs << "}\n";
     }
 
