@@ -218,28 +218,28 @@ Table keys that match CMake variable names (`[A-Z_]+`) will be passed to the [`F
 [target.mytarget]
 condition = "mycondition"
 alias = "mytarget::mytarget"
-type = "static" # executable, shared (DLL), static, interface, object, library, custom
+type = "static" # executable, library, shared (DLL), static, interface, object, custom
 headers = ["src/mytarget.h"]
 sources = ["src/mytarget.cpp"]
 msvc-runtime = "" # dynamic (implicit default), static
 
 # The keys below match the target_xxx CMake commands
 # Keys prefixed with private- will get PRIVATE visibility
-compile-definitions = [""]
+compile-definitions = [""] # preprocessor define (-DFOO)
 private-compile-definitions = [""]
-compile-features = [""]
+compile-features = [""] # C++ standard version (cxx_std_20)
 private-compile-features = [""]
-compile-options = [""]
+compile-options = [""] # compiler flags
 private-compile-options = [""]
-include-directories = [""]
+include-directories = [""] # include paths/directories
 private-include-directories = [""]
-link-directories = [""]
+link-directories = [""] # library directories
 private-link-directories = [""]
-link-libraries = [""]
+link-libraries = [""] # dependencies
 private-link-libraries = [""]
-link-options = [""]
+link-options = [""] # linker flags
 private-link-options = [""]
-precompile-headers = [""]
+precompile-headers = [""] # precompiled headers
 private-precompile-headers = [""]
 
 cmake-before = """
@@ -257,6 +257,35 @@ CXX_STANDARD = 17
 CXX_STANDARD_REQUIRED = true
 FOLDER = "MyFolder"
 ```
+
+A table mapping the cmkr features to the relevant CMake construct and the relevant documentation pages:
+
+| cmkr | CMake construct | Description |
+| ---- | ----- | ----------- |
+| `alias` | [Alias Libraries](https://cmake.org/cmake/help/latest/command/add_library.html#alias-libraries) | Create an [alias target](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#alias-targets), used for namespacing or clarity. |
+| `sources` | [`target_sources`](https://cmake.org/cmake/help/latest/command/target_sources.html) | Source files (`PRIVATE` except `interface` targets). |
+| `headers` | [`target_sources`](https://cmake.org/cmake/help/latest/command/target_sources.html) | For readability (and future packaging). |
+| `msvc-runtime` | [`MSVC_RUNTIME_LIBRARY`](https://cmake.org/cmake/help/latest/prop_tgt/MSVC_RUNTIME_LIBRARY.html) | The [CMP0091](https://cmake.org/cmake/help/latest/policy/CMP0091.html) policy is set automatically. |
+| `compile-definitions` | [`target_compile_definitions`](https://cmake.org/cmake/help/latest/command/target_compile_definitions.html) | Adds a macro definition (define, `-DMYMACRO=XXX`). |
+| `compile-features` | [`target_compile_features`](https://cmake.org/cmake/help/latest/command/target_compile_features.html) | Specifies the C++ standard version (`cxx_std_20`). |
+| `compile-options` | [`target_compile_options`](https://cmake.org/cmake/help/latest/command/target_compile_options.html) | Adds compiler flags. |
+| `include-directories` | [`target_include_directories`](https://cmake.org/cmake/help/latest/command/target_include_directories.html) | Adds include directories. |
+| `link-directories` | [`target_link_directories`](https://cmake.org/cmake/help/latest/command/target_link_directories.html) | Adds library directories. |
+| `link-libraries` | [`target_link_libraries`](https://cmake.org/cmake/help/latest/command/target_link_libraries.html) | Adds library dependencies. |
+| `link-options` | [`target_link_options`](https://cmake.org/cmake/help/latest/command/target_link_options.html) | Adds linker flags. |
+| `precompile-headers` | [`target_precompile_headers`](https://cmake.org/cmake/help/latest/command/target_precompile_headers.html) | Specifies precompiled headers. |
+| `properties` | [`set_target_properties`](https://cmake.org/cmake/help/latest/command/set_target_properties.html) | See [properties on targets](https://cmake.org/cmake/help/latest/manual/cmake-properties.7.html#properties-on-targets) for more information. |
+
+The default [visibility](/basics) is as follows:
+
+| Type         | Visibility  |
+| ------------ | ----------- |
+| `executable` | `PRIVATE`   |
+| `library`    | `PUBLIC`    |
+| `shared`     | `PUBLIC`    |
+| `static`     | `PUBLIC`    |
+| `object`     | `PUBLIC`    |
+| `interface`  | `INTERFACE` |
 
 ## Templates
 
