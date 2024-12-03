@@ -656,22 +656,25 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         // Add support for relative paths for (private-)link-libraries
         const auto fix_relative_paths = [&name, &path](ConditionVector &libraries, const char *key) {
             for (const auto &library_entries : libraries) {
-                for (auto &library_path : libraries[library_entries.first]) {
+                for (auto &library : libraries[library_entries.first]) {
                     // Skip processing paths with potential CMake macros in them (this check isn't perfect)
                     // https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#variable-references
-                    if ((library_path.find("${") != std::string::npos || library_path.find("$ENV{") != std::string::npos ||
-                         library_path.find("$CACHE{") != std::string::npos) &&
-                        library_path.find('}') != std::string::npos) {
+                    if ((library.find("${") != std::string::npos || library.find("$ENV{") != std::string::npos ||
+                         library.find("$CACHE{") != std::string::npos) &&
+                        library.find('}') != std::string::npos) {
                         continue;
                     }
 
-                    if (fs::exists(fs::path(path) / library_path)) {
-                        // If the file path is relative, prepend ${CMAKE_CURRENT_SOURCE_DIR}
-                        library_path.insert(0, "${CMAKE_CURRENT_SOURCE_DIR}/");
-                    } else if (library_path.find_first_of(R"(\/)") != std::string::npos) {
+                    auto library_path = fs::path(path) / library;
+                    if (fs::exists(library_path)) {
+                        if (!fs::is_directory(library_path)) {
+                            // If the file path is relative (and not a directory), prepend ${CMAKE_CURRENT_SOURCE_DIR}
+                            library.insert(0, "${CMAKE_CURRENT_SOURCE_DIR}/");
+                        }
+                    } else if (library.find_first_of(R"(\/)") != std::string::npos) {
                         // Error if the path contains a directory separator and the file doesn't exist
                         throw std::runtime_error("Attempted to link against a library file that doesn't exist for target \"" + name + "\" in \"" +
-                                                 key + "\": " + library_path);
+                                                 key + "\": " + library);
                     } else {
                         // NOTE: We cannot check if system libraries exist, so we leave them as-is
                     }
