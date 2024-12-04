@@ -272,7 +272,7 @@ A table mapping the cmkr features to the relevant CMake construct and the releva
 | `compile-options` | [`target_compile_options`](https://cmake.org/cmake/help/latest/command/target_compile_options.html) | Adds compiler flags. |
 | `include-directories` | [`target_include_directories`](https://cmake.org/cmake/help/latest/command/target_include_directories.html) | Adds include directories. |
 | `link-directories` | [`target_link_directories`](https://cmake.org/cmake/help/latest/command/target_link_directories.html) | Adds library directories. |
-| `link-libraries` | [`target_link_libraries`](https://cmake.org/cmake/help/latest/command/target_link_libraries.html) | Adds library dependencies. |
+| `link-libraries` | [`target_link_libraries`](https://cmake.org/cmake/help/latest/command/target_link_libraries.html) | Adds library dependencies. Use `::mylib` to make sure a target exists. |
 | `link-options` | [`target_link_options`](https://cmake.org/cmake/help/latest/command/target_link_options.html) | Adds linker flags. |
 | `precompile-headers` | [`target_precompile_headers`](https://cmake.org/cmake/help/latest/command/target_precompile_headers.html) | Specifies precompiled headers. |
 | `properties` | [`set_target_properties`](https://cmake.org/cmake/help/latest/command/set_target_properties.html) | See [properties on targets](https://cmake.org/cmake/help/latest/manual/cmake-properties.7.html#properties-on-targets) for more information. |
