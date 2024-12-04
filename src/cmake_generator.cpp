@@ -1401,6 +1401,26 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 });
             };
 
+            auto link_libraries = [&](const parser::ConditionVector &cargs, const std::string &scope) {
+                gen.handle_condition(cargs, [&](const std::string &, const std::vector<std::string> &args) {
+                    std::vector<std::string> targs;
+                    for (const std::string &arg : args) {
+                        if (arg.find("::") == 0) {
+                            auto library = arg.substr(2);
+                            // clang-format off
+                            cmd("if")("NOT", "TARGET", library);
+                                cmd("message")("FATAL_ERROR", "Target \"" + library + "\" referenced by \"" + target.name + "\" does not exist!");
+                            cmd("endif")().endl();
+                            // clang-format on
+                            targs.push_back(std::move(library));
+                        } else {
+                            targs.push_back(arg);
+                        }
+                    }
+                    cmd("target_link_libraries")(target.name, scope, targs);
+                });
+            };
+
             auto gen_target_cmds = [&](const parser::Target &t) {
                 target_cmd("target_compile_definitions", t.compile_definitions, target_scope);
                 target_cmd("target_compile_definitions", t.private_compile_definitions, "PRIVATE");
@@ -1417,8 +1437,8 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 target_cmd("target_link_directories", t.link_directories, target_scope);
                 target_cmd("target_link_directories", t.private_link_directories, "PRIVATE");
 
-                target_cmd("target_link_libraries", t.link_libraries, target_scope);
-                target_cmd("target_link_libraries", t.private_link_libraries, "PRIVATE");
+                link_libraries(t.link_libraries, target_scope);
+                link_libraries(t.private_link_libraries, "PRIVATE");
 
                 target_cmd("target_link_options", t.link_options, target_scope);
                 target_cmd("target_link_options", t.private_link_options, "PRIVATE");
