@@ -289,6 +289,10 @@ struct RawArg {
     }
 
     std::string arg;
+
+    bool empty() const {
+        return arg.empty();
+    }
 };
 
 // Credit: JustMagic
@@ -406,7 +410,7 @@ struct Command {
     }
 
     bool print_arg(const RawArg &arg) {
-        if (arg.arg.empty()) {
+        if (arg.empty()) {
             return true;
         }
 
@@ -1461,14 +1465,17 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 }
 
                 gen.handle_condition(props, [&](const std::string &, const tsl::ordered_map<std::string, std::string> &properties) {
+                    tsl::ordered_map<std::string, RawArg> raw_properties;
                     for (const auto &propItr : properties) {
                         if (propItr.first == "MSVC_RUNTIME_LIBRARY") {
                             if (project_root->project_msvc_runtime == parser::msvc_last) {
                                 throw_target_error("You cannot set msvc-runtime without setting the root [project].msvc-runtime");
                             }
                         }
+                        // NOTE: We need to make sure that empty strings do not get omitted
+                        raw_properties.emplace(propItr.first, Command::quote(propItr.second));
                     }
-                    cmd("set_target_properties")(target.name, "PROPERTIES", properties);
+                    cmd("set_target_properties")(target.name, "PROPERTIES", raw_properties);
                 });
             }
 
