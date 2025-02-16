@@ -82,7 +82,7 @@ target_sources(cmkr PRIVATE ${cmkr_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${cmkr_SOURCES})
 
 target_compile_features(cmkr PRIVATE
-	cxx_std_11
+	cxx_std_20
 )
 
 target_include_directories(cmkr PRIVATE
@@ -90,10 +90,7 @@ target_include_directories(cmkr PRIVATE
 )
 
 target_link_libraries(cmkr PRIVATE
-	toml11
-	ghc_filesystem
-	mpark_variant
-	ordered_map
+	toml11 
 )
 
 get_directory_property(CMKR_VS_STARTUP_PROJECT DIRECTORY ${PROJECT_SOURCE_DIR} DEFINITION VS_STARTUP_PROJECT)

@@ -30,7 +30,7 @@ static MsvcRuntimeType parse_msvcRuntimeType(const std::string &name) {
     return msvc_last;
 }
 
-using TomlBasicValue = toml::basic_value<toml::discard_comments, tsl::ordered_map, std::vector>;
+using TomlBasicValue = toml::basic_value<toml::discard_comments, std::unordered_map, std::vector>;
 
 static std::string format_key_message(const std::string &message, const toml::key &ky, const TomlBasicValue &value) {
     auto loc = value.location();
@@ -67,8 +67,8 @@ static void print_key_warning(const std::string &message, const toml::key &ky, c
 
 class TomlChecker {
     const TomlBasicValue &m_v;
-    tsl::ordered_set<toml::key> m_visited;
-    tsl::ordered_set<toml::key> m_conditionVisited;
+    std::unordered_set<toml::key> m_visited;
+    std::unordered_set<toml::key> m_conditionVisited;
 
   public:
     TomlChecker(const TomlBasicValue &v, const toml::key &ky) : m_v(toml::find(v, ky)) {
@@ -136,7 +136,7 @@ class TomlChecker {
         return m_visited.contains(ky);
     }
 
-    void check(const tsl::ordered_map<std::string, std::string> &conditions) const {
+    void check(const std::unordered_map<std::string, std::string> &conditions) const {
         for (const auto &itr : m_v.as_table()) {
             const auto &ky = itr.first;
             if (m_conditionVisited.contains(ky)) {
@@ -171,7 +171,7 @@ class TomlChecker {
 class TomlCheckerRoot {
     const TomlBasicValue &m_root;
     std::deque<TomlChecker> m_checkers;
-    tsl::ordered_set<toml::key> m_visisted;
+    std::unordered_set<toml::key> m_visisted;
     bool m_checked = false;
 
   public:
@@ -195,7 +195,7 @@ class TomlCheckerRoot {
         return m_checkers.back();
     }
 
-    void check(const tsl::ordered_map<std::string, std::string> &conditions, bool check_root) {
+    void check(const std::unordered_map<std::string, std::string> &conditions, bool check_root) {
         if (check_root) {
             for (const auto &itr : m_root.as_table()) {
                 if (!m_visisted.contains(itr.first)) {
@@ -214,7 +214,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
     if (!fs::exists(toml_path)) {
         throw std::runtime_error("File not found '" + toml_path.string() + "'");
     }
-    const auto toml = toml::parse<toml::discard_comments, tsl::ordered_map, std::vector>(toml_path.string());
+    const auto toml = toml::parse<toml::discard_comments, std::unordered_map, std::vector>(toml_path.string());
     if (toml.size() == 0) {
         throw std::runtime_error("Empty TOML '" + toml_path.string() + "'");
     }
@@ -343,7 +343,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
     }
 
     if (checker.contains("variables")) {
-        using set_map = tsl::ordered_map<std::string, TomlBasicValue>;
+        using set_map = std::unordered_map<std::string, TomlBasicValue>;
         auto vars = toml::find<set_map>(toml, "variables");
         if (checker.contains("settings")) {
             print_key_warning("[settings] has been renamed to [variables]", "settings", toml.at("settings"));
@@ -401,7 +401,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         auto nproject_prefix = normalize(project_name);
         nproject_prefix += '-';
 
-        using opts_map = tsl::ordered_map<std::string, TomlBasicValue>;
+        using opts_map = std::unordered_map<std::string, TomlBasicValue>;
         const auto &opts = toml::find<opts_map>(toml, "options");
         for (const auto &itr : opts) {
             Option o;
@@ -457,7 +457,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
     }
 
     if (checker.contains("find-package")) {
-        using pkg_map = tsl::ordered_map<std::string, TomlBasicValue>;
+        using pkg_map = std::unordered_map<std::string, TomlBasicValue>;
         const auto &pkgs = toml::find<pkg_map>(toml, "find-package");
         for (const auto &itr : pkgs) {
             Package p;
@@ -524,7 +524,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 };
 
                 // https://cmake.org/cmake/help/latest/command/string.html#supported-hash-algorithms
-                tsl::ordered_set<std::string> hash_algorithms = {
+                std::unordered_set<std::string> hash_algorithms = {
                     "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha3_224", "sha3_256", "sha3_384", "sha3_512",
                 };
 
@@ -711,7 +711,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 if (cond_itr.first.empty()) {
                     report = &t.find("msvc-runtime");
                 } else {
-                    report = &t.find(cond_itr.first).as_table().find("msvc-runtime").value();
+                    report = &t.find(cond_itr.first).as_table().find("msvc-runtime")->second;
                 }
                 throw_key_error(error, cond_itr.second, *report);
             }
@@ -922,7 +922,7 @@ bool is_root_path(const std::string &path) {
     if (!fs::exists(toml_path)) {
         return false;
     }
-    const auto toml = toml::parse<toml::discard_comments, tsl::ordered_map, std::vector>(toml_path.string());
+    const auto toml = toml::parse<toml::discard_comments, std::unordered_map, std::vector>(toml_path.string());
     return toml.contains("project");
 }
 

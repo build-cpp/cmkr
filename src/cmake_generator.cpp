@@ -22,7 +22,7 @@ Links:
 - https://cmake.org/cmake/help/latest/command/enable_language.html
 */
 
-static tsl::ordered_map<std::string, std::vector<std::string>> known_languages = {
+static std::unordered_map<std::string, std::vector<std::string>> known_languages = {
     {"ASM", {".s", ".S", ".asm", ".abs", ".msa", ".s90", ".s43", ".s85", ".s51"}},
     {"ASM-ATT", {".s", ".asm"}},
     {"ASM_MARMASM", {".asm"}},
@@ -42,7 +42,7 @@ static tsl::ordered_map<std::string, std::vector<std::string>> known_languages =
     {"Swift", {".swift"}},
 };
 
-static std::string format(const char *format, const tsl::ordered_map<std::string, std::string> &variables) {
+static std::string str_format(const char *format, const std::unordered_map<std::string, std::string> &variables) {
     std::string s = format;
     for (const auto &itr : variables) {
         size_t start_pos = 0;
@@ -245,7 +245,7 @@ void generate_project(const std::string &type) {
     // Generate .gitignore with reasonable defaults for CMake
     generate_gitfile(".gitignore", {"build*/", "cmake-build*/", "CMakerLists.txt", "CMakeLists.txt.user"});
 
-    tsl::ordered_map<std::string, std::string> variables = {
+    std::unordered_map<std::string, std::string> variables = {
         {"@name", name},
         {"@type", type},
     };
@@ -255,20 +255,20 @@ void generate_project(const std::string &type) {
         std::error_code ec;
         fs::rename("CMakeLists.txt", "CMakeLists.txt.bak", ec);
         // Create an empty cmake.toml for migration purporses
-        create_file("cmake.toml", format(toml_migration, variables));
+        create_file("cmake.toml", str_format(toml_migration, variables));
         return;
     }
 
     if (type == "executable") {
-        create_file("cmake.toml", format(toml_executable, variables));
-        create_file("src/" + name + "/main.cpp", format(cpp_executable, variables));
+        create_file("cmake.toml", str_format(toml_executable, variables));
+        create_file("src/" + name + "/main.cpp", str_format(cpp_executable, variables));
     } else if (type == "static" || type == "shared" || type == "library") {
-        create_file("cmake.toml", format(toml_library, variables));
-        create_file("src/" + name + "/" + name + ".cpp", format(cpp_library, variables));
-        create_file("include/" + name + "/" + name + ".hpp", format(hpp_library, variables));
+        create_file("cmake.toml", str_format(toml_library, variables));
+        create_file("src/" + name + "/" + name + ".cpp", str_format(cpp_library, variables));
+        create_file("include/" + name + "/" + name + ".hpp", str_format(hpp_library, variables));
     } else if (type == "interface") {
-        create_file("cmake.toml", format(toml_interface, variables));
-        create_file("include/" + name + "/" + name + ".hpp", format(hpp_interface, variables));
+        create_file("cmake.toml", str_format(toml_interface, variables));
+        create_file("include/" + name + "/" + name + ".hpp", str_format(hpp_interface, variables));
     } else {
         throw std::runtime_error("Unknown project type " + type + "! Supported types are: executable, library, shared, static, interface");
     }
@@ -365,7 +365,7 @@ struct Command {
     }
 
     template <class Key, class Value>
-    bool print_arg(const tsl::ordered_map<Key, Value> &map) {
+    bool print_arg(const std::unordered_map<Key, Value> &map) {
         if (map.empty()) {
             return true;
         }
@@ -845,9 +845,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         for (const auto &opt : project.options) {
             std::string default_val;
             if (opt.value.index() == 0) {
-                default_val = mpark::get<0>(opt.value) ? "ON" : "OFF";
+                default_val = std::get<0>(opt.value) ? "ON" : "OFF";
             } else {
-                default_val = mpark::get<1>(opt.value);
+                default_val = std::get<1>(opt.value);
             }
             cmd("option")(opt.name, RawArg(Command::quote(opt.help)), default_val);
         }
@@ -859,9 +859,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         for (const auto &set : project.variables) {
             std::string set_val;
             if (set.value.index() == 1) {
-                set_val = mpark::get<1>(set.value);
+                set_val = std::get<1>(set.value);
             } else {
-                set_val = mpark::get<0>(set.value) ? "ON" : "OFF";
+                set_val = std::get<0>(set.value) ? "ON" : "OFF";
             }
 
             if (set.cache) {
@@ -940,7 +940,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             }
         }
 
-        tsl::ordered_map<std::string, std::string> vcpkg_args = {
+        std::unordered_map<std::string, std::string> vcpkg_args = {
             {"URL", url},
             {"SUBBUILD_DIR", "CMakeFiles/vcpkg-subbuild"},
             {"SOURCE_DIR", "vcpkg"},
@@ -1136,7 +1136,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     project_languages.push_back("RC");
 
     // All acceptable extensions based off our given languages.
-    tsl::ordered_set<std::string> project_extensions;
+    std::unordered_set<std::string> project_extensions;
     for (const auto &language : project_languages) {
         auto itr = known_languages.find(language);
         if (itr != known_languages.end()) {
@@ -1219,7 +1219,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
             // Merge the sources from the template and the target. The sources
             // without condition need to be processed first
-            parser::Condition<tsl::ordered_set<std::string>> msources;
+            parser::Condition<std::unordered_set<std::string>> msources;
             msources[""].clear();
 
             auto merge_sources = [&msources](const parser::ConditionVector &sources) {
@@ -1257,7 +1257,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 cmd("set")(sources_var, RawArg("\"\"")).endl();
             }
 
-            gen.handle_condition(msources, [&](const std::string &condition, const tsl::ordered_set<std::string> &source_set) {
+            gen.handle_condition(msources, [&](const std::string &condition, const std::unordered_set<std::string> &source_set) {
                 std::vector<std::string> condition_sources;
                 condition_sources.reserve(source_set.size());
                 for (const auto &source : source_set) {
@@ -1464,8 +1464,8 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                     props.insert(tmplate->outline.properties.begin(), tmplate->outline.properties.end());
                 }
 
-                gen.handle_condition(props, [&](const std::string &, const tsl::ordered_map<std::string, std::string> &properties) {
-                    tsl::ordered_map<std::string, RawArg> raw_properties;
+                gen.handle_condition(props, [&](const std::string &, const std::unordered_map<std::string, std::string> &properties) {
+                    std::unordered_map<std::string, RawArg> raw_properties;
                     for (const auto &propItr : properties) {
                         if (propItr.first == "MSVC_RUNTIME_LIBRARY") {
                             if (project_root->project_msvc_runtime == parser::msvc_last) {

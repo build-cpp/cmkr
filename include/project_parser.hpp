@@ -2,23 +2,22 @@
 
 #include <vector>
 #include <string>
-
-#include <mpark/variant.hpp>
-#include <tsl/ordered_map.h>
-#include <tsl/ordered_set.h>
-
+#include <variant>
+#include <unordered_map>
+#include <unordered_set>
+  
 namespace cmkr {
 namespace parser {
 
 template <typename T>
-using Condition = tsl::ordered_map<std::string, T>;
+using Condition = std::unordered_map<std::string, T>;
 
 using ConditionVector = Condition<std::vector<std::string>>;
 
 struct Variable {
     std::string name;
     std::string help;
-    mpark::variant<bool, std::string> value;
+    std::variant<bool, std::string> value;
     bool cache = false;
     bool force = false;
 };
@@ -26,7 +25,7 @@ struct Variable {
 struct Option {
     std::string name;
     std::string help;
-    mpark::variant<bool, std::string> value;
+    std::variant<bool, std::string> value;
 };
 
 struct Package {
@@ -107,7 +106,7 @@ struct Target {
 
     std::string condition;
     std::string alias;
-    Condition<tsl::ordered_map<std::string, std::string>> properties;
+    Condition<std::unordered_map<std::string, std::string>> properties;
 
     Condition<std::string> cmake_before;
     Condition<std::string> cmake_after;
@@ -154,7 +153,7 @@ struct Subdir {
 struct Content {
     std::string name;
     std::string condition;
-    tsl::ordered_map<std::string, std::string> arguments;
+    std::unordered_map<std::string, std::string> arguments;
 
     Condition<std::string> cmake_before;
     Condition<std::string> cmake_after;
@@ -207,7 +206,7 @@ struct Project {
     std::vector<Target> targets;
     std::vector<Test> tests;
     std::vector<Install> installs;
-    tsl::ordered_map<std::string, std::string> conditions;
+    std::unordered_map<std::string, std::string> conditions;
     std::vector<Subdir> subdirs;
 
     Project(const Project *parent, const std::string &path, bool build);
