@@ -2,6 +2,11 @@
 // Distributed under the MIT License.
 #ifndef TOML11_TRAITS_HPP
 #define TOML11_TRAITS_HPP
+
+#include "from.hpp"
+#include "into.hpp"
+#include "version.hpp"
+
 #include <chrono>
 #include <forward_list>
 #include <string>
@@ -9,7 +14,7 @@
 #include <type_traits>
 #include <utility>
 
-#if __cplusplus >= 201703L
+#if TOML11_CPLUSPLUS_STANDARD_VERSION >= 201703L
 #if __has_include(<string_view>)
 #include <string_view>
 #endif // has_include(<string_view>)
@@ -84,6 +89,22 @@ struct has_into_toml_method_impl
     static std::false_type check(...);
 };
 
+struct has_specialized_from_impl
+{
+    template<typename T>
+    static std::false_type check(...);
+    template<typename T, std::size_t S = sizeof(::toml::from<T>)>
+    static std::true_type check(::toml::from<T>*);
+};
+struct has_specialized_into_impl
+{
+    template<typename T>
+    static std::false_type check(...);
+    template<typename T, std::size_t S = sizeof(::toml::into<T>)>
+    static std::true_type check(::toml::from<T>*);
+};
+
+
 /// Intel C++ compiler can not use decltype in parent class declaration, here
 /// is a hack to work around it. https://stackoverflow.com/a/23953090/4692076
 #ifdef __INTEL_COMPILER
@@ -114,6 +135,11 @@ template<typename T>
 struct has_into_toml_method
 : decltype(has_into_toml_method_impl::check<T>(nullptr)){};
 
+template<typename T>
+struct has_specialized_from : decltype(has_specialized_from_impl::check<T>(nullptr)){};
+template<typename T>
+struct has_specialized_into : decltype(has_specialized_into_impl::check<T>(nullptr)){};
+
 #ifdef __INTEL_COMPILER
 #undef decltype
 #endif
@@ -121,7 +147,7 @@ struct has_into_toml_method
 // ---------------------------------------------------------------------------
 // C++17 and/or/not
 
-#if __cplusplus >= 201703L
+#if TOML11_CPLUSPLUS_STANDARD_VERSION >= 201703L
 
 using std::conjunction;
 using std::disjunction;
@@ -183,8 +209,10 @@ template<typename T>
 struct is_container : conjunction<
     negation<is_map<T>>,                         // not a map
     negation<std::is_same<T, std::string>>,      // not a std::string
-#if __cplusplus >= 201703L
+#if TOML11_CPLUSPLUS_STANDARD_VERSION >= 201703L
+#if __has_include(<string_view>)
     negation<std::is_same<T, std::string_view>>, // not a std::string_view
+#endif // has_include(<string_view>)
 #endif
     has_iterator<T>,                             // has T::iterator
     has_value_type<T>                            // has T::value_type
@@ -206,7 +234,7 @@ struct is_basic_value<::toml::basic_value<C, M, V>>: std::true_type{};
 // ---------------------------------------------------------------------------
 // C++14 index_sequence
 
-#if __cplusplus >= 201402L
+#if TOML11_CPLUSPLUS_STANDARD_VERSION >= 201402L
 
 using std::index_sequence;
 using std::make_index_sequence;
@@ -236,12 +264,12 @@ struct index_sequence_maker<0>
 template<std::size_t N>
 using make_index_sequence = typename index_sequence_maker<N-1>::type;
 
-#endif // __cplusplus >= 2014
+#endif // cplusplus >= 2014
 
 // ---------------------------------------------------------------------------
 // C++14 enable_if_t
 
-#if __cplusplus >= 201402L
+#if TOML11_CPLUSPLUS_STANDARD_VERSION >= 201402L
 
 using std::enable_if_t;
 
@@ -250,12 +278,12 @@ using std::enable_if_t;
 template<bool B, typename T>
 using enable_if_t = typename std::enable_if<B, T>::type;
 
-#endif // __cplusplus >= 2014
+#endif // cplusplus >= 2014
 
 // ---------------------------------------------------------------------------
 // return_type_of_t
 
-#if __cplusplus >= 201703L
+#if TOML11_CPLUSPLUS_STANDARD_VERSION >= 201703L && defined(__cpp_lib_is_invocable) && __cpp_lib_is_invocable>=201703
 
 template<typename F, typename ... Args>
 using return_type_of_t = std::invoke_result_t<F, Args...>;
