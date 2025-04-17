@@ -54,6 +54,18 @@ static std::string format(const char *format, const tsl::ordered_map<std::string
     return s;
 }
 
+static std::string quoted( const std::string& str ){
+    return "\"" + str + "\""; 
+}
+
+static std::string space_error_check( const std::string& str ){
+    auto pos = str.find_last_of(' ');
+    if ( pos != std::string::npos )
+        return quoted(str) + " <------ !space(s)";
+    else
+        return quoted(str);    
+}
+
 static std::vector<fs::path> expand_cmake_path(const fs::path &source_path, const fs::path &toml_dir, bool is_root_project) {
     auto is_subdir = [](fs::path p, const fs::path &root) {
         while (true) {
@@ -1294,7 +1306,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                             continue;
                         const auto &source_path = fs::path(path) / source;
                         if (!fs::exists(source_path)) {
-                            throw_target_error("Source file not found: " + source);
+                            throw_target_error("Source file not found: " + space_error_check(source) );
                         }
                     }
                     break;
