@@ -1,21 +1,29 @@
 #include "arguments.hpp"
-
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+ 
 #include <stdexcept>
+#include <iostream>
 
-int main(int argc, char **argv) try {
-    auto output = cmkr::args::handle_args(argc, argv);
-    auto format = "[cmkr] %s\n";
-    if (strchr(output, '\n') != nullptr)
-        format = "%s\n";
-    (void)fprintf(stderr, format, output);
-    return EXIT_SUCCESS;
-} catch (const std::exception &e) {
-    auto format = "[cmkr] error: %s\n";
-    if (strchr(e.what(), '\n') != nullptr)
-        format = "%s\n";
-    (void)fprintf(stderr, format, e.what());
-    return EXIT_FAILURE;
-}
+int main(int argc, char **argv) { 
+
+    try {
+        auto output = cmkr::args::handle_args(argc, argv);
+        std::string format = "[cmkr]" + std::string(output) + "\n";
+
+        if ( format.find( '\n' ) != std::string::npos )
+            format = std::string(output) + "\n";
+
+        std::cerr << format;
+        return true;
+    }
+    catch ( const std::exception &err ) {
+        std::string error = err.what();
+        std::string format = "[cmkr] error: " + error + "\n";
+
+        if (error.find('\n') != std::string::npos)
+            format = error + "\n";
+
+        std::cerr << format;
+        return false;
+    }
+
+}  
