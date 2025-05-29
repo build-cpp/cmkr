@@ -10,19 +10,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022, macos-latest, ubuntu-20.04]
+        os: [windows-2022, macos-latest, ubuntu-22.04]
     env:
       BUILD_TYPE: 'Release'
       CMAKE_GENERATOR: 'Ninja'
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
-
-    - name: Install Ninja
-      uses: seanmiddleditch/gha-setup-ninja@6263846cf3c17009dfc81604efabae16044fc074 # master
+      uses: actions/checkout@v4
 
     - name: Visual Studio Development Environment
-      uses: ilammy/msvc-dev-cmd@cec98b9d092141f74527d0afa6feb2af698cfe89 # v1.12.1
+      uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.1
 
     - name: Tag cmkr.cmake
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
@@ -52,20 +49,20 @@ jobs:
 
     - name: Get lowercase OS name
       id: osname
-      uses: ASzc/change-string-case-action@07c1e24a97f0951e13f88870b99c058fcf0b14cf # v5
+      uses: ASzc/change-string-case-action@ccb130a4e483d3e86287289183704dc9bf53e77e # master 2024-04-05
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
       with:
         string: ${{ runner.os }}
 
     - name: Compress artifacts
-      uses: vimtor/action-zip@26a249fb00d43ca98dad77a4b3838025fc226aa1 # v1.1
+      uses: vimtor/action-zip@1379ea20d4c5705669ba81fd626dd01b1c738f26 # v1.2
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
       with:
         files: install/bin/
         dest: ${{ github.event.repository.name }}-${{ steps.osname.outputs.lowercase }}.zip
 
     - name: Release
-      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
+      uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
       if: ${{ startsWith(github.ref, 'refs/tags/') }}
       with:
         prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') || contains(github.ref, '-pre') }}
