@@ -16,8 +16,9 @@ Downloads [fmt v7.1.3](https://fmt.dev/7.1.3/) from [GitHub](https://github.com)
 name = "fetch-content"
 description = "Fetching from git"
 
-[fetch-content]
-fmt = { git = "https://github.com/fmtlib/fmt", tag = "7.1.3" }
+[fetch-content.fmt]
+git = "https://github.com/fmtlib/fmt"
+tag = "7.1.3"
 
 [target.example]
 type = "executable"

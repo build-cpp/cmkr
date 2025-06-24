@@ -191,26 +191,28 @@ components = ["mycomponent"]
 **Note**: The `[fetch-content]` feature is unpolished and will likely change in a future release.
 
 ```toml
+# Include CMake project from git
 [fetch-content.gitcontent]
 condition = "mycondition"
 git = "https://github.com/myuser/gitcontent"
 tag = "v0.1"
-shallow = false
+shallow = false # shallow clone (--depth 1)
 system = false
-subdir = ""
+subdir = "" # folder containing CMakeLists.txt
+
+# Include a CMake project from a URL
+[fetch-content.urlcontent]
+condition = "mycondition"
+url = "https://content-host.com/urlcontent.zip"
+# Other supported algorithms:
+# md5, sha1, sha224, sha256, sha384, sha512, sha3_224, sha3_256, sha3_384, sha3_512
+hash = "SHA1 502a4e25b8b209889c99c7fa0732102682c2e4ff"
+sha1 = "502a4e25b8b209889c99c7fa0732102682c2e4ff"
 
 [fetch-content.svncontent]
 condition = "mycondition"
 svn = "https://svn-host.com/url"
 rev = "svn_rev"
-
-[fetch-content.urlcontent]
-condition = "mycondition"
-url = "https://content-host.com/urlcontent.zip"
-# These are equivalent, supported algorithms:
-# md5, sha1, sha224, sha256, sha384, sha512, sha3_224, sha3_256, sha3_384, sha3_512
-hash = "SHA1 502a4e25b8b209889c99c7fa0732102682c2e4ff"
-sha1 = "502a4e25b8b209889c99c7fa0732102682c2e4ff"
 ```
 
 Table keys that match CMake variable names (`[A-Z_]+`) will be passed to the [`FetchContent_Declare`](https://cmake.org/cmake/help/latest/module/FetchContent.html#command:fetchcontent_declare) command.
