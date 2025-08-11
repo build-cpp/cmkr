@@ -102,8 +102,6 @@ add_library(StringUtils STATIC
     "StringUtils/src/stringutils.cpp"
 )
 
-target_sources(StringUtils PRIVATE ${StringUtils_SOURCES})
-
 target_include_directories(StringUtils PUBLIC
 	"StringUtils/include"
 )
@@ -112,8 +110,6 @@ target_include_directories(StringUtils PUBLIC
 add_executable(DataProcessor
     "DataProcessor/src/main.cpp"
 )
-
-target_sources(DataProcessor PRIVATE ${DataProcessor_SOURCES})
 
 target_link_libraries(DataProcessor PRIVATE
     StringUtils
@@ -137,7 +133,7 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ```
 
-We specify both `CMAKE_BUILD_TYPE` and `--config` to be compatible with generators (like Visual Studio/Xcode) that allow multiple configurations at once.
+We specify both `CMAKE_BUILD_TYPE` and `--config` to be compatible with generators that support multiple configurations at once ((like Visual Studio/Xcode/Ninja Multi-Config).
 {:.info}
 
 **Build Types**:
