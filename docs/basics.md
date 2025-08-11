@@ -101,7 +101,6 @@ add_library(StringUtils STATIC
     "StringUtils/include/stringutils.hpp"
     "StringUtils/src/stringutils.cpp"
 )
-
 target_include_directories(StringUtils PUBLIC
 	"StringUtils/include"
 )
@@ -110,7 +109,6 @@ target_include_directories(StringUtils PUBLIC
 add_executable(DataProcessor
     "DataProcessor/src/main.cpp"
 )
-
 target_link_libraries(DataProcessor PRIVATE
     StringUtils
 )
