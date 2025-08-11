@@ -6,7 +6,7 @@ nav_order: 1
 
 # Basics
 
-To effectively use cmkr it helps to understand the basic concepts of CMake.
+To effectively use cmkr it helps to understand the basic concepts of CMake. This page serves as an introduction to CMake for beginners. Links to the CMake documentation are included for reference.
 
 ## Projects
 
@@ -16,11 +16,11 @@ A CMake **project** is a collection of targets. In the context of libraries the 
 
 ## Targets
 
-The basic unit of CMake is called a **target**. A target (also referred to as [binary target](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#binary-targets) in the CMake documentation) corresponds to an executable or static/dynamic library you can build. There are also [pseudo targets](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#pseudo-targets), but we ignore them for now.
+The basic unit of CMake is called a **target**. A target (also referred to as [binary target](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#binary-targets) in the CMake documentation) corresponds to an executable or static/dynamic library you can build.
 
 <sub>Visual Studio: a **target** corresponds to a _project_.</sub>
 
-Target types:
+Most important target types:
 
 |Type|Purpose|
 |-|-|
@@ -29,9 +29,11 @@ Target types:
 |Dynamic library|Library code loaded at runtime (`.dll`, `.so`, `.dylib`)|
 |Interface|Used for organizational purposes (common flags/includes/libraries)|
 
+There are also other [pseudo targets](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#pseudo-targets), but they are not important for now.
+
 ## Target Properties
 
-Targets have a collection of **properties** that describe how to build them.
+Targets have a collection of **properties** that describe how the compiler builds them.
 
 The most commonly-used properties:
 
@@ -45,9 +47,9 @@ The most commonly-used properties:
 
 <sub>See the [CMake documentation](https://cmake.org/cmake/help/latest/manual/cmake-properties.7.html#properties-on-targets) for an exhaustive list of target properties.</sub>
 
-**Important**: The term **link** has a slightly different meaning in CMake than you might expect. In addition to adding a library to the command line of the linker, CMake also (transitively) propagates properties of the target you link to based on their _visibility_.
+**Important**: The term **link** has a slightly different meaning in CMake than you might expect. In addition to adding a library to the command line, CMake also (transitively) propagates properties of the target you link to based on their _visibility_.
 
-<sub>You can think of **linking** as _depending on_.</sub>
+You should think of **linking** in CMake as _depending on_.{:.info}
 
 The propagation of properties depends on their **visibility**:
 
@@ -116,3 +118,30 @@ target_link_libraries(DataProcessor PRIVATE
     StringUtils
 )
 ```
+
+## CMake Phases
+
+CMake works in three phases:
+1. **Configure**: Execute `CMakeLists.txt` (find dependencies, create targets, OS/compiler-specific conditions, etc).
+2. **Generate**: Generate build files (propagates target properties and handles [_generator expressions_](https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html)).
+3. **Build**: Execute the compiler to produce executables/libraries.
+
+CMake keeps generated files separate from your source in a **build directory**. You specify a [**generator**](https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html) (Visual Studio/Ninja) and [**build type**](https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#build-configurations) (Debug/Release) during configuration.
+
+```bash
+# Configure project and generate build files in build directory
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+# Build the project
+cmake --build build --config Release
+```
+
+We specify both `CMAKE_BUILD_TYPE` and `--config` to be compatible with generators (like Visual Studio/Xcode) that allow multiple configurations at once.{:.info}
+
+**Build Types**:
+- `Debug`: No optimization, debug symbols
+- `Release`: Full optimization, no debug symbols
+- `RelWithDebInfo`: Medium optimizations, debug symbols
+- `MinSizeRel`: Optimize for size, no debug symbols
+
+**Generators**: CMake auto-detects (Makefiles on Linux/macOS, Visual Studio on Windows), but you can specify explicitly with `-G` during the _configure_ step.
