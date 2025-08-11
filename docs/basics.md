@@ -49,7 +49,8 @@ The most commonly-used properties:
 
 **Important**: The term **link** has a slightly different meaning in CMake than you might expect. In addition to adding a library to the command line, CMake also (transitively) propagates properties of the target you link to based on their _visibility_.
 
-You should think of **linking** in CMake as _depending on_.{:.info}
+You should think of **linking** in CMake as _depending on_.
+{:.info}
 
 The propagation of properties depends on their **visibility**:
 
@@ -136,7 +137,8 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ```
 
-We specify both `CMAKE_BUILD_TYPE` and `--config` to be compatible with generators (like Visual Studio/Xcode) that allow multiple configurations at once.{:.info}
+We specify both `CMAKE_BUILD_TYPE` and `--config` to be compatible with generators (like Visual Studio/Xcode) that allow multiple configurations at once.
+{:.info}
 
 **Build Types**:
 - `Debug`: No optimization, debug symbols
