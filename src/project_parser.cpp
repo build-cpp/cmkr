@@ -785,6 +785,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
             tmplate.outline = parse_target(name, t, true);
 
             t.optional("add-function", tmplate.add_function);
+            t.optional("add-arguments", tmplate.add_arguments);
             t.optional("pass-sources-to-add-function", tmplate.pass_sources_to_add_function);
             t.optional("pass-sources", tmplate.pass_sources_to_add_function);
 
