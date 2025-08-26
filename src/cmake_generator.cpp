@@ -1372,12 +1372,11 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             // Handle custom add commands from templates.
             if (tmplate != nullptr && !tmplate->add_function.empty()) {
                 add_command = tmplate->add_function;
-                target_type_string = ""; // TODO: let templates supply options to the add_command here?
 
                 if (tmplate->pass_sources_to_add_function) {
-                    cmd(add_command)(target.name, target_type_string, "${" + sources_var + "}");
+                    cmd(add_command)(target.name, tmplate->add_arguments, "${" + sources_var + "}");
                 } else {
-                    cmd(add_command)(target.name, target_type_string).endl();
+                    cmd(add_command)(target.name, tmplate->add_arguments).endl();
                     if (has_sources) {
                         cmd("target_sources")(target.name, target_type == parser::target_interface ? "INTERFACE" : "PRIVATE",
                                               "${" + sources_var + "}");

@@ -118,6 +118,7 @@ struct Target {
 struct Template {
     Target outline;
     std::string add_function;
+    std::vector<std::string> add_arguments;
     bool pass_sources_to_add_function = false;
 };
 
