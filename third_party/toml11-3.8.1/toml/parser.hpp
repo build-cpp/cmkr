@@ -1847,6 +1847,15 @@ parse_inline_table(location& loc, const std::size_t n_rec)
 
     // check if the inline table is an empty table = { }
     maybe<lex_ws>::invoke(loc);
+#ifdef TOML11_USE_UNRELEASED_TOML_FEATURES
+    // TOML 1.1.0: allow newlines in inline tables
+    while(loc.iter() != loc.end() && 
+          (*loc.iter() == '\r' || *loc.iter() == '\n'))
+    {
+        loc.advance();
+    }
+    maybe<lex_ws>::invoke(loc); // skip whitespace after newlines
+#endif
     if(loc.iter() != loc.end() && *loc.iter() == '}')
     {
         loc.advance(); // skip `}`
@@ -1914,13 +1923,28 @@ parse_inline_table(location& loc, const std::size_t n_rec)
         else // `,` is found
         {
             maybe<lex_ws>::invoke(loc);
+#ifdef TOML11_USE_UNRELEASED_TOML_FEATURES
+            // TOML 1.1.0: allow newlines after commas in inline tables
+            while(loc.iter() != loc.end() && 
+                  (*loc.iter() == '\r' || *loc.iter() == '\n'))
+            {
+                loc.advance();
+            }
+            maybe<lex_ws>::invoke(loc); // skip whitespace after newlines
+#endif
             if(loc.iter() != loc.end() && *loc.iter() == '}')
             {
+#ifdef TOML11_USE_UNRELEASED_TOML_FEATURES
+                // TOML 1.1.0: trailing comma is allowed in inline tables
+                loc.advance(); // skip `}`
+                return ok(std::make_pair(retval, region(loc, first, loc.iter())));
+#else
                 throw syntax_error(format_underline(
                     "toml::parse_inline_table: trailing comma is not allowed in"
                     " an inline table",
                     {{source_location(loc), "should be `}`"}}),
                     source_location(loc));
+#endif
             }
         }
     }
