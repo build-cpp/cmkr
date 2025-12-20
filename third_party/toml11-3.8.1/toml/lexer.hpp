@@ -5,7 +5,6 @@
 #include <istream>
 #include <sstream>
 #include <stdexcept>
-#include <fstream>
 
 #include "combinator.hpp"
 
@@ -119,8 +118,8 @@ using lex_local_time       = lex_partial_time;
 // ===========================================================================
 
 using lex_quotation_mark  = character<'"'>;
-using lex_basic_unescaped = exclude<either<in_range<0x00, 0x08>, // 0x09 (tab)
-                                           in_range<0x0a, 0x1F>, // is allowed
+using lex_basic_unescaped = exclude<either<in_range<0x00, 0x08>, // 0x09 (tab) is allowed
+                                           in_range<0x0A, 0x1F>,
                                            character<0x22>, character<0x5C>,
                                            character<0x7F>>>;
 
@@ -133,6 +132,9 @@ using lex_escape_seq_char = either<character<'"'>, character<'\\'>,
                                    character<'b'>, character<'f'>,
                                    character<'n'>, character<'r'>,
                                    character<'t'>,
+#ifdef TOML11_USE_UNRELEASED_TOML_FEATURES
+                                   character<'e'>, // ESC (0x1B)
+#endif
                                    lex_escape_unicode_short,
                                    lex_escape_unicode_long
                                    >;
@@ -166,7 +168,7 @@ using lex_basic_string = sequence<lex_quotation_mark,
 //     |                                                               ^- expected newline, but got '"'.
 // ```
 // As a quick workaround for this problem, `lex_ml_basic_string_delim` was
-// splitted into two, `lex_ml_basic_string_open` and `lex_ml_basic_string_close`.
+// split into two, `lex_ml_basic_string_open` and `lex_ml_basic_string_close`.
 // `lex_ml_basic_string_open` allows only `"""`. `_close` allows 3-5 `"`s.
 // In parse_ml_basic_string() function, the trailing `"`s will be attached to
 // the string body.
@@ -178,8 +180,8 @@ using lex_ml_basic_string_close = sequence<
         maybe<lex_quotation_mark>, maybe<lex_quotation_mark>
     >;
 
-using lex_ml_basic_unescaped    = exclude<either<in_range<0x00, 0x08>, // 0x09
-                                                 in_range<0x0a, 0x1F>, // is tab
+using lex_ml_basic_unescaped    = exclude<either<in_range<0x00, 0x08>, // 0x09 is tab
+                                                 in_range<0x0A, 0x1F>,
                                                  character<0x5C>, // backslash
                                                  character<0x7F>, // DEL
                                                  lex_ml_basic_string_delim>>;
@@ -196,8 +198,8 @@ using lex_ml_basic_string = sequence<lex_ml_basic_string_open,
                                      lex_ml_basic_body,
                                      lex_ml_basic_string_close>;
 
-using lex_literal_char = exclude<either<in_range<0x00, 0x08>,
-                                        in_range<0x10, 0x19>, character<0x27>>>;
+using lex_literal_char = exclude<either<in_range<0x00, 0x08>, in_range<0x0A, 0x1F>,
+                                        character<0x7F>, character<0x27>>>;
 using lex_apostrophe = character<'\''>;
 using lex_literal_string = sequence<lex_apostrophe,
                                     repeat<lex_literal_char, unlimited>,
@@ -212,7 +214,7 @@ using lex_ml_literal_string_close = sequence<
     >;
 
 using lex_ml_literal_char = exclude<either<in_range<0x00, 0x08>,
-                                           in_range<0x10, 0x1F>,
+                                           in_range<0x0A, 0x1F>,
                                            character<0x7F>,
                                            lex_ml_literal_string_delim>>;
 using lex_ml_literal_body = repeat<either<lex_ml_literal_char, lex_newline>,
@@ -225,12 +227,6 @@ using lex_string = either<lex_ml_basic_string,   lex_basic_string,
                           lex_ml_literal_string, lex_literal_string>;
 
 // ===========================================================================
-
-using lex_comment_start_symbol = character<'#'>;
-using lex_non_eol = either<character<'\t'>, exclude<in_range<0x00, 0x19>>>;
-using lex_comment = sequence<lex_comment_start_symbol,
-                             repeat<lex_non_eol, unlimited>>;
-
 using lex_dot_sep = sequence<maybe<lex_ws>, character<'.'>, maybe<lex_ws>>;
 
 using lex_unquoted_key = repeat<either<lex_alpha, lex_digit,
@@ -264,6 +260,34 @@ using lex_array_table       = sequence<lex_array_table_open,
                                        lex_key,
                                        maybe<lex_ws>,
                                        lex_array_table_close>;
+
+using lex_utf8_1byte = in_range<0x00, 0x7F>;
+using lex_utf8_2byte = sequence<
+        in_range<'\xC2', '\xDF'>,
+        in_range<'\x80', '\xBF'>
+    >;
+using lex_utf8_3byte = sequence<either<
+        sequence<character<'\xE0'>, in_range<'\xA0', '\xBF'>>,
+        sequence<in_range<'\xE1', '\xEC'>, in_range<'\x80', '\xBF'>>,
+        sequence<character<'\xED'>, in_range<'\x80', '\x9F'>>,
+        sequence<in_range<'\xEE', '\xEF'>, in_range<'\x80', '\xBF'>>
+    >, in_range<'\x80', '\xBF'>>;
+using lex_utf8_4byte = sequence<either<
+        sequence<character<'\xF0'>, in_range<'\x90', '\xBF'>>,
+        sequence<in_range<'\xF1', '\xF3'>, in_range<'\x80', '\xBF'>>,
+        sequence<character<'\xF4'>, in_range<'\x80', '\x8F'>>
+    >, in_range<'\x80', '\xBF'>, in_range<'\x80', '\xBF'>>;
+using lex_utf8_code = either<
+        lex_utf8_1byte,
+        lex_utf8_2byte,
+        lex_utf8_3byte,
+        lex_utf8_4byte
+    >;
+
+using lex_comment_start_symbol = character<'#'>;
+using lex_non_eol_ascii = either<character<0x09>, in_range<0x20, 0x7E>>;
+using lex_comment = sequence<lex_comment_start_symbol, repeat<either<
+    lex_non_eol_ascii, lex_utf8_2byte, lex_utf8_3byte, lex_utf8_4byte>, unlimited>>;
 
 } // detail
 } // toml

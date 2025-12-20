@@ -11,7 +11,7 @@ target_compile_definitions(ordered_map INTERFACE NOMINMAX)
 
 # https://github.com/ToruNiina/toml11 (MIT)
 add_library(toml11 INTERFACE)
-target_include_directories(toml11 INTERFACE toml11-3.6.0)
+target_include_directories(toml11 INTERFACE toml11-3.8.1)
 
 # https://github.com/mpark/variant (BSL-1.0)
 add_library(mpark_variant INTERFACE)
