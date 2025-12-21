@@ -70,16 +70,16 @@ struct region_base
 struct location final : public region_base
 {
     using const_iterator  = typename std::vector<char>::const_iterator;
-    using difference_type = typename const_iterator::difference_type;
+    using difference_type = typename std::iterator_traits<const_iterator>::difference_type;
     using source_ptr      = std::shared_ptr<const std::vector<char>>;
 
-    location(std::string name, std::vector<char> cont)
+    location(std::string source_name, std::vector<char> cont)
       : source_(std::make_shared<std::vector<char>>(std::move(cont))),
-        line_number_(1), source_name_(std::move(name)), iter_(source_->cbegin())
+        line_number_(1), source_name_(std::move(source_name)), iter_(source_->cbegin())
     {}
-    location(std::string name, const std::string& cont)
+    location(std::string source_name, const std::string& cont)
       : source_(std::make_shared<std::vector<char>>(cont.begin(), cont.end())),
-        line_number_(1), source_name_(std::move(name)), iter_(source_->cbegin())
+        line_number_(1), source_name_(std::move(source_name)), iter_(source_->cbegin())
     {}
 
     location(const location&) = default;
@@ -92,7 +92,7 @@ struct location final : public region_base
     char front() const noexcept override {return *iter_;}
 
     // this const prohibits codes like `++(loc.iter())`.
-    const const_iterator iter()  const noexcept {return iter_;}
+    std::add_const<const_iterator>::type iter()  const noexcept {return iter_;}
 
     const_iterator begin() const noexcept {return source_->cbegin();}
     const_iterator end()   const noexcept {return source_->cend();}
@@ -227,8 +227,7 @@ struct region final : public region_base
     region& operator+=(const region& other)
     {
         // different regions cannot be concatenated
-        assert(this->begin() == other.begin() && this->end() == other.end() &&
-               this->last_   == other.first_);
+        assert(this->source_ == other.source_ && this->last_ == other.first_);
 
         this->last_ = other.last_;
         return *this;
@@ -343,9 +342,9 @@ struct region final : public region_base
                             }))
                     {
                         // unwrap the first '#' by std::next.
-                        auto str = make_string(std::next(comment_found), iter);
-                        if(str.back() == '\r') {str.pop_back();}
-                        com.push_back(std::move(str));
+                        auto s = make_string(std::next(comment_found), iter);
+                        if(!s.empty() && s.back() == '\r') {s.pop_back();}
+                        com.push_back(std::move(s));
                     }
                     else
                     {
@@ -396,9 +395,9 @@ struct region final : public region_base
                     }))
                 {
                     // unwrap the first '#' by std::next.
-                    auto str = make_string(std::next(comment_found), this->line_end());
-                    if(str.back() == '\r') {str.pop_back();}
-                    com.push_back(std::move(str));
+                    auto s = make_string(std::next(comment_found), this->line_end());
+                    if(!s.empty() && s.back() == '\r') {s.pop_back();}
+                    com.push_back(std::move(s));
                 }
             }
         }

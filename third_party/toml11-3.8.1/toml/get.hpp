@@ -140,7 +140,7 @@ get(basic_value<C, M, V>&& v)
 // ============================================================================
 // std::string_view
 
-#if __cplusplus >= 201703L
+#if defined(TOML11_USING_STRING_VIEW) && TOML11_USING_STRING_VIEW>0
 template<typename T, typename C,
          template<typename ...> class M, template<typename ...> class V>
 inline detail::enable_if_t<std::is_same<T, std::string_view>::value, std::string_view>
@@ -215,6 +215,7 @@ template<typename T, typename C,
 detail::enable_if_t<detail::conjunction<
     detail::is_container<T>,                           // T is a container
     detail::negation<detail::has_push_back_method<T>>, // w/o push_back(...)
+    detail::negation<detail::has_specialized_from<T>>, // T does not have special conversion
     detail::negation<                                  // not toml::array
         detail::is_exact_toml_type<T, basic_value<C, M, V>>>
     >::value, T>
@@ -255,18 +256,36 @@ get(const basic_value<C, M, V>&);
 
 // toml::from<T>::from_toml(v)
 template<typename T, typename C,
-         template<typename ...> class M, template<typename ...> class V,
-         std::size_t S = sizeof(::toml::from<T>)>
-T get(const basic_value<C, M, V>&);
+         template<typename ...> class M, template<typename ...> class V>
+detail::enable_if_t<detail::has_specialized_from<T>::value, T>
+get(const basic_value<C, M, V>&);
 
-// T(const toml::value&) and T is not toml::basic_value
+template<typename T, typename C,
+         template<typename ...> class M, template<typename ...> class V>
+detail::enable_if_t<detail::has_specialized_from<T>::value, T>
+get(basic_value<C, M, V>&);
+
+// T(const toml::value&) and T is not toml::basic_value,
+// and it does not have `from<T>` nor `from_toml`.
 template<typename T, typename C,
          template<typename ...> class M, template<typename ...> class V>
 detail::enable_if_t<detail::conjunction<
     detail::negation<detail::is_basic_value<T>>,
-    std::is_constructible<T, const basic_value<C, M, V>&>
+    std::is_constructible<T, const basic_value<C, M, V>&>,
+    detail::negation<detail::has_from_toml_method<T, C, M, V>>,
+    detail::negation<detail::has_specialized_from<T>>
     >::value, T>
 get(const basic_value<C, M, V>&);
+
+template<typename T, typename C,
+         template<typename ...> class M, template<typename ...> class V>
+detail::enable_if_t<detail::conjunction<
+    detail::negation<detail::is_basic_value<T>>,
+    std::is_constructible<T, basic_value<C, M, V>&>,
+    detail::negation<detail::has_from_toml_method<T, C, M, V>>,
+    detail::negation<detail::has_specialized_from<T>>
+    >::value, T>
+get(basic_value<C, M, V>&);
 
 // ============================================================================
 // array-like types; most likely STL container, like std::vector, etc.
@@ -321,6 +340,7 @@ template<typename T, typename C,
 detail::enable_if_t<detail::conjunction<
     detail::is_container<T>,                           // T is a container
     detail::negation<detail::has_push_back_method<T>>, // w/o push_back
+    detail::negation<detail::has_specialized_from<T>>, // T does not have special conversion
     detail::negation<                                  // T is not toml::array
         detail::is_exact_toml_type<T, basic_value<C, M, V>>>
     >::value, T>
@@ -338,8 +358,10 @@ get(const basic_value<C, M, V>& v)
                 {v.location(), "here"}
             }));
     }
-    std::transform(ar.cbegin(), ar.cend(), container.begin(),
-                   [](const value& x){return ::toml::get<value_type>(x);});
+    for(std::size_t i=0; i<ar.size(); ++i)
+    {
+        container[i] = ::toml::get<value_type>(ar[i]);
+    }
     return container;
 }
 
@@ -438,9 +460,16 @@ get(const basic_value<C, M, V>& v)
     return ud;
 }
 template<typename T, typename C,
-         template<typename ...> class M, template<typename ...> class V,
-         std::size_t>
-T get(const basic_value<C, M, V>& v)
+         template<typename ...> class M, template<typename ...> class V>
+detail::enable_if_t<detail::has_specialized_from<T>::value, T>
+get(const basic_value<C, M, V>& v)
+{
+    return ::toml::from<T>::from_toml(v);
+}
+template<typename T, typename C,
+         template<typename ...> class M, template<typename ...> class V>
+detail::enable_if_t<detail::has_specialized_from<T>::value, T>
+get(basic_value<C, M, V>& v)
 {
     return ::toml::from<T>::from_toml(v);
 }
@@ -448,10 +477,25 @@ T get(const basic_value<C, M, V>& v)
 template<typename T, typename C,
          template<typename ...> class M, template<typename ...> class V>
 detail::enable_if_t<detail::conjunction<
-    detail::negation<detail::is_basic_value<T>>,
-    std::is_constructible<T, const basic_value<C, M, V>&>
+    detail::negation<detail::is_basic_value<T>>,                // T is not a toml::value
+    std::is_constructible<T, const basic_value<C, M, V>&>,      // T is constructible from toml::value
+    detail::negation<detail::has_from_toml_method<T, C, M, V>>, // and T does not have T.from_toml(v);
+    detail::negation<detail::has_specialized_from<T>>           // and T does not have toml::from<T>{};
     >::value, T>
 get(const basic_value<C, M, V>& v)
+{
+    return T(v);
+}
+
+template<typename T, typename C,
+         template<typename ...> class M, template<typename ...> class V>
+detail::enable_if_t<detail::conjunction<
+    detail::negation<detail::is_basic_value<T>>,                // T is not a toml::value
+    std::is_constructible<T, basic_value<C, M, V>&>,      // T is constructible from toml::value
+    detail::negation<detail::has_from_toml_method<T, C, M, V>>, // and T does not have T.from_toml(v);
+    detail::negation<detail::has_specialized_from<T>>           // and T does not have toml::from<T>{};
+    >::value, T>
+get(basic_value<C, M, V>& v)
 {
     return T(v);
 }
@@ -1029,6 +1073,50 @@ find_or(const basic_value<C, M, V>& v, const toml::key& ky, T&& opt)
     const auto& tab = v.as_table();
     if(tab.count(ky) == 0) {return std::forward<T>(opt);}
     return get_or(tab.at(ky), std::forward<T>(opt));
+}
+
+// ---------------------------------------------------------------------------
+// recursive find-or with type deduction (find_or(value, keys, opt))
+
+template<typename Value, typename ... Ks,
+         typename detail::enable_if_t<(sizeof...(Ks) > 1), std::nullptr_t> = nullptr>
+         // here we need to add SFINAE in the template parameter to avoid
+         // infinite recursion in type deduction on gcc
+auto find_or(Value&& v, const toml::key& ky, Ks&& ... keys)
+    -> decltype(find_or(std::forward<Value>(v), ky, detail::last_one(std::forward<Ks>(keys)...)))
+{
+    if(!v.is_table())
+    {
+        return detail::last_one(std::forward<Ks>(keys)...);
+    }
+    auto&& tab = std::forward<Value>(v).as_table();
+    if(tab.count(ky) == 0)
+    {
+        return detail::last_one(std::forward<Ks>(keys)...);
+    }
+    return find_or(std::forward<decltype(tab)>(tab).at(ky), std::forward<Ks>(keys)...);
+}
+
+// ---------------------------------------------------------------------------
+// recursive find_or with explicit type specialization, find_or<int>(value, keys...)
+
+template<typename T, typename Value, typename ... Ks,
+         typename detail::enable_if_t<(sizeof...(Ks) > 1), std::nullptr_t> = nullptr>
+         // here we need to add SFINAE in the template parameter to avoid
+         // infinite recursion in type deduction on gcc
+auto find_or(Value&& v, const toml::key& ky, Ks&& ... keys)
+    -> decltype(find_or<T>(std::forward<Value>(v), ky, detail::last_one(std::forward<Ks>(keys)...)))
+{
+    if(!v.is_table())
+    {
+        return detail::last_one(std::forward<Ks>(keys)...);
+    }
+    auto&& tab = std::forward<Value>(v).as_table();
+    if(tab.count(ky) == 0)
+    {
+        return detail::last_one(std::forward<Ks>(keys)...);
+    }
+    return find_or(std::forward<decltype(tab)>(tab).at(ky), std::forward<Ks>(keys)...);
 }
 
 // ============================================================================

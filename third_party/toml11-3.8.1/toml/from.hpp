@@ -1,20 +1,19 @@
 //     Copyright Toru Niina 2019.
 // Distributed under the MIT License.
-#ifndef TOML11_INTO_HPP
-#define TOML11_INTO_HPP
-#include "traits.hpp"
+#ifndef TOML11_FROM_HPP
+#define TOML11_FROM_HPP
 
 namespace toml
 {
 
 template<typename T>
-struct into;
+struct from;
 // {
-//     static toml::value into_toml(const T& user_defined_type)
+//     static T from_toml(const toml::value& v)
 //     {
 //         // User-defined conversions ...
 //     }
 // };
 
 } // toml
-#endif // TOML11_INTO_HPP
+#endif // TOML11_FROM_HPP

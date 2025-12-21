@@ -4,10 +4,17 @@
 #define TOML11_COMMENTS_HPP
 #include <initializer_list>
 #include <iterator>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#ifdef TOML11_PRESERVE_COMMENTS_BY_DEFAULT
+#  define TOML11_DEFAULT_COMMENT_STRATEGY ::toml::preserve_comments
+#else
+#  define TOML11_DEFAULT_COMMENT_STRATEGY ::toml::discard_comments
+#endif
 
 // This file provides mainly two classes, `preserve_comments` and `discard_comments`.
 // Those two are a container that have the same interface as `std::vector<std::string>`
@@ -339,7 +346,7 @@ operator+(const empty_iterator<T, C>& lhs, typename empty_iterator<T, C>::differ
 //
 // Why this is chose as the default type is because the last version (2.x.y)
 // does not contain any comments in a value. To minimize the impact on the
-// efficiency, this is choosed as a default.
+// efficiency, this is chosen as a default.
 //
 // To reduce the memory footprint, later we can try empty base optimization (EBO).
 struct discard_comments
@@ -418,14 +425,14 @@ struct discard_comments
     // empty, so accessing through operator[], front/back, data causes address
     // error.
 
-    reference       operator[](const size_type)       noexcept {return *data();}
-    const_reference operator[](const size_type) const noexcept {return *data();}
+    reference       operator[](const size_type)       noexcept {never_call("toml::discard_comment::operator[]");}
+    const_reference operator[](const size_type) const noexcept {never_call("toml::discard_comment::operator[]");}
     reference       at(const size_type)       {throw std::out_of_range("toml::discard_comment is always empty.");}
     const_reference at(const size_type) const {throw std::out_of_range("toml::discard_comment is always empty.");}
-    reference       front()       noexcept {return *data();}
-    const_reference front() const noexcept {return *data();}
-    reference       back()        noexcept {return *data();}
-    const_reference back()  const noexcept {return *data();}
+    reference       front()       noexcept {never_call("toml::discard_comment::front");}
+    const_reference front() const noexcept {never_call("toml::discard_comment::front");}
+    reference       back()        noexcept {never_call("toml::discard_comment::back");}
+    const_reference back()  const noexcept {never_call("toml::discard_comment::back");}
 
     pointer         data()        noexcept {return nullptr;}
     const_pointer   data()  const noexcept {return nullptr;}
@@ -443,6 +450,18 @@ struct discard_comments
     const_reverse_iterator rend()    const noexcept {return const_iterator{};}
     const_reverse_iterator crbegin() const noexcept {return const_iterator{};}
     const_reverse_iterator crend()   const noexcept {return const_iterator{};}
+
+  private:
+
+    [[noreturn]] static void never_call(const char *const this_function)
+    {
+#ifdef __has_builtin
+#  if __has_builtin(__builtin_unreachable)
+        __builtin_unreachable();
+#  endif
+#endif
+        throw std::logic_error{this_function};
+    }
 };
 
 inline bool operator==(const discard_comments&, const discard_comments&) noexcept {return true;}

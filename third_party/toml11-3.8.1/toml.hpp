@@ -25,21 +25,14 @@
 #ifndef TOML_FOR_MODERN_CPP
 #define TOML_FOR_MODERN_CPP
 
-#ifndef __cplusplus
-#    error "__cplusplus is not defined"
-#endif
-
-#if __cplusplus < 201103L && _MSC_VER < 1900
-#    error "toml11 requires C++11 or later."
-#endif
-
 #define TOML11_VERSION_MAJOR 3
-#define TOML11_VERSION_MINOR 5
-#define TOML11_VERSION_PATCH 0
+#define TOML11_VERSION_MINOR 8
+#define TOML11_VERSION_PATCH 1
 
 #include "toml/parser.hpp"
 #include "toml/literal.hpp"
 #include "toml/serializer.hpp"
 #include "toml/get.hpp"
+#include "toml/macros.hpp"
 
 #endif// TOML_FOR_MODERN_CPP
