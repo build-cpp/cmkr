@@ -725,15 +725,40 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
     parser::Project project(parent_project, path, false);
 
-    for (const auto &lang : project.project_languages) {
-        if (known_languages.find(lang) == known_languages.end()) {
-            if (project.project_allow_unknown_languages) {
-                printf("[warning] Unknown language '%s' specified\n", lang.c_str());
-            } else {
-                throw std::runtime_error("Unknown language '" + lang + "' specified");
-            }
+    tsl::ordered_set<std::string> flat_project_languages;
+    for (const auto &itr : project.project_languages) {
+        for (const auto &language : itr.second) {
+            flat_project_languages.insert(language);
         }
     }
+
+    // Reference: https://gitlab.kitware.com/cmake/cmake/-/issues/24340#note_1304703
+    flat_project_languages.insert("RC");
+
+    // All acceptable extensions based off our given languages.
+    tsl::ordered_set<std::string> project_extensions;
+    for (const auto &language : flat_project_languages) {
+        auto itr = known_languages.find(language);
+        if (itr == known_languages.end()) {
+            if (project.project_allow_unknown_languages) {
+                printf("[warning] Unknown language '%s' specified\n", language.c_str());
+            } else {
+                throw std::runtime_error("Unknown language '" + language + "' specified");
+            }
+        } else {
+            project_extensions.insert(itr->second.begin(), itr->second.end());
+        }
+    }
+
+    auto contains_language_source = [&project_extensions](const std::vector<std::string> &sources) {
+        for (const auto &source : sources) {
+            auto extension = fs::path(source).extension().string();
+            if (project_extensions.count(extension) > 0) {
+                return true;
+            }
+        }
+        return false;
+    };
 
     Generator gen(project, path);
 
@@ -912,17 +937,29 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     gen.conditional_cmake(project.cmake_before);
 
     if (!project.project_name.empty()) {
-        auto languages = std::make_pair("LANGUAGES", project.project_languages);
+        auto languages = std::make_pair("LANGUAGES", project.project_languages[""]);
         auto version = std::make_pair("VERSION", project.project_version);
         auto description = std::make_pair("DESCRIPTION", project.project_description);
-        cmd("project")(project.project_name, languages, version, description).endl();
+        cmd("project")(project.project_name, languages, version, description);
 
-        for (const auto &language : project.project_languages) {
+        for (const auto &language : project.project_languages[""]) {
             if (language == "CSharp") {
                 cmd("include")("CSharpUtilities").endl();
                 break;
             }
         }
+
+        gen.handle_condition(project.project_languages, [&cmd](const std::string &condition, const std::vector<std::string> &languages) {
+            if (!condition.empty()) {
+                cmd("enable_language")(languages).endl();
+                for (const auto &language : languages) {
+                    if (language == "CSharp") {
+                        cmd("include")("CSharpUtilities").endl();
+                        break;
+                    }
+                }
+            }
+        });
     }
 
     gen.conditional_includes(project.include_after);
@@ -1137,34 +1174,6 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
         gen.conditional_includes(subdir.include_after);
         gen.conditional_cmake(subdir.cmake_after);
     }
-
-    // The implicit default is ["C", "CXX"], so make sure this list isn't
-    // empty or projects without languages explicitly defined will error.
-    auto project_languages = project.project_languages;
-    if (project_languages.empty())
-        project_languages = {"C", "CXX"};
-
-    // Reference: https://gitlab.kitware.com/cmake/cmake/-/issues/24340#note_1304703
-    project_languages.push_back("RC");
-
-    // All acceptable extensions based off our given languages.
-    tsl::ordered_set<std::string> project_extensions;
-    for (const auto &language : project_languages) {
-        auto itr = known_languages.find(language);
-        if (itr != known_languages.end()) {
-            project_extensions.insert(itr->second.begin(), itr->second.end());
-        }
-    }
-
-    auto contains_language_source = [&project_extensions](const std::vector<std::string> &sources) {
-        for (const auto &source : sources) {
-            auto extension = fs::path(source).extension().string();
-            if (project_extensions.count(extension) > 0) {
-                return true;
-            }
-        }
-        return false;
-    };
 
     if (!project.targets.empty()) {
         auto project_root = project.root();

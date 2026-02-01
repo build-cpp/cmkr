@@ -301,6 +301,11 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         project.required("name", project_name);
         project.optional("version", project_version);
         project.optional("description", project_description);
+
+        // The implicit default is ["C", "CXX"], so make sure this list isn't
+        // empty or projects without languages explicitly defined will error.
+        project_languages[""] = {"C", "CXX"};
+
         project.optional("languages", project_languages);
         project.optional("allow-unknown-languages", project_allow_unknown_languages);
         project.optional("cmake-before", cmake_before);
