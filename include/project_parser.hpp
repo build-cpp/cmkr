@@ -105,6 +105,8 @@ struct Target {
     ConditionVector precompile_headers;
     ConditionVector private_precompile_headers;
 
+    ConditionVector dependencies;
+
     std::string condition;
     std::string alias;
     Condition<tsl::ordered_map<std::string, std::string>> properties;

@@ -1416,7 +1416,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 });
             };
 
-            auto link_libraries = [&](const parser::ConditionVector &cargs, const std::string &scope) {
+            auto link_cmd = [&](const char *command, const parser::ConditionVector &cargs, const std::string &scope) {
                 gen.handle_condition(cargs, [&](const std::string &, const std::vector<std::string> &args) {
                     std::vector<std::string> targs;
                     for (const std::string &arg : args) {
@@ -1432,7 +1432,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                             targs.push_back(arg);
                         }
                     }
-                    cmd("target_link_libraries")(target.name, scope, targs);
+                    cmd(command)(target.name, scope, targs);
                 });
             };
 
@@ -1452,14 +1452,16 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 target_cmd("target_link_directories", t.link_directories, target_scope);
                 target_cmd("target_link_directories", t.private_link_directories, "PRIVATE");
 
-                link_libraries(t.link_libraries, target_scope);
-                link_libraries(t.private_link_libraries, "PRIVATE");
+                link_cmd("target_link_libraries", t.link_libraries, target_scope);
+                link_cmd("target_link_libraries", t.private_link_libraries, "PRIVATE");
 
                 target_cmd("target_link_options", t.link_options, target_scope);
                 target_cmd("target_link_options", t.private_link_options, "PRIVATE");
 
                 target_cmd("target_precompile_headers", t.precompile_headers, target_scope);
                 target_cmd("target_precompile_headers", t.private_precompile_headers, "PRIVATE");
+
+                link_cmd("add_dependencies", t.dependencies, "");
             };
 
             if (tmplate != nullptr) {
