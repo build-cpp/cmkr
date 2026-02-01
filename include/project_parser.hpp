@@ -194,7 +194,7 @@ struct Project {
     std::string project_name;
     std::string project_version;
     std::string project_description;
-    std::vector<std::string> project_languages;
+    ConditionVector project_languages;
     bool project_allow_unknown_languages = false;
     MsvcRuntimeType project_msvc_runtime = msvc_last;
     Condition<std::string> cmake_before;
