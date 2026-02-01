@@ -690,6 +690,8 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         t.optional("precompile-headers", target.precompile_headers);
         t.optional("private-precompile-headers", target.private_precompile_headers);
 
+        t.optional("dependencies", target.dependencies);
+
         Condition<std::string> msvc_runtime;
         t.optional("msvc-runtime", msvc_runtime);
         for (const auto &cond_itr : msvc_runtime) {
