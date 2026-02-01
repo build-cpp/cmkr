@@ -122,3 +122,12 @@ if(WIN32) # windows
 	)
 
 endif()
+add_test(
+	NAME
+		objective-c
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/objective-c"
+	COMMAND
+		"$<TARGET_FILE:cmkr>"
+		build
+)
