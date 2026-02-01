@@ -8,11 +8,11 @@ description = "Target templates"
 type = "executable"
 sources = ["src/templates.cpp"]
 compile-definitions = ["IS_APP"]
-
 # Unlike interface targets you can also inherit properties
-[template.app.properties]
-CXX_STANDARD = "11"
-CXX_STANDARD_REQUIRED = true
+properties = {
+    CXX_STANDARD = "11",
+    CXX_STANDARD_REQUIRED = true,
+}
 
 [target.app-a]
 type = "app"
