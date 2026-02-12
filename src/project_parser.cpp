@@ -1,6 +1,7 @@
 #include "project_parser.hpp"
 
 #include "fs.hpp"
+#include <cctype>
 #include <deque>
 #include <stdexcept>
 #include <toml.hpp>
@@ -208,6 +209,93 @@ class TomlCheckerRoot {
         }
     }
 };
+
+static std::vector<std::string> parse_string_array(const TomlBasicValue &value, const toml::key &key) {
+    if (!value.is_array()) {
+        throw_key_error("Expected an array", key, value);
+    }
+    std::vector<std::string> values;
+    for (const auto &entry : value.as_array()) {
+        if (!entry.is_string()) {
+            throw_key_error("Expected an array of strings", key, entry);
+        }
+        values.push_back(entry.as_string());
+    }
+    return values;
+}
+
+static std::vector<std::vector<std::string>> parse_command_arguments(const TomlBasicValue &value, const toml::key &key) {
+    if (!value.is_array()) {
+        throw_key_error("Expected an array", key, value);
+    }
+    const auto &array = value.as_array();
+    if (array.empty()) {
+        return {};
+    }
+
+    bool all_strings = true;
+    bool all_arrays = true;
+    for (const auto &entry : array) {
+        if (!entry.is_string()) {
+            all_strings = false;
+        }
+        if (!entry.is_array()) {
+            all_arrays = false;
+        }
+    }
+
+    std::vector<std::vector<std::string>> commands;
+    if (all_strings) {
+        commands.push_back(parse_string_array(value, key));
+        if (commands[0].empty()) {
+            throw_key_error("Command arrays cannot be empty", key, value);
+        }
+        return commands;
+    }
+
+    if (!all_arrays) {
+        throw_key_error("Expected an array of command arrays", key, value);
+    }
+
+    for (const auto &entry : array) {
+        auto command = parse_string_array(entry, key);
+        if (command.empty()) {
+            throw_key_error("Command arrays cannot be empty", key, entry);
+        }
+        commands.push_back(std::move(command));
+    }
+
+    return commands;
+}
+
+static std::vector<Target::CustomCommand::ImplicitDependency> parse_implicit_dependencies(const TomlBasicValue &value, const toml::key &key) {
+    if (!value.is_array()) {
+        throw_key_error("Expected an array", key, value);
+    }
+    std::vector<Target::CustomCommand::ImplicitDependency> implicit_dependencies;
+    for (const auto &entry : value.as_array()) {
+        auto values = parse_string_array(entry, key);
+        if (values.size() != 2) {
+            throw_key_error("Each implicit dependency must have exactly two strings: [language, file]", key, entry);
+        }
+        Target::CustomCommand::ImplicitDependency implicit_dependency;
+        implicit_dependency.language = std::move(values[0]);
+        implicit_dependency.file = std::move(values[1]);
+        implicit_dependencies.push_back(std::move(implicit_dependency));
+    }
+    return implicit_dependencies;
+}
+
+static std::string normalize_build_event(std::string build_event) {
+    for (auto &ch : build_event) {
+        if (ch == '-') {
+            ch = '_';
+        } else {
+            ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+        }
+    }
+    return build_event;
+}
 
 Project::Project(const Project *parent, const std::string &path, bool build) : parent(parent) {
     const auto toml_path = fs::path(path) / "cmake.toml";
@@ -696,6 +784,231 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         t.optional("private-precompile-headers", target.private_precompile_headers);
 
         t.optional("dependencies", target.dependencies);
+
+        if (t.contains("all")) {
+            target.custom_target.has_all = true;
+            target.custom_target.all = t.find("all").as_boolean();
+        }
+
+        if (t.contains("command")) {
+            target.custom_target.has_command = true;
+            auto commands = parse_command_arguments(t.find("command"), "command");
+            for (auto &command : commands) {
+                target.custom_target.commands.push_back(std::move(command));
+            }
+        }
+
+        if (t.contains("commands")) {
+            target.custom_target.has_commands = true;
+            auto commands = parse_command_arguments(t.find("commands"), "commands");
+            for (auto &command : commands) {
+                target.custom_target.commands.push_back(std::move(command));
+            }
+        }
+
+        t.optional("depends", target.custom_target.depends);
+        t.optional("byproducts", target.custom_target.byproducts);
+
+        if (t.contains("working-directory")) {
+            target.custom_target.has_working_directory = true;
+            target.custom_target.working_directory = t.find("working-directory").as_string();
+        }
+
+        if (t.contains("comment")) {
+            target.custom_target.has_comment = true;
+            target.custom_target.comment = t.find("comment").as_string();
+        }
+
+        if (t.contains("job-pool")) {
+            target.custom_target.has_job_pool = true;
+            target.custom_target.job_pool = t.find("job-pool").as_string();
+        }
+
+        if (t.contains("job-server-aware")) {
+            target.custom_target.has_job_server_aware = true;
+            target.custom_target.job_server_aware = t.find("job-server-aware").as_boolean();
+        }
+
+        if (t.contains("verbatim")) {
+            target.custom_target.has_verbatim = true;
+            target.custom_target.verbatim = t.find("verbatim").as_boolean();
+        }
+
+        if (t.contains("uses-terminal")) {
+            target.custom_target.has_uses_terminal = true;
+            target.custom_target.uses_terminal = t.find("uses-terminal").as_boolean();
+        }
+
+        if (t.contains("command-expand-lists")) {
+            target.custom_target.has_command_expand_lists = true;
+            target.custom_target.command_expand_lists = t.find("command-expand-lists").as_boolean();
+        }
+
+        if (t.contains("custom-command")) {
+            const auto &custom_commands = t.find("custom-command");
+            if (!custom_commands.is_array()) {
+                throw_key_error("Expected an array of tables", "custom-command", custom_commands);
+            }
+            for (const auto &custom_command_value : custom_commands.as_array()) {
+                if (!custom_command_value.is_table()) {
+                    throw_key_error("Expected an array of tables", "custom-command", custom_command_value);
+                }
+
+                auto &custom = checker.create(custom_command_value);
+                Target::CustomCommand custom_command;
+
+                custom.optional("condition", custom_command.condition);
+
+                if (custom.contains("command")) {
+                    auto commands = parse_command_arguments(custom.find("command"), "command");
+                    for (auto &command : commands) {
+                        custom_command.commands.push_back(std::move(command));
+                    }
+                }
+
+                if (custom.contains("commands")) {
+                    auto commands = parse_command_arguments(custom.find("commands"), "commands");
+                    for (auto &command : commands) {
+                        custom_command.commands.push_back(std::move(command));
+                    }
+                }
+
+                custom.optional("outputs", custom_command.outputs);
+
+                if (custom.contains("build-event")) {
+                    custom_command.build_event = normalize_build_event(custom.find("build-event").as_string());
+                }
+
+                if (custom.contains("append")) {
+                    custom_command.has_append = true;
+                    custom_command.append = custom.find("append").as_boolean();
+                }
+
+                if (custom.contains("main-dependency")) {
+                    custom_command.has_main_dependency = true;
+                    custom_command.main_dependency = custom.find("main-dependency").as_string();
+                }
+
+                custom.optional("depends", custom_command.depends);
+                custom.optional("byproducts", custom_command.byproducts);
+
+                if (custom.contains("implicit-depends")) {
+                    custom_command.implicit_depends = parse_implicit_dependencies(custom.find("implicit-depends"), "implicit-depends");
+                }
+
+                if (custom.contains("working-directory")) {
+                    custom_command.has_working_directory = true;
+                    custom_command.working_directory = custom.find("working-directory").as_string();
+                }
+
+                if (custom.contains("comment")) {
+                    custom_command.has_comment = true;
+                    custom_command.comment = custom.find("comment").as_string();
+                }
+
+                if (custom.contains("depfile")) {
+                    custom_command.has_depfile = true;
+                    custom_command.depfile = custom.find("depfile").as_string();
+                }
+
+                if (custom.contains("job-pool")) {
+                    custom_command.has_job_pool = true;
+                    custom_command.job_pool = custom.find("job-pool").as_string();
+                }
+
+                if (custom.contains("job-server-aware")) {
+                    custom_command.has_job_server_aware = true;
+                    custom_command.job_server_aware = custom.find("job-server-aware").as_boolean();
+                }
+
+                if (custom.contains("verbatim")) {
+                    custom_command.has_verbatim = true;
+                    custom_command.verbatim = custom.find("verbatim").as_boolean();
+                }
+
+                if (custom.contains("uses-terminal")) {
+                    custom_command.has_uses_terminal = true;
+                    custom_command.uses_terminal = custom.find("uses-terminal").as_boolean();
+                }
+
+                if (custom.contains("codegen")) {
+                    custom_command.has_codegen = true;
+                    custom_command.codegen = custom.find("codegen").as_boolean();
+                }
+
+                if (custom.contains("command-expand-lists")) {
+                    custom_command.has_command_expand_lists = true;
+                    custom_command.command_expand_lists = custom.find("command-expand-lists").as_boolean();
+                }
+
+                if (custom.contains("depends-explicit-only")) {
+                    custom_command.has_depends_explicit_only = true;
+                    custom_command.depends_explicit_only = custom.find("depends-explicit-only").as_boolean();
+                }
+
+                if (custom_command.is_output_form() == custom_command.is_target_form()) {
+                    throw_key_error("Specify exactly one of outputs or build-event", "custom-command", custom_command_value);
+                }
+
+                if (custom_command.is_target_form()) {
+                    if (custom_command.build_event != "PRE_BUILD" && custom_command.build_event != "PRE_LINK" &&
+                        custom_command.build_event != "POST_BUILD") {
+                        throw_key_error("build-event must be one of: pre-build, pre-link, post-build", "build-event", custom.find("build-event"));
+                    }
+                    if (custom_command.has_append || custom_command.has_main_dependency || !custom_command.depends.empty() ||
+                        !custom_command.implicit_depends.empty() || custom_command.has_depfile || custom_command.has_job_pool ||
+                        custom_command.has_job_server_aware || custom_command.has_codegen || custom_command.has_depends_explicit_only) {
+                        throw_key_error("Unsupported option for TARGET custom commands", "custom-command", custom_command_value);
+                    }
+                } else {
+                    if (custom_command.has_depfile && !custom_command.implicit_depends.empty()) {
+                        throw_key_error("depfile cannot be used with implicit-depends", "depfile", custom.find("depfile"));
+                    }
+                    if (custom_command.append &&
+                        (custom_command.has_depfile || custom_command.has_job_pool || custom_command.has_job_server_aware ||
+                         custom_command.has_codegen || custom_command.has_command_expand_lists || custom_command.has_uses_terminal ||
+                         custom_command.has_verbatim || custom_command.has_depends_explicit_only || !custom_command.byproducts.empty())) {
+                        throw_key_error("append cannot be used with depfile, job-pool, job-server-aware, codegen, command-expand-lists, "
+                                        "uses-terminal, verbatim, depends-explicit-only, or byproducts",
+                                        "append", custom.find("append"));
+                    }
+                }
+
+                if (custom_command.commands.empty() && !(custom_command.is_output_form() && custom_command.append)) {
+                    throw_key_error("At least one command is required", "custom-command", custom_command_value);
+                }
+
+                target.custom_commands.push_back(std::move(custom_command));
+            }
+        }
+
+        if (target.type != target_custom && !target.custom_target.empty()) {
+            const char *custom_key = "all";
+            if (target.custom_target.has_command) {
+                custom_key = "command";
+            } else if (target.custom_target.has_commands) {
+                custom_key = "commands";
+            } else if (!target.custom_target.depends.empty()) {
+                custom_key = "depends";
+            } else if (!target.custom_target.byproducts.empty()) {
+                custom_key = "byproducts";
+            } else if (target.custom_target.has_working_directory) {
+                custom_key = "working-directory";
+            } else if (target.custom_target.has_comment) {
+                custom_key = "comment";
+            } else if (target.custom_target.has_job_pool) {
+                custom_key = "job-pool";
+            } else if (target.custom_target.has_job_server_aware) {
+                custom_key = "job-server-aware";
+            } else if (target.custom_target.has_verbatim) {
+                custom_key = "verbatim";
+            } else if (target.custom_target.has_uses_terminal) {
+                custom_key = "uses-terminal";
+            } else if (target.custom_target.has_command_expand_lists) {
+                custom_key = "command-expand-lists";
+            }
+            throw_key_error("Custom target options can only be used with type = \"custom\"", custom_key, t.find(custom_key));
+        }
 
         Condition<std::string> msvc_runtime;
         t.optional("msvc-runtime", msvc_runtime);

@@ -74,6 +74,104 @@ enum TargetType {
 extern const char *targetTypeNames[target_last];
 
 struct Target {
+    struct CustomTarget {
+        bool has_all = false;
+        bool all = false;
+
+        bool has_command = false;
+        bool has_commands = false;
+        std::vector<std::vector<std::string>> commands;
+        std::vector<std::string> depends;
+        std::vector<std::string> byproducts;
+
+        bool has_working_directory = false;
+        std::string working_directory;
+
+        bool has_comment = false;
+        std::string comment;
+
+        bool has_job_pool = false;
+        std::string job_pool;
+
+        bool has_job_server_aware = false;
+        bool job_server_aware = false;
+
+        bool has_verbatim = false;
+        bool verbatim = false;
+
+        bool has_uses_terminal = false;
+        bool uses_terminal = false;
+
+        bool has_command_expand_lists = false;
+        bool command_expand_lists = false;
+
+        bool empty() const {
+            return !has_all && !has_command && !has_commands && commands.empty() && depends.empty() && byproducts.empty() && !has_working_directory &&
+                   !has_comment && !has_job_pool && !has_job_server_aware && !has_verbatim && !has_uses_terminal && !has_command_expand_lists;
+        }
+    };
+
+    struct CustomCommand {
+        struct ImplicitDependency {
+            std::string language;
+            std::string file;
+        };
+
+        std::string condition;
+        std::vector<std::vector<std::string>> commands;
+
+        std::vector<std::string> outputs;
+        std::string build_event;
+
+        bool has_append = false;
+        bool append = false;
+
+        bool has_main_dependency = false;
+        std::string main_dependency;
+
+        std::vector<std::string> depends;
+        std::vector<std::string> byproducts;
+        std::vector<ImplicitDependency> implicit_depends;
+
+        bool has_working_directory = false;
+        std::string working_directory;
+
+        bool has_comment = false;
+        std::string comment;
+
+        bool has_depfile = false;
+        std::string depfile;
+
+        bool has_job_pool = false;
+        std::string job_pool;
+
+        bool has_job_server_aware = false;
+        bool job_server_aware = false;
+
+        bool has_verbatim = false;
+        bool verbatim = false;
+
+        bool has_uses_terminal = false;
+        bool uses_terminal = false;
+
+        bool has_codegen = false;
+        bool codegen = false;
+
+        bool has_command_expand_lists = false;
+        bool command_expand_lists = false;
+
+        bool has_depends_explicit_only = false;
+        bool depends_explicit_only = false;
+
+        bool is_output_form() const {
+            return !outputs.empty();
+        }
+
+        bool is_target_form() const {
+            return !build_event.empty();
+        }
+    };
+
     std::string name;
     TargetType type = target_last;
     std::string type_name;
@@ -106,6 +204,9 @@ struct Target {
     ConditionVector private_precompile_headers;
 
     ConditionVector dependencies;
+
+    CustomTarget custom_target;
+    std::vector<CustomCommand> custom_commands;
 
     std::string condition;
     std::string alias;

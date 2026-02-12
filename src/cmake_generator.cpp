@@ -4,6 +4,7 @@
 
 #include "fs.hpp"
 #include "project_parser.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <memory>
 #include <sstream>
@@ -1238,6 +1239,68 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             gen.conditional_includes(target.include_before);
             gen.conditional_cmake(target.cmake_before);
 
+            auto merge_unique_vector = [](std::vector<std::string> &destination, const std::vector<std::string> &source) {
+                for (const auto &item : source) {
+                    if (std::find(destination.begin(), destination.end(), item) == destination.end()) {
+                        destination.push_back(item);
+                    }
+                }
+            };
+
+            auto custom_target = target.custom_target;
+            if (tmplate != nullptr) {
+                const auto &custom = tmplate->outline.custom_target;
+                if (custom.has_all) {
+                    custom_target.has_all = true;
+                    custom_target.all = custom_target.all || custom.all;
+                }
+                if (custom.has_command) {
+                    custom_target.has_command = true;
+                }
+                if (custom.has_commands) {
+                    custom_target.has_commands = true;
+                }
+                if (!custom.commands.empty()) {
+                    custom_target.commands.insert(custom_target.commands.begin(), custom.commands.begin(), custom.commands.end());
+                }
+                merge_unique_vector(custom_target.depends, custom.depends);
+                merge_unique_vector(custom_target.byproducts, custom.byproducts);
+                if (!custom_target.has_working_directory && custom.has_working_directory) {
+                    custom_target.has_working_directory = true;
+                    custom_target.working_directory = custom.working_directory;
+                }
+                if (!custom_target.has_comment && custom.has_comment) {
+                    custom_target.has_comment = true;
+                    custom_target.comment = custom.comment;
+                }
+                if (!custom_target.has_job_pool && custom.has_job_pool) {
+                    custom_target.has_job_pool = true;
+                    custom_target.job_pool = custom.job_pool;
+                }
+                if (!custom_target.has_job_server_aware && custom.has_job_server_aware) {
+                    custom_target.has_job_server_aware = true;
+                    custom_target.job_server_aware = custom.job_server_aware;
+                }
+                if (!custom_target.has_verbatim && custom.has_verbatim) {
+                    custom_target.has_verbatim = true;
+                    custom_target.verbatim = custom.verbatim;
+                }
+                if (!custom_target.has_uses_terminal && custom.has_uses_terminal) {
+                    custom_target.has_uses_terminal = true;
+                    custom_target.uses_terminal = custom.uses_terminal;
+                }
+                if (!custom_target.has_command_expand_lists && custom.has_command_expand_lists) {
+                    custom_target.has_command_expand_lists = true;
+                    custom_target.command_expand_lists = custom.command_expand_lists;
+                }
+            }
+
+            std::vector<parser::Target::CustomCommand> custom_commands;
+            if (tmplate != nullptr) {
+                custom_commands.insert(custom_commands.end(), tmplate->outline.custom_commands.begin(), tmplate->outline.custom_commands.end());
+            }
+            custom_commands.insert(custom_commands.end(), target.custom_commands.begin(), target.custom_commands.end());
+
             // Merge the sources from the template and the target. The sources
             // without condition need to be processed first
             parser::Condition<tsl::ordered_set<std::string>> msources;
@@ -1255,6 +1318,16 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 merge_sources(tmplate->outline.sources);
             }
             merge_sources(target.sources);
+
+            for (const auto &custom_command : custom_commands) {
+                if (!custom_command.is_output_form()) {
+                    continue;
+                }
+                auto &condition_sources = msources[custom_command.condition];
+                for (const auto &output : custom_command.outputs) {
+                    condition_sources.insert(output);
+                }
+            }
 
             // Improve IDE support
             if (target.type != parser::target_interface) {
@@ -1347,6 +1420,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             std::string add_command;
             std::string target_type_string;
             std::string target_scope;
+            bool is_custom_target = false;
 
             switch (target_type) {
             case parser::target_executable:
@@ -1375,9 +1449,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 target_scope = "INTERFACE";
                 break;
             case parser::target_custom:
-                // TODO: add proper support, this is hacky
-                add_command = "add_custom_target";
-                target_type_string = "SOURCES";
+                is_custom_target = true;
                 target_scope = "PUBLIC";
                 break;
             case parser::target_object:
@@ -1388,6 +1460,124 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 break;
             default:
                 throw_target_error("Unimplemented enum value");
+            }
+
+            auto append_keyword = [](std::vector<RawArg> &args, const std::string &keyword) {
+                args.emplace_back(keyword);
+            };
+            auto append_value = [](std::vector<RawArg> &args, const std::string &value) {
+                args.emplace_back(Command::quote(value));
+            };
+            auto append_values = [&](std::vector<RawArg> &args, const std::vector<std::string> &values) {
+                for (const auto &value : values) {
+                    append_value(args, value);
+                }
+            };
+            auto append_commands = [&](std::vector<RawArg> &args, const std::vector<std::vector<std::string>> &commands) {
+                for (const auto &command_args : commands) {
+                    append_keyword(args, "COMMAND");
+                    append_values(args, command_args);
+                }
+            };
+
+            auto emit_custom_command = [&](const parser::Target::CustomCommand &custom_command) {
+                std::vector<RawArg> args;
+                if (custom_command.is_output_form()) {
+                    append_keyword(args, "OUTPUT");
+                    append_values(args, custom_command.outputs);
+                    append_commands(args, custom_command.commands);
+                    if (custom_command.has_main_dependency) {
+                        append_keyword(args, "MAIN_DEPENDENCY");
+                        append_value(args, custom_command.main_dependency);
+                    }
+                    if (!custom_command.depends.empty()) {
+                        append_keyword(args, "DEPENDS");
+                        append_values(args, custom_command.depends);
+                    }
+                    if (!custom_command.byproducts.empty()) {
+                        append_keyword(args, "BYPRODUCTS");
+                        append_values(args, custom_command.byproducts);
+                    }
+                    if (!custom_command.implicit_depends.empty()) {
+                        append_keyword(args, "IMPLICIT_DEPENDS");
+                        for (const auto &implicit_dependency : custom_command.implicit_depends) {
+                            append_value(args, implicit_dependency.language);
+                            append_value(args, implicit_dependency.file);
+                        }
+                    }
+                    if (custom_command.has_working_directory) {
+                        append_keyword(args, "WORKING_DIRECTORY");
+                        append_value(args, custom_command.working_directory);
+                    }
+                    if (custom_command.has_comment) {
+                        append_keyword(args, "COMMENT");
+                        append_value(args, custom_command.comment);
+                    }
+                    if (custom_command.has_depfile) {
+                        append_keyword(args, "DEPFILE");
+                        append_value(args, custom_command.depfile);
+                    }
+                    if (custom_command.has_job_pool) {
+                        append_keyword(args, "JOB_POOL");
+                        append_value(args, custom_command.job_pool);
+                    }
+                    if (custom_command.has_job_server_aware) {
+                        append_keyword(args, "JOB_SERVER_AWARE");
+                        append_value(args, custom_command.job_server_aware ? "ON" : "OFF");
+                    }
+                    if (custom_command.has_verbatim && custom_command.verbatim) {
+                        append_keyword(args, "VERBATIM");
+                    }
+                    if (custom_command.has_append && custom_command.append) {
+                        append_keyword(args, "APPEND");
+                    }
+                    if (custom_command.has_uses_terminal && custom_command.uses_terminal) {
+                        append_keyword(args, "USES_TERMINAL");
+                    }
+                    if (custom_command.has_codegen && custom_command.codegen) {
+                        append_keyword(args, "CODEGEN");
+                    }
+                    if (custom_command.has_command_expand_lists && custom_command.command_expand_lists) {
+                        append_keyword(args, "COMMAND_EXPAND_LISTS");
+                    }
+                    if (custom_command.has_depends_explicit_only && custom_command.depends_explicit_only) {
+                        append_keyword(args, "DEPENDS_EXPLICIT_ONLY");
+                    }
+                } else {
+                    append_keyword(args, "TARGET");
+                    append_value(args, target.name);
+                    append_keyword(args, custom_command.build_event);
+                    append_commands(args, custom_command.commands);
+                    if (!custom_command.byproducts.empty()) {
+                        append_keyword(args, "BYPRODUCTS");
+                        append_values(args, custom_command.byproducts);
+                    }
+                    if (custom_command.has_working_directory) {
+                        append_keyword(args, "WORKING_DIRECTORY");
+                        append_value(args, custom_command.working_directory);
+                    }
+                    if (custom_command.has_comment) {
+                        append_keyword(args, "COMMENT");
+                        append_value(args, custom_command.comment);
+                    }
+                    if (custom_command.has_verbatim && custom_command.verbatim) {
+                        append_keyword(args, "VERBATIM");
+                    }
+                    if (custom_command.has_command_expand_lists && custom_command.command_expand_lists) {
+                        append_keyword(args, "COMMAND_EXPAND_LISTS");
+                    }
+                    if (custom_command.has_uses_terminal && custom_command.uses_terminal) {
+                        append_keyword(args, "USES_TERMINAL");
+                    }
+                }
+                cmd("add_custom_command")(args).endl();
+            };
+
+            for (const auto &custom_command : custom_commands) {
+                if (custom_command.is_output_form()) {
+                    ConditionScope custom_scope(gen, custom_command.condition);
+                    emit_custom_command(custom_command);
+                }
             }
 
             // Handle custom add commands from templates.
@@ -1403,10 +1593,62 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                                               "${" + sources_var + "}");
                     }
                 }
+            } else if (is_custom_target) {
+                std::vector<RawArg> args;
+                append_value(args, target.name);
+                if (custom_target.has_all && custom_target.all) {
+                    append_keyword(args, "ALL");
+                }
+                append_commands(args, custom_target.commands);
+                if (!custom_target.depends.empty()) {
+                    append_keyword(args, "DEPENDS");
+                    append_values(args, custom_target.depends);
+                }
+                if (!custom_target.byproducts.empty()) {
+                    append_keyword(args, "BYPRODUCTS");
+                    append_values(args, custom_target.byproducts);
+                }
+                if (custom_target.has_working_directory) {
+                    append_keyword(args, "WORKING_DIRECTORY");
+                    append_value(args, custom_target.working_directory);
+                }
+                if (custom_target.has_comment) {
+                    append_keyword(args, "COMMENT");
+                    append_value(args, custom_target.comment);
+                }
+                if (custom_target.has_job_pool) {
+                    append_keyword(args, "JOB_POOL");
+                    append_value(args, custom_target.job_pool);
+                }
+                if (custom_target.has_job_server_aware) {
+                    append_keyword(args, "JOB_SERVER_AWARE");
+                    append_value(args, custom_target.job_server_aware ? "ON" : "OFF");
+                }
+                if (custom_target.has_verbatim && custom_target.verbatim) {
+                    append_keyword(args, "VERBATIM");
+                }
+                if (custom_target.has_uses_terminal && custom_target.uses_terminal) {
+                    append_keyword(args, "USES_TERMINAL");
+                }
+                if (custom_target.has_command_expand_lists && custom_target.command_expand_lists) {
+                    append_keyword(args, "COMMAND_EXPAND_LISTS");
+                }
+                if (has_sources) {
+                    append_keyword(args, "SOURCES");
+                    append_value(args, "${" + sources_var + "}");
+                }
+                cmd("add_custom_target")(args).endl();
             } else {
                 cmd(add_command)(target.name, target_type_string).endl();
                 if (has_sources) {
                     cmd("target_sources")(target.name, target_type == parser::target_interface ? "INTERFACE" : "PRIVATE", "${" + sources_var + "}");
+                }
+            }
+
+            for (const auto &custom_command : custom_commands) {
+                if (custom_command.is_target_form()) {
+                    ConditionScope custom_scope(gen, custom_command.condition);
+                    emit_custom_command(custom_command);
                 }
             }
 
@@ -1446,29 +1688,31 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             };
 
             auto gen_target_cmds = [&](const parser::Target &t) {
-                target_cmd("target_compile_definitions", t.compile_definitions, target_scope);
-                target_cmd("target_compile_definitions", t.private_compile_definitions, "PRIVATE");
+                if (!is_custom_target) {
+                    target_cmd("target_compile_definitions", t.compile_definitions, target_scope);
+                    target_cmd("target_compile_definitions", t.private_compile_definitions, "PRIVATE");
 
-                target_cmd("target_compile_features", t.compile_features, target_scope);
-                target_cmd("target_compile_features", t.private_compile_features, "PRIVATE");
+                    target_cmd("target_compile_features", t.compile_features, target_scope);
+                    target_cmd("target_compile_features", t.private_compile_features, "PRIVATE");
 
-                target_cmd("target_compile_options", t.compile_options, target_scope);
-                target_cmd("target_compile_options", t.private_compile_options, "PRIVATE");
+                    target_cmd("target_compile_options", t.compile_options, target_scope);
+                    target_cmd("target_compile_options", t.private_compile_options, "PRIVATE");
 
-                target_cmd("target_include_directories", t.include_directories, target_scope);
-                target_cmd("target_include_directories", t.private_include_directories, "PRIVATE");
+                    target_cmd("target_include_directories", t.include_directories, target_scope);
+                    target_cmd("target_include_directories", t.private_include_directories, "PRIVATE");
 
-                target_cmd("target_link_directories", t.link_directories, target_scope);
-                target_cmd("target_link_directories", t.private_link_directories, "PRIVATE");
+                    target_cmd("target_link_directories", t.link_directories, target_scope);
+                    target_cmd("target_link_directories", t.private_link_directories, "PRIVATE");
 
-                link_cmd("target_link_libraries", t.link_libraries, target_scope);
-                link_cmd("target_link_libraries", t.private_link_libraries, "PRIVATE");
+                    link_cmd("target_link_libraries", t.link_libraries, target_scope);
+                    link_cmd("target_link_libraries", t.private_link_libraries, "PRIVATE");
 
-                target_cmd("target_link_options", t.link_options, target_scope);
-                target_cmd("target_link_options", t.private_link_options, "PRIVATE");
+                    target_cmd("target_link_options", t.link_options, target_scope);
+                    target_cmd("target_link_options", t.private_link_options, "PRIVATE");
 
-                target_cmd("target_precompile_headers", t.precompile_headers, target_scope);
-                target_cmd("target_precompile_headers", t.private_precompile_headers, "PRIVATE");
+                    target_cmd("target_precompile_headers", t.precompile_headers, target_scope);
+                    target_cmd("target_precompile_headers", t.private_precompile_headers, "PRIVATE");
+                }
 
                 link_cmd("add_dependencies", t.dependencies, "");
             };
