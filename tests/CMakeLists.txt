@@ -141,3 +141,13 @@ add_test(
 		"$<TARGET_FILE:cmkr>"
 		build
 )
+
+add_test(
+	NAME
+		generator-executable
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/generator-executable"
+	COMMAND
+		"$<TARGET_FILE:cmkr>"
+		build
+)
