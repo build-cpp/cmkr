@@ -445,7 +445,9 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
             options.push_back(o);
 
             // Add a condition matching the option name
-            conditions.emplace(o.name, o.name);
+            if (!conditions.emplace(o.name, o.name).second) {
+                print_key_warning("Option '" + o.name + "' would create a condition '" + o.name + "' that already exists", o.name, value);
+            }
 
             // Add an implicit condition for the option
             auto ncondition = normalize(o.name);
@@ -453,10 +455,9 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 ncondition = ncondition.substr(nproject_prefix.size());
             }
             if (!ncondition.empty() && ncondition != o.name) {
-                if (conditions.contains(ncondition)) {
+                if (!conditions.emplace(ncondition, o.name).second) {
                     print_key_warning("Option '" + o.name + "' would create a condition '" + ncondition + "' that already exists", o.name, value);
                 }
-                conditions.emplace(ncondition, o.name);
             }
         }
     }
