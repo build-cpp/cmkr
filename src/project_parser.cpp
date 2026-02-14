@@ -452,7 +452,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
             if (ncondition.find(nproject_prefix) == 0) {
                 ncondition = ncondition.substr(nproject_prefix.size());
             }
-            if (!ncondition.empty()) {
+            if (!ncondition.empty() && ncondition != o.name) {
                 if (conditions.contains(ncondition)) {
                     print_key_warning("Option '" + o.name + "' would create a condition '" + ncondition + "' that already exists", o.name, value);
                 }
