@@ -151,3 +151,13 @@ add_test(
 		"$<TARGET_FILE:cmkr>"
 		build
 )
+
+add_test(
+	NAME
+		protobuf
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/protobuf"
+	COMMAND
+		"$<TARGET_FILE:cmkr>"
+		build
+)

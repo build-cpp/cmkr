@@ -1124,6 +1124,22 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             gen.conditional_includes(content.include_before);
             gen.conditional_cmake(content.cmake_before);
 
+            // Set cache variables before FetchContent
+            if (!content.options.empty()) {
+                for (const auto &opt : content.options) {
+                    std::string value;
+                    std::string type;
+                    if (opt.second.value.index() == 0) {
+                        value = mpark::get<0>(opt.second.value) ? "ON" : "OFF";
+                        type = "BOOL";
+                    } else {
+                        value = mpark::get<1>(opt.second.value);
+                        type = "STRING";
+                    }
+                    cmd("set")(opt.first, value, "CACHE", type, RawArg("\"\""), "FORCE");
+                }
+            }
+
             std::string version_info;
             if (content.arguments.contains("GIT_TAG")) {
                 version_info = " (" + content.arguments.at("GIT_TAG") + ")";

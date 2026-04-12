@@ -593,7 +593,37 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                                 "system", "");
             }
 
+            // Parse options table - these are CACHE variables set before FetchContent
+            if (c.contains("options")) {
+                c.visit("options");
+                const auto &opts = toml::find(itr.second, "options").as_table();
+                for (const auto &optItr : opts) {
+                    ContentOption opt;
+                    if (optItr.second.is_boolean()) {
+                        opt.value = optItr.second.as_boolean();
+                    } else if (optItr.second.is_array()) {
+                        // Arrays become semicolon-separated lists
+                        std::string list_value;
+                        for (const auto &list_val : optItr.second.as_array()) {
+                            if (!list_value.empty()) {
+                                list_value += ';';
+                            }
+                            list_value += list_val.as_string();
+                        }
+                        opt.value = list_value;
+                    } else {
+                        opt.value = optItr.second.as_string();
+                    }
+                    content.options.emplace(optItr.first, opt);
+                }
+            }
+
             for (const auto &argItr : itr.second.as_table()) {
+                // Skip keys that were already handled (like "options")
+                if (c.visisted(argItr.first)) {
+                    continue;
+                }
+
                 std::string value;
                 if (argItr.second.is_array()) {
                     for (const auto &list_val : argItr.second.as_array()) {

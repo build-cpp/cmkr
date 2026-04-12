@@ -83,3 +83,9 @@ name = "generator-executable"
 working-directory = "generator-executable"
 command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
+
+[[test]]
+name = "protobuf"
+working-directory = "protobuf"
+command = "$<TARGET_FILE:cmkr>"
+arguments = ["build"]

@@ -255,10 +255,15 @@ struct Subdir {
     ConditionVector include_after;
 };
 
+struct ContentOption {
+    mpark::variant<bool, std::string> value;
+};
+
 struct Content {
     std::string name;
     std::string condition;
     tsl::ordered_map<std::string, std::string> arguments;
+    tsl::ordered_map<std::string, ContentOption> options;
 
     Condition<std::string> cmake_before;
     Condition<std::string> cmake_after;

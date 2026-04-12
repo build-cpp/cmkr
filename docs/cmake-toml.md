@@ -199,6 +199,8 @@ tag = "v0.1"
 shallow = false # shallow clone (--depth 1)
 system = false
 subdir = "" # folder containing CMakeLists.txt
+# Set cache variables before FetchContent_MakeAvailable
+options = { BUILD_TESTS = false, BUILD_EXAMPLES = false }
 
 # Include a CMake project from a URL
 [fetch-content.urlcontent]
@@ -213,9 +215,18 @@ sha1 = "502a4e25b8b209889c99c7fa0732102682c2e4ff"
 condition = "mycondition"
 svn = "https://svn-host.com/url"
 rev = "svn_rev"
+
+# For many options, you can also use a separate table:
+# [fetch-content.bigproject.options]
+# BUILD_TESTS = false
+# BUILD_EXAMPLES = false
+# SOME_STRING_OPTION = "value"
+# SOME_LIST_OPTION = ["item1", "item2"]  # becomes "item1;item2"
 ```
 
 Table keys that match CMake variable names (`[A-Z_]+`) will be passed to the [`FetchContent_Declare`](https://cmake.org/cmake/help/latest/module/FetchContent.html#command:fetchcontent_declare) command.
+
+The `options` field allows setting CACHE variables before `FetchContent_MakeAvailable` is called. This is useful for configuring options on the fetched dependency (e.g., disabling tests). Boolean values become `ON`/`OFF`, arrays become semicolon-separated strings.
 
 ## Targets
 
