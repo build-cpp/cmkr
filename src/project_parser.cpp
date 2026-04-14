@@ -1016,6 +1016,9 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                     if (custom_command.has_depfile && !custom_command.implicit_depends.empty()) {
                         throw_key_error("depfile cannot be used with implicit-depends", "depfile", custom.find("depfile"));
                     }
+                    if (custom_command.has_job_pool && custom_command.has_uses_terminal && custom_command.uses_terminal) {
+                        throw_key_error("job-pool cannot be used with uses-terminal", "job-pool", custom.find("job-pool"));
+                    }
                     if (custom_command.append &&
                         (custom_command.has_depfile || custom_command.has_job_pool || custom_command.has_job_server_aware ||
                          custom_command.has_codegen || custom_command.has_command_expand_lists || custom_command.has_uses_terminal ||
@@ -1032,6 +1035,11 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
 
                 target.custom_commands.push_back(std::move(custom_command));
             }
+        }
+
+        if (resolved_target_type == target_custom && target.custom_target.has_job_pool && target.custom_target.has_uses_terminal &&
+            target.custom_target.uses_terminal) {
+            throw_key_error("job-pool cannot be used with uses-terminal", "job-pool", t.find("job-pool"));
         }
 
         if (resolved_target_type != target_custom && !target.custom_target.empty()) {

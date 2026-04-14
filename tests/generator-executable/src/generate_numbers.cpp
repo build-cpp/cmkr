@@ -13,12 +13,7 @@ int main(int argc, char *argv[]) {
 
     std::string output_path = argv[1];
 
-    // Create output directory if needed
-    auto last_slash = output_path.find_last_of("/\\");
-    if (last_slash != std::string::npos) {
-        // Note: In a real generator, you'd create the directory
-        // CMake creates it for us when using add_custom_command
-    }
+    // The example ensures the output directory exists before invoking the generator.
 
     std::ofstream out(output_path);
     if (!out) {

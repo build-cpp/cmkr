@@ -1331,6 +1331,11 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             }
             custom_commands.insert(custom_commands.end(), target.custom_commands.begin(), target.custom_commands.end());
 
+            if (resolved_target_type == parser::target_custom && custom_target.has_job_pool && custom_target.has_uses_terminal &&
+                custom_target.uses_terminal) {
+                throw_target_error("job-pool cannot be used with uses-terminal");
+            }
+
             auto normalize_generated_output_source = [](const std::string &output) {
                 auto starts_with = [](const std::string &value, const std::string &prefix) {
                     return value.rfind(prefix, 0) == 0;

@@ -48,6 +48,11 @@ type = "executable"
 sources = ["src/main.cpp"]
 include-directories = ["${CMAKE_CURRENT_BINARY_DIR}/generated"]
 
+# Create the generated directory before the generator runs.
+cmake-before = """
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
+"""
+
 # Output form custom command: runs the generate_numbers executable to generate sources.
 # The outputs are automatically added as sources to this target.
 # The DEPENDS on "generate_numbers" ensures the generator is built before this runs.

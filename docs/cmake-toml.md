@@ -273,7 +273,7 @@ comment = "Run custom target"
 job-pool = "pool"
 job-server-aware = true
 verbatim = true
-uses-terminal = true
+uses-terminal = false # incompatible with job-pool when true
 command-expand-lists = true
 
 cmake-before = """
@@ -314,7 +314,7 @@ implicit-depends = [["CXX", "src/input.idl"]]
 working-directory = "${CMAKE_CURRENT_BINARY_DIR}"
 comment = "Generate source"
 depfile = "${CMAKE_CURRENT_BINARY_DIR}/generated.d"
-job-pool = "pool"
+job-pool = "pool" # incompatible with uses-terminal when uses-terminal = true
 job-server-aware = true
 verbatim = true
 append = false
@@ -335,7 +335,7 @@ command-expand-lists = false
 uses-terminal = false
 ```
 
-For each custom command entry, exactly one of `outputs` or `build-event` is required. Relative `outputs`/`byproducts` paths follow CMake and are interpreted from the current binary directory. `build-event` is only valid for non-`interface` targets, and `pre-link` is not supported for `type = "custom"`.
+For each custom command entry, exactly one of `outputs` or `build-event` is required. Relative `outputs`/`byproducts` paths follow CMake and are interpreted from the current binary directory. `build-event` is only valid for non-`interface` targets, and `pre-link` is not supported for `type = "custom"`. In both `add_custom_command(OUTPUT ...)` and `add_custom_target(...)`, `job-pool` cannot be combined with `uses-terminal = true`.
 
 A table mapping the cmkr features to the relevant CMake construct and the relevant documentation pages:
 
