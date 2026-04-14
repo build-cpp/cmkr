@@ -1,0 +1,123 @@
+# This test demonstrates add_custom_command and add_custom_target support in cmkr.
+#
+# There are two forms of add_custom_command in CMake:
+# 1. Output form: generates files that can be consumed by other targets
+# 2. Target form: runs commands at build time for a specific target (pre-build, pre-link, post-build)
+
+[project]
+name = "custom-command"
+description = "Tests add_custom_command and add_custom_target support"
+
+# -----------------------------------------------------------------------------
+# Simple executable demonstrating post-build events
+# -----------------------------------------------------------------------------
+
+[target.hello]
+type = "executable"
+sources = ["src/hello.cpp"]
+
+# This post-build command runs after the 'hello' executable is built.
+# build-event can be: "pre-build", "pre-link", or "post-build"
+[[target.hello.custom-command]]
+build-event = "post-build"
+command = ["${CMAKE_COMMAND}", "-E", "echo", "Built executable: $<TARGET_FILE_NAME:hello>"]
+comment = "Print the built executable name"
+
+# -----------------------------------------------------------------------------
+# Executable with code generation (output form custom command)
+# -----------------------------------------------------------------------------
+
+[target.custom-command]
+type = "executable"
+sources = ["src/main.cpp"]
+include-directories = ["${CMAKE_CURRENT_BINARY_DIR}/generated"]
+
+# Output form: This custom command generates source files before building.
+# Relative outputs follow CMake and are interpreted from the binary directory.
+# The outputs are automatically added as sources to the target.
+[[target.custom-command.custom-command]]
+outputs = ["generated/generated.cpp"]
+byproducts = ["generated/generated.hpp"]
+depends = ["cmake/generate_source.cmake"]
+command = [
+    "${CMAKE_COMMAND}",
+    "-DOUTPUT_CPP=${CMAKE_CURRENT_BINARY_DIR}/generated/generated.cpp",
+    "-DOUTPUT_HPP=${CMAKE_CURRENT_BINARY_DIR}/generated/generated.hpp",
+    "-P",
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate_source.cmake",
+]
+comment = "Generate source files"
+verbatim = true
+
+# Target form: This post-build command runs after 'custom-command' is built.
+[[target.custom-command.custom-command]]
+build-event = "post-build"
+command = [
+    "${CMAKE_COMMAND}",
+    "-E",
+    "touch",
+    "${CMAKE_CURRENT_BINARY_DIR}/custom-command-post-build.stamp",
+]
+byproducts = ["${CMAKE_CURRENT_BINARY_DIR}/custom-command-post-build.stamp"]
+comment = "Create a post-build stamp file"
+verbatim = true
+
+# -----------------------------------------------------------------------------
+# Custom target (add_custom_target)
+# -----------------------------------------------------------------------------
+
+# A custom target runs commands independently of any executable/library.
+# Setting 'all = true' makes it run as part of the default build.
+[target.custom-codegen]
+type = "custom"
+all = true
+command = [
+    "${CMAKE_COMMAND}",
+    "-E",
+    "touch",
+    "${CMAKE_CURRENT_BINARY_DIR}/custom-target.stamp",
+]
+byproducts = ["${CMAKE_CURRENT_BINARY_DIR}/custom-target.stamp"]
+comment = "Run custom target"
+verbatim = true
+
+# -----------------------------------------------------------------------------
+# Template-based custom target
+# -----------------------------------------------------------------------------
+
+# Custom target options should also work when the target type comes from a template.
+[template.generated-custom-target]
+type = "custom"
+all = true
+verbatim = true
+
+[target.custom-codegen-template]
+type = "generated-custom-target"
+command = [
+    "${CMAKE_COMMAND}",
+    "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/template-custom-target.stamp",
+    "-P",
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_file_exists.cmake",
+]
+comment = "Verify the generated stamp exists"
+
+# The output-form custom command should automatically become a dependency of the
+# custom target, so the verification command sees the stamp file.
+[[target.custom-codegen-template.custom-command]]
+outputs = ["template-custom-target.stamp"]
+command = [
+    "${CMAKE_COMMAND}",
+    "-E",
+    "touch",
+    "${CMAKE_CURRENT_BINARY_DIR}/template-custom-target.stamp",
+]
+comment = "Create a stamp file for the template-based custom target"
+verbatim = true
+
+# A target-level all = false should override the template's all = true.
+# If this target is incorrectly included in the default build, the build fails.
+[target.custom-codegen-template-disabled]
+type = "generated-custom-target"
+all = false
+command = ["${CMAKE_COMMAND}", "-E", "false"]
+comment = "This target must not run as part of the default build"

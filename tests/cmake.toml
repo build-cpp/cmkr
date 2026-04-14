@@ -71,3 +71,21 @@ name = "objective-c"
 working-directory = "objective-c"
 command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
+
+[[test]]
+name = "custom-command"
+working-directory = "custom-command"
+command = "$<TARGET_FILE:cmkr>"
+arguments = ["build"]
+
+[[test]]
+name = "generator-executable"
+working-directory = "generator-executable"
+command = "$<TARGET_FILE:cmkr>"
+arguments = ["build"]
+
+[[test]]
+name = "protobuf"
+working-directory = "protobuf"
+command = "$<TARGET_FILE:cmkr>"
+arguments = ["build"]

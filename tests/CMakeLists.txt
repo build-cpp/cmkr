@@ -131,3 +131,33 @@ add_test(
 		"$<TARGET_FILE:cmkr>"
 		build
 )
+
+add_test(
+	NAME
+		custom-command
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/custom-command"
+	COMMAND
+		"$<TARGET_FILE:cmkr>"
+		build
+)
+
+add_test(
+	NAME
+		generator-executable
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/generator-executable"
+	COMMAND
+		"$<TARGET_FILE:cmkr>"
+		build
+)
+
+add_test(
+	NAME
+		protobuf
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/protobuf"
+	COMMAND
+		"$<TARGET_FILE:cmkr>"
+		build
+)

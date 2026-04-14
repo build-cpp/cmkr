@@ -199,6 +199,8 @@ tag = "v0.1"
 shallow = false # shallow clone (--depth 1)
 system = false
 subdir = "" # folder containing CMakeLists.txt
+# Set cache variables before FetchContent_MakeAvailable
+options = { BUILD_TESTS = false, BUILD_EXAMPLES = false }
 
 # Include a CMake project from a URL
 [fetch-content.urlcontent]
@@ -213,9 +215,18 @@ sha1 = "502a4e25b8b209889c99c7fa0732102682c2e4ff"
 condition = "mycondition"
 svn = "https://svn-host.com/url"
 rev = "svn_rev"
+
+# For many options, you can also use a separate table:
+# [fetch-content.bigproject.options]
+# BUILD_TESTS = false
+# BUILD_EXAMPLES = false
+# SOME_STRING_OPTION = "value"
+# SOME_LIST_OPTION = ["item1", "item2"]  # becomes "item1;item2"
 ```
 
 Table keys that match CMake variable names (`[A-Z_]+`) will be passed to the [`FetchContent_Declare`](https://cmake.org/cmake/help/latest/module/FetchContent.html#command:fetchcontent_declare) command.
+
+The `options` field allows setting CACHE variables before `FetchContent_MakeAvailable` is called. This is useful for configuring options on the fetched dependency (e.g., disabling tests). Boolean values become `ON`/`OFF`, arrays become semicolon-separated strings.
 
 ## Targets
 
@@ -246,6 +257,24 @@ link-options = [""] # linker flags
 private-link-options = [""]
 precompile-headers = [""] # precompiled headers
 private-precompile-headers = [""]
+dependencies = [""] # add_dependencies(target ...)
+
+# Keys below are for type = "custom" (add_custom_target)
+all = false
+command = ["${CMAKE_COMMAND}", "-E", "echo", "Hello"] # one command line
+commands = [ # multiple command lines
+    ["${CMAKE_COMMAND}", "-E", "echo", "First"],
+    ["${CMAKE_COMMAND}", "-E", "echo", "Second"],
+]
+depends = ["generated.txt"] # add_custom_target(... DEPENDS ...)
+byproducts = ["generated.txt"]
+working-directory = "${CMAKE_CURRENT_BINARY_DIR}"
+comment = "Run custom target"
+job-pool = "pool"
+job-server-aware = true
+verbatim = true
+uses-terminal = false # incompatible with job-pool when true
+command-expand-lists = true
 
 cmake-before = """
 message(STATUS "CMake injected before the target")
@@ -263,6 +292,51 @@ CXX_STANDARD_REQUIRED = true
 FOLDER = "MyFolder"
 ```
 
+### Custom commands
+
+Use `[[target.<name>.custom-command]]` to map directly to [`add_custom_command`](https://cmake.org/cmake/help/latest/command/add_custom_command.html). A custom command can use either the `OUTPUT` form or the `TARGET` form:
+
+```toml
+# OUTPUT form (add_custom_command(OUTPUT ...))
+[[target.mytarget.custom-command]]
+condition = "mycondition"
+outputs = ["generated.cpp"] # relative paths are interpreted from ${CMAKE_CURRENT_BINARY_DIR}
+command = [
+    "${CMAKE_COMMAND}",
+    "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/generated.cpp",
+    "-P",
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate.cmake",
+]
+depends = ["cmake/generate.cmake"]
+byproducts = ["generated.hpp"]
+main-dependency = "cmake/generate.cmake"
+implicit-depends = [["CXX", "src/input.idl"]]
+working-directory = "${CMAKE_CURRENT_BINARY_DIR}"
+comment = "Generate source"
+depfile = "${CMAKE_CURRENT_BINARY_DIR}/generated.d"
+job-pool = "pool" # incompatible with uses-terminal when uses-terminal = true
+job-server-aware = true
+verbatim = true
+append = false
+uses-terminal = false
+codegen = false
+command-expand-lists = false
+depends-explicit-only = false
+
+# TARGET form (add_custom_command(TARGET ...))
+[[target.mytarget.custom-command]]
+build-event = "post-build" # pre-build, pre-link, post-build
+command = ["${CMAKE_COMMAND}", "-E", "touch", "${CMAKE_CURRENT_BINARY_DIR}/post-build.stamp"]
+byproducts = ["${CMAKE_CURRENT_BINARY_DIR}/post-build.stamp"]
+working-directory = "${CMAKE_CURRENT_BINARY_DIR}"
+comment = "Post-build step"
+verbatim = true
+command-expand-lists = false
+uses-terminal = false
+```
+
+For each custom command entry, exactly one of `outputs` or `build-event` is required. Relative `outputs`/`byproducts` paths follow CMake and are interpreted from the current binary directory. `build-event` is only valid for non-`interface` targets, and `pre-link` is not supported for `type = "custom"`. In both `add_custom_command(OUTPUT ...)` and `add_custom_target(...)`, `job-pool` cannot be combined with `uses-terminal = true`. When `append = true` is used with the `OUTPUT` form, at least one `command`/`commands` entry or `depends` must also be provided.
+
 A table mapping the cmkr features to the relevant CMake construct and the relevant documentation pages:
 
 | cmkr | CMake construct | Description |
@@ -279,6 +353,9 @@ A table mapping the cmkr features to the relevant CMake construct and the releva
 | `link-libraries` | [`target_link_libraries`](https://cmake.org/cmake/help/latest/command/target_link_libraries.html) | Adds library dependencies. Use `::mylib` to make sure a target exists. |
 | `link-options` | [`target_link_options`](https://cmake.org/cmake/help/latest/command/target_link_options.html) | Adds linker flags. |
 | `precompile-headers` | [`target_precompile_headers`](https://cmake.org/cmake/help/latest/command/target_precompile_headers.html) | Specifies precompiled headers. |
+| `dependencies` | [`add_dependencies`](https://cmake.org/cmake/help/latest/command/add_dependencies.html) | Adds target-level dependencies. |
+| `type = "custom"` + custom target keys | [`add_custom_target`](https://cmake.org/cmake/help/latest/command/add_custom_target.html) | Creates a custom target with command/dependency options. |
+| `[[target.<name>.custom-command]]` | [`add_custom_command`](https://cmake.org/cmake/help/latest/command/add_custom_command.html) | Supports both `OUTPUT` and `TARGET` forms. |
 | `properties` | [`set_target_properties`](https://cmake.org/cmake/help/latest/command/set_target_properties.html) | See [properties on targets](https://cmake.org/cmake/help/latest/manual/cmake-properties.7.html#properties-on-targets) for more information. |
 
 The default [visibility](/basics) is as follows:
