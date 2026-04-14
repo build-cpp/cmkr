@@ -113,3 +113,11 @@ command = [
 ]
 comment = "Create a stamp file for the template-based custom target"
 verbatim = true
+
+# A target-level all = false should override the template's all = true.
+# If this target is incorrectly included in the default build, the build fails.
+[target.custom-codegen-template-disabled]
+type = "generated-custom-target"
+all = false
+command = ["${CMAKE_COMMAND}", "-E", "false"]
+comment = "This target must not run as part of the default build"

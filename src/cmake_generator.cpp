@@ -1280,9 +1280,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             auto custom_target = target.custom_target;
             if (tmplate != nullptr) {
                 const auto &custom = tmplate->outline.custom_target;
-                if (custom.has_all) {
+                if (!custom_target.has_all && custom.has_all) {
                     custom_target.has_all = true;
-                    custom_target.all = custom_target.all || custom.all;
+                    custom_target.all = custom.all;
                 }
                 if (custom.has_command) {
                     custom_target.has_command = true;
@@ -1336,7 +1336,12 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 throw_target_error("job-pool cannot be used with uses-terminal");
             }
 
-            auto normalize_generated_output_source = [](const std::string &output) {
+            auto has_cmake_path_reference = [](const std::string &value) {
+                return value.find("${") != std::string::npos || value.find("$ENV{") != std::string::npos ||
+                       value.find("$CACHE{") != std::string::npos;
+            };
+
+            auto normalize_generated_output_source = [&has_cmake_path_reference](const std::string &output) {
                 auto starts_with = [](const std::string &value, const std::string &prefix) {
                     return value.rfind(prefix, 0) == 0;
                 };
@@ -1347,7 +1352,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                     starts_with(output, "${PROJECT_BINARY_DIR}") || starts_with(output, "${CMAKE_CURRENT_SOURCE_DIR}") ||
                     starts_with(output, "${CMAKE_SOURCE_DIR}") || starts_with(output, "${PROJECT_SOURCE_DIR}") ||
                     starts_with(output, "${CMAKE_CURRENT_LIST_DIR}") || starts_with(output, "$ENV{") || starts_with(output, "$CACHE{") ||
-                    starts_with(output, "${")) {
+                    has_cmake_path_reference(output)) {
                     return output;
                 }
                 return "${CMAKE_CURRENT_BINARY_DIR}/" + output;
@@ -1446,8 +1451,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
 
                     // Make sure relative source files exist
                     for (const auto &source : sources) {
-                        auto var_index = source.find("${");
-                        if (var_index != std::string::npos)
+                        if (has_cmake_path_reference(source))
                             continue;
                         const auto &source_path = fs::path(path) / source;
                         if (!fs::exists(source_path)) {
