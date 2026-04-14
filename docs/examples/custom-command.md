@@ -46,10 +46,11 @@ sources = ["src/main.cpp"]
 include-directories = ["${CMAKE_CURRENT_BINARY_DIR}/generated"]
 
 # Output form: This custom command generates source files before building.
+# Relative outputs follow CMake and are interpreted from the binary directory.
 # The outputs are automatically added as sources to the target.
 [[target.custom-command.custom-command]]
-outputs = ["${CMAKE_CURRENT_BINARY_DIR}/generated/generated.cpp"]
-byproducts = ["${CMAKE_CURRENT_BINARY_DIR}/generated/generated.hpp"]
+outputs = ["generated/generated.cpp"]
+byproducts = ["generated/generated.hpp"]
 depends = ["cmake/generate_source.cmake"]
 command = [
     "${CMAKE_COMMAND}",
@@ -91,6 +92,39 @@ command = [
 ]
 byproducts = ["${CMAKE_CURRENT_BINARY_DIR}/custom-target.stamp"]
 comment = "Run custom target"
+verbatim = true
+
+# -----------------------------------------------------------------------------
+# Template-based custom target
+# -----------------------------------------------------------------------------
+
+# Custom target options should also work when the target type comes from a template.
+[template.generated-custom-target]
+type = "custom"
+all = true
+verbatim = true
+
+[target.custom-codegen-template]
+type = "generated-custom-target"
+command = [
+    "${CMAKE_COMMAND}",
+    "-DINPUT=${CMAKE_CURRENT_BINARY_DIR}/template-custom-target.stamp",
+    "-P",
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_file_exists.cmake",
+]
+comment = "Verify the generated stamp exists"
+
+# The output-form custom command should automatically become a dependency of the
+# custom target, so the verification command sees the stamp file.
+[[target.custom-codegen-template.custom-command]]
+outputs = ["template-custom-target.stamp"]
+command = [
+    "${CMAKE_COMMAND}",
+    "-E",
+    "touch",
+    "${CMAKE_CURRENT_BINARY_DIR}/template-custom-target.stamp",
+]
+comment = "Create a stamp file for the template-based custom target"
 verbatim = true
 ```
 

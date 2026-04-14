@@ -297,6 +297,18 @@ static std::string normalize_build_event(std::string build_event) {
     return build_event;
 }
 
+static TargetType resolve_target_type(const Target &target, const std::vector<Template> &templates) {
+    if (target.type != target_template) {
+        return target.type;
+    }
+    for (const auto &tmplate : templates) {
+        if (target.type_name == tmplate.outline.name) {
+            return tmplate.outline.type;
+        }
+    }
+    return target.type;
+}
+
 Project::Project(const Project *parent, const std::string &path, bool build) : parent(parent) {
     const auto toml_path = fs::path(path) / "cmake.toml";
     if (!fs::exists(toml_path)) {
@@ -816,6 +828,8 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
 
         t.optional("dependencies", target.dependencies);
 
+        const auto resolved_target_type = resolve_target_type(target, templates);
+
         if (t.contains("all")) {
             target.custom_target.has_all = true;
             target.custom_target.all = t.find("all").as_boolean();
@@ -986,6 +1000,13 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                         custom_command.build_event != "POST_BUILD") {
                         throw_key_error("build-event must be one of: pre-build, pre-link, post-build", "build-event", custom.find("build-event"));
                     }
+                    if (resolved_target_type == target_interface) {
+                        throw_key_error("build-event cannot be used with type = \"interface\"", "build-event", custom.find("build-event"));
+                    }
+                    if (resolved_target_type == target_custom && custom_command.build_event == "PRE_LINK") {
+                        throw_key_error("build-event = \"pre-link\" cannot be used with type = \"custom\"", "build-event",
+                                        custom.find("build-event"));
+                    }
                     if (custom_command.has_append || custom_command.has_main_dependency || !custom_command.depends.empty() ||
                         !custom_command.implicit_depends.empty() || custom_command.has_depfile || custom_command.has_job_pool ||
                         custom_command.has_job_server_aware || custom_command.has_codegen || custom_command.has_depends_explicit_only) {
@@ -1013,7 +1034,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
             }
         }
 
-        if (target.type != target_custom && !target.custom_target.empty()) {
+        if (resolved_target_type != target_custom && !target.custom_target.empty()) {
             const char *custom_key = "all";
             if (target.custom_target.has_command) {
                 custom_key = "command";

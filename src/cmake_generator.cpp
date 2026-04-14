@@ -1222,6 +1222,14 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 }
             }
 
+            auto resolved_target_type = target.type;
+            if (tmplate != nullptr) {
+                if (resolved_target_type != parser::target_template) {
+                    throw_target_error("Unreachable code, unexpected target type for template");
+                }
+                resolved_target_type = tmplate->outline.type;
+            }
+
             ConditionScope cs(gen, target.condition);
 
             // Detect if there is cmake included before/after the target
@@ -1323,6 +1331,31 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             }
             custom_commands.insert(custom_commands.end(), target.custom_commands.begin(), target.custom_commands.end());
 
+            auto normalize_generated_output_source = [](const std::string &output) {
+                auto starts_with = [](const std::string &value, const std::string &prefix) {
+                    return value.rfind(prefix, 0) == 0;
+                };
+                if (fs::path(output).is_absolute()) {
+                    return output;
+                }
+                if (starts_with(output, "${CMAKE_CURRENT_BINARY_DIR}") || starts_with(output, "${CMAKE_BINARY_DIR}") ||
+                    starts_with(output, "${PROJECT_BINARY_DIR}") || starts_with(output, "${CMAKE_CURRENT_SOURCE_DIR}") ||
+                    starts_with(output, "${CMAKE_SOURCE_DIR}") || starts_with(output, "${PROJECT_SOURCE_DIR}") ||
+                    starts_with(output, "${CMAKE_CURRENT_LIST_DIR}") || starts_with(output, "$ENV{") || starts_with(output, "$CACHE{") ||
+                    starts_with(output, "${")) {
+                    return output;
+                }
+                return "${CMAKE_CURRENT_BINARY_DIR}/" + output;
+            };
+
+            parser::Condition<tsl::ordered_set<std::string>> mcustom_target_depends;
+            if (resolved_target_type == parser::target_custom) {
+                auto &unconditional_depends = mcustom_target_depends[""];
+                for (const auto &dep : custom_target.depends) {
+                    unconditional_depends.insert(dep);
+                }
+            }
+
             // Merge the sources from the template and the target. The sources
             // without condition need to be processed first
             parser::Condition<tsl::ordered_set<std::string>> msources;
@@ -1347,12 +1380,15 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 }
                 auto &condition_sources = msources[custom_command.condition];
                 for (const auto &output : custom_command.outputs) {
-                    condition_sources.insert(output);
+                    condition_sources.insert(normalize_generated_output_source(output));
+                    if (resolved_target_type == parser::target_custom) {
+                        mcustom_target_depends[custom_command.condition].insert(output);
+                    }
                 }
             }
 
             // Improve IDE support
-            if (target.type != parser::target_interface) {
+            if (resolved_target_type != parser::target_interface) {
                 msources[""].insert("cmake.toml");
             }
 
@@ -1386,7 +1422,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 }
 
                 // Make sure there are source files for the languages used by the project
-                switch (target.type) {
+                switch (resolved_target_type) {
                 case parser::target_executable:
                 case parser::target_library:
                 case parser::target_shared:
@@ -1430,14 +1466,7 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 }
             });
 
-            auto target_type = target.type;
-
-            if (tmplate != nullptr) {
-                if (target_type != parser::target_template) {
-                    throw_target_error("Unreachable code, unexpected target type for template");
-                }
-                target_type = tmplate->outline.type;
-            }
+            auto target_type = resolved_target_type;
 
             std::string add_command;
             std::string target_type_string;
@@ -1482,6 +1511,39 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                 break;
             default:
                 throw_target_error("Unimplemented enum value");
+            }
+
+            auto has_custom_target_depends = false;
+            auto custom_target_depends_var = target.name + "_DEPENDS";
+            auto custom_target_depends_with_set = true;
+            if (is_custom_target) {
+                for (const auto &itr : mcustom_target_depends) {
+                    if (!itr.second.empty()) {
+                        has_custom_target_depends = true;
+                        break;
+                    }
+                }
+                if (has_custom_target_depends && mcustom_target_depends[""].empty()) {
+                    custom_target_depends_with_set = false;
+                    cmd("set")(custom_target_depends_var, RawArg("\"\"")).endl();
+                }
+                gen.handle_condition(mcustom_target_depends, [&](const std::string &condition, const tsl::ordered_set<std::string> &depend_set) {
+                    std::vector<std::string> depends;
+                    depends.reserve(depend_set.size());
+                    for (const auto &depend : depend_set) {
+                        depends.push_back(depend);
+                    }
+
+                    if (custom_target_depends_with_set) {
+                        if (!condition.empty()) {
+                            throw_target_error("Unreachable code, make sure unconditional depends are first");
+                        }
+                        cmd("set")(custom_target_depends_var, depends);
+                        custom_target_depends_with_set = false;
+                    } else {
+                        cmd("list")("APPEND", custom_target_depends_var, depends);
+                    }
+                });
             }
 
             auto append_keyword = [](std::vector<RawArg> &args, const std::string &keyword) {
@@ -1622,9 +1684,9 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
                     append_keyword(args, "ALL");
                 }
                 append_commands(args, custom_target.commands);
-                if (!custom_target.depends.empty()) {
+                if (has_custom_target_depends) {
                     append_keyword(args, "DEPENDS");
-                    append_values(args, custom_target.depends);
+                    append_value(args, "${" + custom_target_depends_var + "}");
                 }
                 if (!custom_target.byproducts.empty()) {
                     append_keyword(args, "BYPRODUCTS");

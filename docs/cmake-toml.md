@@ -300,7 +300,7 @@ Use `[[target.<name>.custom-command]]` to map directly to [`add_custom_command`]
 # OUTPUT form (add_custom_command(OUTPUT ...))
 [[target.mytarget.custom-command]]
 condition = "mycondition"
-outputs = ["${CMAKE_CURRENT_BINARY_DIR}/generated.cpp"]
+outputs = ["generated.cpp"] # relative paths are interpreted from ${CMAKE_CURRENT_BINARY_DIR}
 command = [
     "${CMAKE_COMMAND}",
     "-DOUTPUT=${CMAKE_CURRENT_BINARY_DIR}/generated.cpp",
@@ -308,7 +308,7 @@ command = [
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/generate.cmake",
 ]
 depends = ["cmake/generate.cmake"]
-byproducts = ["${CMAKE_CURRENT_BINARY_DIR}/generated.hpp"]
+byproducts = ["generated.hpp"]
 main-dependency = "cmake/generate.cmake"
 implicit-depends = [["CXX", "src/input.idl"]]
 working-directory = "${CMAKE_CURRENT_BINARY_DIR}"
@@ -335,7 +335,7 @@ command-expand-lists = false
 uses-terminal = false
 ```
 
-For each custom command entry, exactly one of `outputs` or `build-event` is required.
+For each custom command entry, exactly one of `outputs` or `build-event` is required. Relative `outputs`/`byproducts` paths follow CMake and are interpreted from the current binary directory. `build-event` is only valid for non-`interface` targets, and `pre-link` is not supported for `type = "custom"`.
 
 A table mapping the cmkr features to the relevant CMake construct and the relevant documentation pages:
 
