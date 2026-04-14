@@ -1029,7 +1029,12 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                     }
                 }
 
-                if (custom_command.commands.empty() && !(custom_command.is_output_form() && custom_command.append)) {
+                if (custom_command.is_output_form() && custom_command.append && custom_command.commands.empty() && custom_command.depends.empty()) {
+                    throw_key_error("append requires at least one command or depends", "append", custom.find("append"));
+                }
+
+                if (custom_command.commands.empty() &&
+                    !(custom_command.is_output_form() && custom_command.append && !custom_command.depends.empty())) {
                     throw_key_error("At least one command is required", "custom-command", custom_command_value);
                 }
 
