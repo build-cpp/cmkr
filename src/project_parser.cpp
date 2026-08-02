@@ -1,6 +1,7 @@
 #include "project_parser.hpp"
 
 #include "fs.hpp"
+#include <array>
 #include <cctype>
 #include <deque>
 #include <stdexcept>
@@ -60,6 +61,31 @@ static std::string format_key_message(const std::string &message, const toml::ke
 
 static void throw_key_error(const std::string &error, const toml::key &ky, const TomlBasicValue &value) {
     throw std::runtime_error(format_key_message("[error] " + error, ky, value));
+}
+
+static std::string suggest_key(const toml::key &key, const tsl::ordered_set<toml::key> &known_keys) {
+    static const std::array<std::pair<const char *, const char *>, 3> suggestions = {{
+        {"link-flags", "link-options"},
+        {"compile-flags", "compile-options"},
+        {"flags", "compile-options"},
+    }};
+
+    for (const auto &suggestion : suggestions) {
+        if (key == suggestion.first && known_keys.contains(suggestion.second)) {
+            return suggestion.second;
+        }
+    }
+
+    return {};
+}
+
+static void throw_unknown_key(const toml::key &key, const TomlBasicValue &value, const tsl::ordered_set<toml::key> &known_keys) {
+    std::string error = "Unknown key '" + key + "'";
+    const auto suggestion = suggest_key(key, known_keys);
+    if (!suggestion.empty()) {
+        error += " (did you mean '" + suggestion + "'?)";
+    }
+    throw_key_error(error, key, value);
 }
 
 static void print_key_warning(const std::string &message, const toml::key &ky, const TomlBasicValue &value) {
@@ -147,18 +173,18 @@ class TomlChecker {
 
                 for (const auto &jtr : itr.second.as_table()) {
                     if (!m_visited.contains(jtr.first)) {
-                        throw_key_error("Unknown key '" + jtr.first + "'", jtr.first, jtr.second);
+                        throw_unknown_key(jtr.first, jtr.second, m_visited);
                     }
                 }
             } else if (!m_visited.contains(ky)) {
                 if (itr.second.is_table()) {
                     for (const auto &jtr : itr.second.as_table()) {
                         if (!m_visited.contains(jtr.first)) {
-                            throw_key_error("Unknown key '" + jtr.first + "'", jtr.first, jtr.second);
+                            throw_unknown_key(jtr.first, jtr.second, m_visited);
                         }
                     }
                 }
-                throw_key_error("Unknown key '" + ky + "'", ky, itr.second);
+                throw_unknown_key(ky, itr.second, m_visited);
             } else if (ky == "condition") {
                 std::string condition = itr.second.as_string();
                 if (!conditions.contains(condition) && Project::is_condition_name(condition)) {
@@ -200,7 +226,7 @@ class TomlCheckerRoot {
         if (check_root) {
             for (const auto &itr : m_root.as_table()) {
                 if (!m_visisted.contains(itr.first)) {
-                    throw_key_error("Unknown key '" + itr.first + "'", itr.first, itr.second);
+                    throw_unknown_key(itr.first, itr.second, m_visisted);
                 }
             }
         }
