@@ -1,11 +1,14 @@
 #include "project_parser.hpp"
 
 #include "fs.hpp"
+#include <algorithm>
 #include <array>
 #include <cctype>
 #include <deque>
+#include <limits>
 #include <stdexcept>
 #include <toml.hpp>
+#include <vector>
 
 namespace cmkr {
 namespace parser {
@@ -63,6 +66,26 @@ static void throw_key_error(const std::string &error, const toml::key &ky, const
     throw std::runtime_error(format_key_message("[error] " + error, ky, value));
 }
 
+static size_t levenshtein_distance(const std::string &left, const std::string &right) {
+    std::vector<size_t> previous(right.size() + 1);
+    std::vector<size_t> current(right.size() + 1);
+
+    for (size_t i = 0; i <= right.size(); i++) {
+        previous[i] = i;
+    }
+
+    for (size_t i = 1; i <= left.size(); i++) {
+        current[0] = i;
+        for (size_t j = 1; j <= right.size(); j++) {
+            const auto substitution = previous[j - 1] + (left[i - 1] == right[j - 1] ? 0 : 1);
+            current[j] = std::min({previous[j] + 1, current[j - 1] + 1, substitution});
+        }
+        previous.swap(current);
+    }
+
+    return previous.back();
+}
+
 static std::string suggest_key(const toml::key &key, const tsl::ordered_set<toml::key> &known_keys) {
     static const std::array<std::pair<const char *, const char *>, 3> suggestions = {{
         {"link-flags", "link-options"},
@@ -74,6 +97,30 @@ static std::string suggest_key(const toml::key &key, const tsl::ordered_set<toml
         if (key == suggestion.first && known_keys.contains(suggestion.second)) {
             return suggestion.second;
         }
+    }
+
+    std::string closest;
+    auto closest_distance = std::numeric_limits<size_t>::max();
+    const auto consider = [&](const std::string &candidate) {
+        const auto distance = levenshtein_distance(key, candidate);
+        if (distance < closest_distance) {
+            closest = candidate;
+            closest_distance = distance;
+        }
+    };
+
+    for (const auto &known_key : known_keys) {
+        consider(known_key);
+    }
+    for (const auto &suggestion : suggestions) {
+        if (known_keys.contains(suggestion.second)) {
+            consider(suggestion.first);
+        }
+    }
+
+    const auto longest = std::max(key.size(), closest.size());
+    if (closest_distance <= 3 && closest_distance * 3 <= longest) {
+        return closest;
     }
 
     return {};
