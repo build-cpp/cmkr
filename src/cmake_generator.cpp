@@ -5,6 +5,7 @@
 #include "fs.hpp"
 #include "project_parser.hpp"
 #include <algorithm>
+#include <cctype> // Wael-MA: we call isspace below, better to include it explicitly
 #include <cstdio>
 #include <memory>
 #include <sstream>
@@ -765,13 +766,10 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     }
 
     auto contains_language_source = [&project_extensions](const std::vector<std::string> &sources) {
-        for (const auto &source : sources) {
-            auto extension = fs::path(source).extension().string();
-            if (project_extensions.count(extension) > 0) {
-                return true;
-            }
-        }
-        return false;
+        // Wael-MA: swapped the manual scan for std::any_of, behavior is the same
+        return std::any_of(sources.begin(), sources.end(), [&project_extensions](const std::string &source) {
+            return project_extensions.count(fs::path(source).extension().string()) > 0;
+        });
     };
 
     Generator gen(project, path);
@@ -1244,12 +1242,10 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             auto has_include_after = false;
             {
                 auto has_include = [](const parser::ConditionVector &includes) {
-                    for (const auto &itr : includes) {
-                        for (const auto &jtr : itr.second) {
-                            return true;
-                        }
-                    }
-                    return false;
+                    // Wael-MA: std::any_of does the same scan, just a lot easier to read
+                    using value_type = std::pair<std::string, std::vector<std::string>>;
+                    return std::any_of(includes.begin(), includes.end(),
+                                       [](const value_type &itr) { return !itr.second.empty(); });
                 };
                 auto has_include_helper = [&](const parser::Target &target) {
                     if (!target.cmake_before.empty() || has_include(target.include_before)) {
@@ -1935,7 +1931,8 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
     auto generated_cmake = ss.str();
 
     // Make sure the file ends in a single newline
-    while (!generated_cmake.empty() && std::isspace(generated_cmake.back())) {
+    // Wael-MA: isspace must receive an unsigned char, plain chars can be negative
+    while (!generated_cmake.empty() && std::isspace(static_cast<unsigned char>(generated_cmake.back()))) {
         generated_cmake.pop_back();
     }
     generated_cmake += '\n';
