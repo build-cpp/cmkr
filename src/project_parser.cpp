@@ -32,7 +32,6 @@ static MsvcRuntimeType parse_msvcRuntimeType(const std::string &name) {
 }
 
 static std::string msvc_runtime_error(const std::string &runtime) {
-    // Wael-MA: one shared spot for this error text, it was copy-pasted in two places
     std::string error = "Unknown runtime '" + runtime + "'\n";
     error += "Available types:\n";
     for (const char *type_name : msvcRuntimeTypeNames) {
@@ -304,7 +303,7 @@ static std::string normalize_build_event(std::string build_event) {
         if (ch == '-') {
             ch = '_';
         } else {
-            ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+            ch = static_cast<char>(std::toupper((unsigned char)ch));
         }
     }
     return build_event;
@@ -662,13 +661,12 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                     value = argItr.second.as_string();
                 }
 
-                auto is_cmake_arg = [](const std::string &s) {
-                    for (auto c : s) {
-                        // Wael-MA: cast to unsigned char first, <cctype> functions are UB on negative bytes
-                        auto uc = static_cast<unsigned char>(c);
-                        if (!(std::isdigit(uc) || std::isupper(uc) || c == '_')) {
-                            return false;
-                        }
+auto is_cmake_arg = [](const std::string &s) {
+        for (unsigned char c : s) {
+            if (!(std::isdigit(c) || std::isupper(c) || c == '_')) {
+                return false;
+            }
+        }
                     }
                     return true;
                 };
@@ -703,12 +701,11 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                     if (value.empty()) {
                         throw_key_error("Empty hash value", argItr.first, argItr.second);
                     }
-                    for (char c : value) {
-                        // Wael-MA: isxdigit also wants an unsigned char, otherwise it's the same UB
-                        if (!std::isxdigit(static_cast<unsigned char>(c))) {
-                            throw_key_error("Hash value must be a hex string", argItr.first, argItr.second);
-                        }
-                    }
+for (unsigned char c : value) {
+            if (!std::isxdigit(c)) {
+                throw_key_error("Hash value must be a hex string", argItr.first, argItr.second);
+            }
+        }
                     value = algo + "=" + value;
                 } else if (key == "hash") {
                     key = "URL_HASH";
@@ -1311,13 +1308,11 @@ bool Project::cmake_minimum_version(int major, int minor) const {
 }
 
 bool Project::is_condition_name(const std::string &name) {
-    for (auto ch : name) {
-        // Wael-MA: casting to unsigned char keeps isalnum well-defined for any input byte
-        auto uc = static_cast<unsigned char>(ch);
-        if (!std::isalnum(uc) && ch != '-' && ch != '_') {
-            return false;
+        for (unsigned char ch : name) {
+            if (!std::isalnum(ch) && ch != '-' && ch != '_') {
+                return false;
+            }
         }
-    }
     return true;
 }
 
