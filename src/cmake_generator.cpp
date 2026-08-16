@@ -1243,16 +1243,16 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             auto has_include_before = false;
             auto has_include_after = false;
             {
-auto has_include = [](const parser::ConditionVector &includes) {
-        for (const auto &itr : includes) {
-            for (const auto &jtr : itr.second) {
-                if (!jtr.empty()) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    };
+                auto has_include = [](const parser::ConditionVector &includes) {
+                    for (const auto &itr : includes) {
+                        for (const auto &jtr : itr.second) {
+                            if (!jtr.empty()) {
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                };
                 auto has_include_helper = [&](const parser::Target &target) {
                     if (!target.cmake_before.empty() || has_include(target.include_before)) {
                         has_include_before = true;
@@ -1937,7 +1937,7 @@ auto has_include = [](const parser::ConditionVector &includes) {
     auto generated_cmake = ss.str();
 
     // Make sure the file ends in a single newline
-    while (!generated_cmake.empty() && std::isspace((unsigned char) generated_cmake.back())) {
+    while (!generated_cmake.empty() && std::isspace((unsigned char)generated_cmake.back())) {
         generated_cmake.pop_back();
     }
     generated_cmake += '\n';

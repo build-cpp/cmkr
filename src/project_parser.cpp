@@ -661,624 +661,621 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                     value = argItr.second.as_string();
                 }
 
-auto is_cmake_arg = [](const std::string &s) {
-        for (unsigned char c : s) {
-            if (!(std::isdigit(c) || std::isupper(c) || c == '_')) {
-                return false;
-            }
-        }
-                    }
-                    return true;
-                };
-
-                // https://cmake.org/cmake/help/latest/command/string.html#supported-hash-algorithms
-                tsl::ordered_set<std::string> hash_algorithms = {
-                    "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha3_224", "sha3_256", "sha3_384", "sha3_512",
-                };
-
-                auto key = argItr.first;
-                if (key == "git") {
-                    key = "GIT_REPOSITORY";
-                } else if (key == "tag") {
-                    key = "GIT_TAG";
-                } else if (key == "shallow") {
-                    key = "GIT_SHALLOW";
-                } else if (key == "svn") {
-                    key = "SVN_REPOSITORY";
-                } else if (key == "rev") {
-                    key = "SVN_REVISION";
-                } else if (key == "url") {
-                    key = "URL";
-                } else if (hash_algorithms.contains(key)) {
-                    std::string algo;
-                    for (auto ch : key) {
-                        if (ch >= 'a' && ch <= 'z') {
-                            ch -= ('a' - 'A');
-                        }
-                        algo.push_back(ch);
-                    }
-                    key = "URL_HASH";
-                    if (value.empty()) {
-                        throw_key_error("Empty hash value", argItr.first, argItr.second);
-                    }
-for (unsigned char c : value) {
-            if (!std::isxdigit(c)) {
-                throw_key_error("Hash value must be a hex string", argItr.first, argItr.second);
-            }
-        }
-                    value = algo + "=" + value;
-                } else if (key == "hash") {
-                    key = "URL_HASH";
-                } else if (key == "subdir") {
-                    key = "SOURCE_SUBDIR";
-                } else if (is_cmake_arg(key)) {
-                    // allow passthrough of ExternalProject options
-                } else if (!c.visisted(key)) {
-                    throw_key_error("Unknown key '" + argItr.first + "'", argItr.first, argItr.second);
-                }
-
-                // Make sure not to emit keys like "condition" in the FetchContent call
-                if (!c.visisted(key)) {
-                    content.arguments.emplace(key, value);
-                }
-
-                c.visit(argItr.first);
-            }
-            contents.emplace_back(std::move(content));
-        }
-    }
-
-    if (checker.contains("bin")) {
-        throw_key_error("[[bin]] has been renamed to [target.<name>]", "", toml.at("bin"));
-    }
-
-    auto parse_target = [&](const std::string &name, TomlChecker &t, bool isTemplate) {
-        Target target;
-        target.name = name;
-
-        t.required("type", target.type_name);
-        target.type = parse_targetType(target.type_name);
-
-        // Users cannot set this target type
-        if (target.type == target_template) {
-            target.type = target_last;
-        }
-
-        if (!isTemplate && target.type == target_last) {
-            for (const auto &tmplate : templates) {
-                if (target.type_name == tmplate.outline.name) {
-                    target.type = target_template;
-                    break;
-                }
-            }
-        }
-
-        if (target.type == target_last) {
-            std::string error = "Unknown target type '" + target.type_name + "'\n";
-            error += "Available types:\n";
-            for (std::string type_name : targetTypeNames) {
-                if (type_name != "template") {
-                    error += "  - " + type_name + "\n";
-                }
-            }
-            if (!isTemplate && !templates.empty()) {
-                error += "Available templates:\n";
-                for (const auto &tmplate : templates) {
-                    error += "  - " + tmplate.outline.name + "\n";
-                }
-            }
-            error.pop_back(); // Remove last newline
-            throw_key_error(error, target.type_name, t.find("type"));
-        }
-
-        const auto resolved_target_type = resolve_target_type(target, templates);
-
-        t.optional("sources", target.sources);
-
-        // Merge the headers into the sources
-        ConditionVector headers;
-        t.optional("headers", headers);
-        for (const auto &itr : headers) {
-            auto &dest = target.sources[itr.first];
-            for (const auto &jtr : itr.second) {
-                dest.push_back(jtr);
-            }
-        }
-
-        // These keys configure compilation/linking, which doesn't apply to add_custom_target. Leaving them
-        // unvisited for type = "custom" lets the generic "Unknown key" check below reject them.
-        if (resolved_target_type != target_custom) {
-            t.optional("compile-definitions", target.compile_definitions);
-            t.optional("private-compile-definitions", target.private_compile_definitions);
-
-            t.optional("compile-features", target.compile_features);
-            t.optional("private-compile-features", target.private_compile_features);
-
-            t.optional("compile-options", target.compile_options);
-            t.optional("private-compile-options", target.private_compile_options);
-
-            t.optional("include-directories", target.include_directories);
-            t.optional("private-include-directories", target.private_include_directories);
-
-            t.optional("link-directories", target.link_directories);
-            t.optional("private-link-directories", target.private_link_directories);
-
-            t.optional("link-libraries", target.link_libraries);
-            t.optional("private-link-libraries", target.private_link_libraries);
-
-            // Add support for relative paths for (private-)link-libraries
-            const auto fix_relative_paths = [&name, &path](ConditionVector &libraries, const char *key) {
-                for (const auto &library_entries : libraries) {
-                    for (auto &library : libraries[library_entries.first]) {
-                        // Skip processing paths with potential CMake macros in them (this check isn't perfect)
-                        // https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#variable-references
-                        if ((library.find("${") != std::string::npos || library.find("$ENV{") != std::string::npos ||
-                             library.find("$CACHE{") != std::string::npos) &&
-                            library.find('}') != std::string::npos) {
-                            continue;
-                        }
-
-                        auto library_path = fs::path(path) / library;
-                        if (fs::exists(library_path)) {
-                            if (!fs::is_directory(library_path)) {
-                                // If the file path is relative (and not a directory), prepend ${CMAKE_CURRENT_SOURCE_DIR}
-                                library.insert(0, "${CMAKE_CURRENT_SOURCE_DIR}/");
-                            }
-                        } else if (library.find_first_of(R"(\/)") != std::string::npos) {
-                            // Error if the path contains a directory separator and the file doesn't exist
-                            throw std::runtime_error("Attempted to link against a library file that doesn't exist for target \"" + name + "\" in \"" +
-                                                     key + "\": " + library);
-                        } else {
-                            // NOTE: We cannot check if system libraries exist, so we leave them as-is
+                auto is_cmake_arg = [](const std::string &s) {
+                    for (unsigned char c : s) {
+                        if (!(std::isdigit(c) || std::isupper(c) || c == '_')) {
+                            return false;
                         }
                     }
-                }
-            };
-            fix_relative_paths(target.link_libraries, "link-libraries");
-            fix_relative_paths(target.private_link_libraries, "private-link-libraries");
-
-            t.optional("link-options", target.link_options);
-            t.optional("private-link-options", target.private_link_options);
-
-            t.optional("precompile-headers", target.precompile_headers);
-            t.optional("private-precompile-headers", target.private_precompile_headers);
-        }
-
-        t.optional("dependencies", target.dependencies);
-
-        if (t.contains("all")) {
-            target.custom_target.has_all = true;
-            target.custom_target.all = t.find("all").as_boolean();
-        }
-
-        if (t.contains("command")) {
-            target.custom_target.has_command = true;
-            auto commands = parse_command_arguments(t.find("command"), "command");
-            for (auto &command : commands) {
-                target.custom_target.commands.push_back(std::move(command));
-            }
-        }
-
-        if (t.contains("commands")) {
-            target.custom_target.has_commands = true;
-            auto commands = parse_command_arguments(t.find("commands"), "commands");
-            for (auto &command : commands) {
-                target.custom_target.commands.push_back(std::move(command));
-            }
-        }
-
-        t.optional("depends", target.custom_target.depends);
-        t.optional("byproducts", target.custom_target.byproducts);
-
-        if (t.contains("working-directory")) {
-            target.custom_target.has_working_directory = true;
-            target.custom_target.working_directory = t.find("working-directory").as_string();
-        }
-
-        if (t.contains("comment")) {
-            target.custom_target.has_comment = true;
-            target.custom_target.comment = t.find("comment").as_string();
-        }
-
-        if (t.contains("job-pool")) {
-            target.custom_target.has_job_pool = true;
-            target.custom_target.job_pool = t.find("job-pool").as_string();
-        }
-
-        if (t.contains("job-server-aware")) {
-            target.custom_target.has_job_server_aware = true;
-            target.custom_target.job_server_aware = t.find("job-server-aware").as_boolean();
-        }
-
-        if (t.contains("verbatim")) {
-            target.custom_target.has_verbatim = true;
-            target.custom_target.verbatim = t.find("verbatim").as_boolean();
-        }
-
-        if (t.contains("uses-terminal")) {
-            target.custom_target.has_uses_terminal = true;
-            target.custom_target.uses_terminal = t.find("uses-terminal").as_boolean();
-        }
-
-        if (t.contains("command-expand-lists")) {
-            target.custom_target.has_command_expand_lists = true;
-            target.custom_target.command_expand_lists = t.find("command-expand-lists").as_boolean();
-        }
-
-        if (t.contains("custom-command")) {
-            const auto &custom_commands = t.find("custom-command");
-            if (!custom_commands.is_array()) {
-                throw_key_error("Expected an array of tables", "custom-command", custom_commands);
-            }
-            for (const auto &custom_command_value : custom_commands.as_array()) {
-                if (!custom_command_value.is_table()) {
-                    throw_key_error("Expected an array of tables", "custom-command", custom_command_value);
-                }
-
-                auto &custom = checker.create(custom_command_value);
-                Target::CustomCommand custom_command;
-
-                custom.optional("condition", custom_command.condition);
-
-                if (custom.contains("command")) {
-                    auto commands = parse_command_arguments(custom.find("command"), "command");
-                    for (auto &command : commands) {
-                        custom_command.commands.push_back(std::move(command));
-                    }
-                }
-
-                if (custom.contains("commands")) {
-                    auto commands = parse_command_arguments(custom.find("commands"), "commands");
-                    for (auto &command : commands) {
-                        custom_command.commands.push_back(std::move(command));
-                    }
-                }
-
-                custom.optional("outputs", custom_command.outputs);
-
-                if (custom.contains("build-event")) {
-                    custom_command.build_event = normalize_build_event(custom.find("build-event").as_string());
-                }
-
-                if (custom.contains("append")) {
-                    custom_command.has_append = true;
-                    custom_command.append = custom.find("append").as_boolean();
-                }
-
-                if (custom.contains("main-dependency")) {
-                    custom_command.has_main_dependency = true;
-                    custom_command.main_dependency = custom.find("main-dependency").as_string();
-                }
-
-                custom.optional("depends", custom_command.depends);
-                custom.optional("byproducts", custom_command.byproducts);
-
-                if (custom.contains("implicit-depends")) {
-                    custom_command.implicit_depends = parse_implicit_dependencies(custom.find("implicit-depends"), "implicit-depends");
-                }
-
-                if (custom.contains("working-directory")) {
-                    custom_command.has_working_directory = true;
-                    custom_command.working_directory = custom.find("working-directory").as_string();
-                }
-
-                if (custom.contains("comment")) {
-                    custom_command.has_comment = true;
-                    custom_command.comment = custom.find("comment").as_string();
-                }
-
-                if (custom.contains("depfile")) {
-                    custom_command.has_depfile = true;
-                    custom_command.depfile = custom.find("depfile").as_string();
-                }
-
-                if (custom.contains("job-pool")) {
-                    custom_command.has_job_pool = true;
-                    custom_command.job_pool = custom.find("job-pool").as_string();
-                }
-
-                if (custom.contains("job-server-aware")) {
-                    custom_command.has_job_server_aware = true;
-                    custom_command.job_server_aware = custom.find("job-server-aware").as_boolean();
-                }
-
-                if (custom.contains("verbatim")) {
-                    custom_command.has_verbatim = true;
-                    custom_command.verbatim = custom.find("verbatim").as_boolean();
-                }
-
-                if (custom.contains("uses-terminal")) {
-                    custom_command.has_uses_terminal = true;
-                    custom_command.uses_terminal = custom.find("uses-terminal").as_boolean();
-                }
-
-                if (custom.contains("codegen")) {
-                    custom_command.has_codegen = true;
-                    custom_command.codegen = custom.find("codegen").as_boolean();
-                }
-
-                if (custom.contains("command-expand-lists")) {
-                    custom_command.has_command_expand_lists = true;
-                    custom_command.command_expand_lists = custom.find("command-expand-lists").as_boolean();
-                }
-
-                if (custom.contains("depends-explicit-only")) {
-                    custom_command.has_depends_explicit_only = true;
-                    custom_command.depends_explicit_only = custom.find("depends-explicit-only").as_boolean();
-                }
-
-                if (custom_command.is_output_form() == custom_command.is_target_form()) {
-                    throw_key_error("Specify exactly one of outputs or build-event", "custom-command", custom_command_value);
-                }
-
-                if (custom_command.is_target_form()) {
-                    if (custom_command.build_event != "PRE_BUILD" && custom_command.build_event != "PRE_LINK" &&
-                        custom_command.build_event != "POST_BUILD") {
-                        throw_key_error("build-event must be one of: pre-build, pre-link, post-build", "build-event", custom.find("build-event"));
-                    }
-                    if (resolved_target_type == target_interface) {
-                        throw_key_error("build-event cannot be used with type = \"interface\"", "build-event", custom.find("build-event"));
-                    }
-                    if (resolved_target_type == target_object) {
-                        throw_key_error("build-event cannot be used with type = \"object\"", "build-event", custom.find("build-event"));
-                    }
-                    if (resolved_target_type == target_custom && custom_command.build_event == "PRE_LINK") {
-                        throw_key_error("build-event = \"pre-link\" cannot be used with type = \"custom\"", "build-event",
-                                        custom.find("build-event"));
-                    }
-                    if (custom_command.has_append || custom_command.has_main_dependency || !custom_command.depends.empty() ||
-                        !custom_command.implicit_depends.empty() || custom_command.has_depfile || custom_command.has_job_pool ||
-                        custom_command.has_job_server_aware || custom_command.has_codegen || custom_command.has_depends_explicit_only) {
-                        throw_key_error("Unsupported option for TARGET custom commands", "custom-command", custom_command_value);
-                    }
-                } else {
-                    if (custom_command.has_depfile && !custom_command.implicit_depends.empty()) {
-                        throw_key_error("depfile cannot be used with implicit-depends", "depfile", custom.find("depfile"));
-                    }
-                    if (custom_command.has_job_pool && custom_command.has_uses_terminal && custom_command.uses_terminal) {
-                        throw_key_error("job-pool cannot be used with uses-terminal", "job-pool", custom.find("job-pool"));
-                    }
-                    if (custom_command.append &&
-                        (custom_command.has_depfile || custom_command.has_job_pool || custom_command.has_job_server_aware ||
-                         custom_command.has_codegen || custom_command.has_command_expand_lists || custom_command.has_uses_terminal ||
-                         custom_command.has_verbatim || custom_command.has_depends_explicit_only || !custom_command.byproducts.empty())) {
-                        throw_key_error("append cannot be used with depfile, job-pool, job-server-aware, codegen, command-expand-lists, "
-                                        "uses-terminal, verbatim, depends-explicit-only, or byproducts",
-                                        "append", custom.find("append"));
-                    }
-                }
-
-                if (custom_command.is_output_form() && custom_command.append && custom_command.commands.empty() && custom_command.depends.empty()) {
-                    throw_key_error("append requires at least one command or depends", "append", custom.find("append"));
-                }
-
-                if (custom_command.commands.empty() &&
-                    !(custom_command.is_output_form() && custom_command.append && !custom_command.depends.empty())) {
-                    throw_key_error("At least one command is required", "custom-command", custom_command_value);
-                }
-
-                target.custom_commands.push_back(std::move(custom_command));
-            }
-        }
-
-        if (resolved_target_type == target_custom && target.custom_target.has_job_pool && target.custom_target.has_uses_terminal &&
-            target.custom_target.uses_terminal) {
-            throw_key_error("job-pool cannot be used with uses-terminal", "job-pool", t.find("job-pool"));
-        }
-
-        if (resolved_target_type != target_custom && !target.custom_target.empty()) {
-            const char *custom_key = "all";
-            if (target.custom_target.has_command) {
-                custom_key = "command";
-            } else if (target.custom_target.has_commands) {
-                custom_key = "commands";
-            } else if (!target.custom_target.depends.empty()) {
-                custom_key = "depends";
-            } else if (!target.custom_target.byproducts.empty()) {
-                custom_key = "byproducts";
-            } else if (target.custom_target.has_working_directory) {
-                custom_key = "working-directory";
-            } else if (target.custom_target.has_comment) {
-                custom_key = "comment";
-            } else if (target.custom_target.has_job_pool) {
-                custom_key = "job-pool";
-            } else if (target.custom_target.has_job_server_aware) {
-                custom_key = "job-server-aware";
-            } else if (target.custom_target.has_verbatim) {
-                custom_key = "verbatim";
-            } else if (target.custom_target.has_uses_terminal) {
-                custom_key = "uses-terminal";
-            } else if (target.custom_target.has_command_expand_lists) {
-                custom_key = "command-expand-lists";
-            }
-            throw_key_error("Custom target options can only be used with type = \"custom\"", custom_key, t.find(custom_key));
-        }
-
-        Condition<std::string> msvc_runtime;
-        t.optional("msvc-runtime", msvc_runtime);
-        for (const auto &cond_itr : msvc_runtime) {
-            switch (parse_msvcRuntimeType(cond_itr.second)) {
-            case msvc_dynamic:
-                target.properties[cond_itr.first]["MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL";
-                break;
-            case msvc_static:
-                target.properties[cond_itr.first]["MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>";
-                break;
-            default: {
-                const TomlBasicValue *report;
-                if (cond_itr.first.empty()) {
-                    report = &t.find("msvc-runtime");
-                } else {
-                    report = &t.find(cond_itr.first).as_table().find("msvc-runtime").value();
-                }
-                throw_key_error(msvc_runtime_error(cond_itr.second), cond_itr.second, *report);
-            }
-            }
-        }
-
-        t.optional("condition", target.condition);
-        t.optional("alias", target.alias);
-
-        if (t.contains("properties")) {
-            auto store_property = [&target](const toml::key &k, const TomlBasicValue &v, const std::string &condition) {
-                if (v.is_array()) {
-                    std::string property_list;
-                    for (const auto &list_val : v.as_array()) {
-                        if (!property_list.empty()) {
-                            property_list += ';';
-                        }
-                        property_list += list_val.as_string();
-                    }
-                    target.properties[condition][k] = property_list;
-                } else if (v.is_integer()) {
-                    target.properties[condition][k] = std::to_string(v.as_integer());
-                } else if (v.is_boolean()) {
-                    target.properties[condition][k] = v.as_boolean() ? "ON" : "OFF";
-                } else {
-                    target.properties[condition][k] = v.as_string();
-                }
+                } return true;
             };
 
-            const auto &props = t.find("properties").as_table();
-            for (const auto &propKv : props) {
-                const auto &k = propKv.first;
-                const auto &v = propKv.second;
-                if (v.is_table()) {
-                    for (const auto &condKv : v.as_table()) {
-                        store_property(condKv.first, condKv.second, k);
+            // https://cmake.org/cmake/help/latest/command/string.html#supported-hash-algorithms
+            tsl::ordered_set<std::string> hash_algorithms = {
+                "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "sha3_224", "sha3_256", "sha3_384", "sha3_512",
+            };
+
+            auto key = argItr.first;
+            if (key == "git") {
+                key = "GIT_REPOSITORY";
+            } else if (key == "tag") {
+                key = "GIT_TAG";
+            } else if (key == "shallow") {
+                key = "GIT_SHALLOW";
+            } else if (key == "svn") {
+                key = "SVN_REPOSITORY";
+            } else if (key == "rev") {
+                key = "SVN_REVISION";
+            } else if (key == "url") {
+                key = "URL";
+            } else if (hash_algorithms.contains(key)) {
+                std::string algo;
+                for (auto ch : key) {
+                    if (ch >= 'a' && ch <= 'z') {
+                        ch -= ('a' - 'A');
                     }
-                } else {
-                    store_property(k, v, "");
+                    algo.push_back(ch);
                 }
+                key = "URL_HASH";
+                if (value.empty()) {
+                    throw_key_error("Empty hash value", argItr.first, argItr.second);
+                }
+                for (unsigned char c : value) {
+                    if (!std::isxdigit(c)) {
+                        throw_key_error("Hash value must be a hex string", argItr.first, argItr.second);
+                    }
+                }
+                value = algo + "=" + value;
+            } else if (key == "hash") {
+                key = "URL_HASH";
+            } else if (key == "subdir") {
+                key = "SOURCE_SUBDIR";
+            } else if (is_cmake_arg(key)) {
+                // allow passthrough of ExternalProject options
+            } else if (!c.visisted(key)) {
+                throw_key_error("Unknown key '" + argItr.first + "'", argItr.first, argItr.second);
+            }
+
+            // Make sure not to emit keys like "condition" in the FetchContent call
+            if (!c.visisted(key)) {
+                content.arguments.emplace(key, value);
+            }
+
+            c.visit(argItr.first);
+        }
+        contents.emplace_back(std::move(content));
+    }
+}
+
+if (checker.contains("bin")) {
+    throw_key_error("[[bin]] has been renamed to [target.<name>]", "", toml.at("bin"));
+}
+
+auto parse_target = [&](const std::string &name, TomlChecker &t, bool isTemplate) {
+    Target target;
+    target.name = name;
+
+    t.required("type", target.type_name);
+    target.type = parse_targetType(target.type_name);
+
+    // Users cannot set this target type
+    if (target.type == target_template) {
+        target.type = target_last;
+    }
+
+    if (!isTemplate && target.type == target_last) {
+        for (const auto &tmplate : templates) {
+            if (target.type_name == tmplate.outline.name) {
+                target.type = target_template;
+                break;
             }
         }
+    }
 
-        t.optional("cmake-before", target.cmake_before);
-        t.optional("cmake-after", target.cmake_after);
-        t.optional("include-before", target.include_before);
-        t.optional("include-after", target.include_after);
-
-        return target;
-    };
-
-    if (checker.contains("template")) {
-        const auto &ts = toml::find(toml, "template").as_table();
-        for (const auto &itr : ts) {
-            auto &t = checker.create(itr.second);
-            const auto &name = itr.first;
-
-            for (const auto &type_name : targetTypeNames) {
-                if (name == type_name) {
-                    throw_key_error("Reserved template name '" + name + "'", name, itr.second);
-                }
+    if (target.type == target_last) {
+        std::string error = "Unknown target type '" + target.type_name + "'\n";
+        error += "Available types:\n";
+        for (std::string type_name : targetTypeNames) {
+            if (type_name != "template") {
+                error += "  - " + type_name + "\n";
             }
-
+        }
+        if (!isTemplate && !templates.empty()) {
+            error += "Available templates:\n";
             for (const auto &tmplate : templates) {
-                if (name == tmplate.outline.name) {
-                    throw_key_error("Template '" + name + "' already defined", name, itr.second);
-                }
+                error += "  - " + tmplate.outline.name + "\n";
             }
+        }
+        error.pop_back(); // Remove last newline
+        throw_key_error(error, target.type_name, t.find("type"));
+    }
 
-            Template tmplate;
-            tmplate.outline = parse_target(name, t, true);
+    const auto resolved_target_type = resolve_target_type(target, templates);
 
-            t.optional("add-function", tmplate.add_function);
-            t.optional("add-arguments", tmplate.add_arguments);
-            t.optional("pass-sources-to-add-function", tmplate.pass_sources_to_add_function);
-            t.optional("pass-sources", tmplate.pass_sources_to_add_function);
+    t.optional("sources", target.sources);
 
-            templates.push_back(tmplate);
+    // Merge the headers into the sources
+    ConditionVector headers;
+    t.optional("headers", headers);
+    for (const auto &itr : headers) {
+        auto &dest = target.sources[itr.first];
+        for (const auto &jtr : itr.second) {
+            dest.push_back(jtr);
         }
     }
 
-    if (checker.contains("target")) {
-        const auto &ts = toml::find(toml, "target").as_table();
-        for (const auto &itr : ts) {
-            auto &t = checker.create(itr.second);
-            targets.push_back(parse_target(itr.first, t, false));
-        }
-    }
+    // These keys configure compilation/linking, which doesn't apply to add_custom_target. Leaving them
+    // unvisited for type = "custom" lets the generic "Unknown key" check below reject them.
+    if (resolved_target_type != target_custom) {
+        t.optional("compile-definitions", target.compile_definitions);
+        t.optional("private-compile-definitions", target.private_compile_definitions);
 
-    if (checker.contains("test")) {
-        const auto &ts = toml::find(toml, "test").as_array();
-        for (const auto &value : ts) {
-            auto &t = checker.create(value);
-            Test test;
-            t.required("name", test.name);
-            t.optional("condition", test.condition);
-            t.optional("configurations", test.configurations);
-            t.optional("working-directory", test.working_directory);
-            t.required("command", test.command);
-            t.optional("arguments", test.arguments);
-            tests.push_back(test);
-        }
-    }
+        t.optional("compile-features", target.compile_features);
+        t.optional("private-compile-features", target.private_compile_features);
 
-    if (checker.contains("install")) {
-        const auto &is = toml::find(toml, "install").as_array();
-        for (const auto &value : is) {
-            auto &i = checker.create(value);
-            Install inst;
-            i.optional("condition", inst.condition);
-            i.optional("targets", inst.targets);
-            i.optional("files", inst.files);
-            i.optional("dirs", inst.dirs);
-            i.optional("configs", inst.configs);
-            i.required("destination", inst.destination);
-            i.optional("component", inst.component);
-            i.optional("optional", inst.optional);
-            installs.push_back(inst);
-        }
-    }
+        t.optional("compile-options", target.compile_options);
+        t.optional("private-compile-options", target.private_compile_options);
 
-    if (checker.contains("vcpkg")) {
-        auto &v = checker.create(toml, "vcpkg");
-        v.optional("url", vcpkg.url);
-        v.optional("version", vcpkg.version);
+        t.optional("include-directories", target.include_directories);
+        t.optional("private-include-directories", target.private_include_directories);
 
-        for (const auto &p : v.find("packages").as_array()) {
-            Vcpkg::Package package;
-            const auto &package_str = p.as_string().str;
-            const auto open_bracket = package_str.find('[');
-            const auto close_bracket = package_str.find(']', open_bracket);
-            if (open_bracket == std::string::npos && close_bracket == std::string::npos) {
-                package.name = package_str;
-            } else if (close_bracket != std::string::npos) {
-                package.name = package_str.substr(0, open_bracket);
-                const auto features = package_str.substr(open_bracket + 1, close_bracket - open_bracket - 1);
-                std::istringstream feature_stream{features};
-                std::string feature;
-                while (std::getline(feature_stream, feature, ',')) {
-                    // Disable default features with package-name[core,feature1]
-                    if (feature == "core") {
-                        package.default_features = false;
+        t.optional("link-directories", target.link_directories);
+        t.optional("private-link-directories", target.private_link_directories);
+
+        t.optional("link-libraries", target.link_libraries);
+        t.optional("private-link-libraries", target.private_link_libraries);
+
+        // Add support for relative paths for (private-)link-libraries
+        const auto fix_relative_paths = [&name, &path](ConditionVector &libraries, const char *key) {
+            for (const auto &library_entries : libraries) {
+                for (auto &library : libraries[library_entries.first]) {
+                    // Skip processing paths with potential CMake macros in them (this check isn't perfect)
+                    // https://cmake.org/cmake/help/latest/manual/cmake-language.7.html#variable-references
+                    if ((library.find("${") != std::string::npos || library.find("$ENV{") != std::string::npos ||
+                         library.find("$CACHE{") != std::string::npos) &&
+                        library.find('}') != std::string::npos) {
+                        continue;
+                    }
+
+                    auto library_path = fs::path(path) / library;
+                    if (fs::exists(library_path)) {
+                        if (!fs::is_directory(library_path)) {
+                            // If the file path is relative (and not a directory), prepend ${CMAKE_CURRENT_SOURCE_DIR}
+                            library.insert(0, "${CMAKE_CURRENT_SOURCE_DIR}/");
+                        }
+                    } else if (library.find_first_of(R"(\/)") != std::string::npos) {
+                        // Error if the path contains a directory separator and the file doesn't exist
+                        throw std::runtime_error("Attempted to link against a library file that doesn't exist for target \"" + name + "\" in \"" +
+                                                 key + "\": " + library);
                     } else {
-                        package.features.emplace_back(feature);
+                        // NOTE: We cannot check if system libraries exist, so we leave them as-is
                     }
+                }
+            }
+        };
+        fix_relative_paths(target.link_libraries, "link-libraries");
+        fix_relative_paths(target.private_link_libraries, "private-link-libraries");
+
+        t.optional("link-options", target.link_options);
+        t.optional("private-link-options", target.private_link_options);
+
+        t.optional("precompile-headers", target.precompile_headers);
+        t.optional("private-precompile-headers", target.private_precompile_headers);
+    }
+
+    t.optional("dependencies", target.dependencies);
+
+    if (t.contains("all")) {
+        target.custom_target.has_all = true;
+        target.custom_target.all = t.find("all").as_boolean();
+    }
+
+    if (t.contains("command")) {
+        target.custom_target.has_command = true;
+        auto commands = parse_command_arguments(t.find("command"), "command");
+        for (auto &command : commands) {
+            target.custom_target.commands.push_back(std::move(command));
+        }
+    }
+
+    if (t.contains("commands")) {
+        target.custom_target.has_commands = true;
+        auto commands = parse_command_arguments(t.find("commands"), "commands");
+        for (auto &command : commands) {
+            target.custom_target.commands.push_back(std::move(command));
+        }
+    }
+
+    t.optional("depends", target.custom_target.depends);
+    t.optional("byproducts", target.custom_target.byproducts);
+
+    if (t.contains("working-directory")) {
+        target.custom_target.has_working_directory = true;
+        target.custom_target.working_directory = t.find("working-directory").as_string();
+    }
+
+    if (t.contains("comment")) {
+        target.custom_target.has_comment = true;
+        target.custom_target.comment = t.find("comment").as_string();
+    }
+
+    if (t.contains("job-pool")) {
+        target.custom_target.has_job_pool = true;
+        target.custom_target.job_pool = t.find("job-pool").as_string();
+    }
+
+    if (t.contains("job-server-aware")) {
+        target.custom_target.has_job_server_aware = true;
+        target.custom_target.job_server_aware = t.find("job-server-aware").as_boolean();
+    }
+
+    if (t.contains("verbatim")) {
+        target.custom_target.has_verbatim = true;
+        target.custom_target.verbatim = t.find("verbatim").as_boolean();
+    }
+
+    if (t.contains("uses-terminal")) {
+        target.custom_target.has_uses_terminal = true;
+        target.custom_target.uses_terminal = t.find("uses-terminal").as_boolean();
+    }
+
+    if (t.contains("command-expand-lists")) {
+        target.custom_target.has_command_expand_lists = true;
+        target.custom_target.command_expand_lists = t.find("command-expand-lists").as_boolean();
+    }
+
+    if (t.contains("custom-command")) {
+        const auto &custom_commands = t.find("custom-command");
+        if (!custom_commands.is_array()) {
+            throw_key_error("Expected an array of tables", "custom-command", custom_commands);
+        }
+        for (const auto &custom_command_value : custom_commands.as_array()) {
+            if (!custom_command_value.is_table()) {
+                throw_key_error("Expected an array of tables", "custom-command", custom_command_value);
+            }
+
+            auto &custom = checker.create(custom_command_value);
+            Target::CustomCommand custom_command;
+
+            custom.optional("condition", custom_command.condition);
+
+            if (custom.contains("command")) {
+                auto commands = parse_command_arguments(custom.find("command"), "command");
+                for (auto &command : commands) {
+                    custom_command.commands.push_back(std::move(command));
+                }
+            }
+
+            if (custom.contains("commands")) {
+                auto commands = parse_command_arguments(custom.find("commands"), "commands");
+                for (auto &command : commands) {
+                    custom_command.commands.push_back(std::move(command));
+                }
+            }
+
+            custom.optional("outputs", custom_command.outputs);
+
+            if (custom.contains("build-event")) {
+                custom_command.build_event = normalize_build_event(custom.find("build-event").as_string());
+            }
+
+            if (custom.contains("append")) {
+                custom_command.has_append = true;
+                custom_command.append = custom.find("append").as_boolean();
+            }
+
+            if (custom.contains("main-dependency")) {
+                custom_command.has_main_dependency = true;
+                custom_command.main_dependency = custom.find("main-dependency").as_string();
+            }
+
+            custom.optional("depends", custom_command.depends);
+            custom.optional("byproducts", custom_command.byproducts);
+
+            if (custom.contains("implicit-depends")) {
+                custom_command.implicit_depends = parse_implicit_dependencies(custom.find("implicit-depends"), "implicit-depends");
+            }
+
+            if (custom.contains("working-directory")) {
+                custom_command.has_working_directory = true;
+                custom_command.working_directory = custom.find("working-directory").as_string();
+            }
+
+            if (custom.contains("comment")) {
+                custom_command.has_comment = true;
+                custom_command.comment = custom.find("comment").as_string();
+            }
+
+            if (custom.contains("depfile")) {
+                custom_command.has_depfile = true;
+                custom_command.depfile = custom.find("depfile").as_string();
+            }
+
+            if (custom.contains("job-pool")) {
+                custom_command.has_job_pool = true;
+                custom_command.job_pool = custom.find("job-pool").as_string();
+            }
+
+            if (custom.contains("job-server-aware")) {
+                custom_command.has_job_server_aware = true;
+                custom_command.job_server_aware = custom.find("job-server-aware").as_boolean();
+            }
+
+            if (custom.contains("verbatim")) {
+                custom_command.has_verbatim = true;
+                custom_command.verbatim = custom.find("verbatim").as_boolean();
+            }
+
+            if (custom.contains("uses-terminal")) {
+                custom_command.has_uses_terminal = true;
+                custom_command.uses_terminal = custom.find("uses-terminal").as_boolean();
+            }
+
+            if (custom.contains("codegen")) {
+                custom_command.has_codegen = true;
+                custom_command.codegen = custom.find("codegen").as_boolean();
+            }
+
+            if (custom.contains("command-expand-lists")) {
+                custom_command.has_command_expand_lists = true;
+                custom_command.command_expand_lists = custom.find("command-expand-lists").as_boolean();
+            }
+
+            if (custom.contains("depends-explicit-only")) {
+                custom_command.has_depends_explicit_only = true;
+                custom_command.depends_explicit_only = custom.find("depends-explicit-only").as_boolean();
+            }
+
+            if (custom_command.is_output_form() == custom_command.is_target_form()) {
+                throw_key_error("Specify exactly one of outputs or build-event", "custom-command", custom_command_value);
+            }
+
+            if (custom_command.is_target_form()) {
+                if (custom_command.build_event != "PRE_BUILD" && custom_command.build_event != "PRE_LINK" &&
+                    custom_command.build_event != "POST_BUILD") {
+                    throw_key_error("build-event must be one of: pre-build, pre-link, post-build", "build-event", custom.find("build-event"));
+                }
+                if (resolved_target_type == target_interface) {
+                    throw_key_error("build-event cannot be used with type = \"interface\"", "build-event", custom.find("build-event"));
+                }
+                if (resolved_target_type == target_object) {
+                    throw_key_error("build-event cannot be used with type = \"object\"", "build-event", custom.find("build-event"));
+                }
+                if (resolved_target_type == target_custom && custom_command.build_event == "PRE_LINK") {
+                    throw_key_error("build-event = \"pre-link\" cannot be used with type = \"custom\"", "build-event", custom.find("build-event"));
+                }
+                if (custom_command.has_append || custom_command.has_main_dependency || !custom_command.depends.empty() ||
+                    !custom_command.implicit_depends.empty() || custom_command.has_depfile || custom_command.has_job_pool ||
+                    custom_command.has_job_server_aware || custom_command.has_codegen || custom_command.has_depends_explicit_only) {
+                    throw_key_error("Unsupported option for TARGET custom commands", "custom-command", custom_command_value);
                 }
             } else {
-                throw_key_error("Invalid package name '" + package_str + "'", "packages", p);
+                if (custom_command.has_depfile && !custom_command.implicit_depends.empty()) {
+                    throw_key_error("depfile cannot be used with implicit-depends", "depfile", custom.find("depfile"));
+                }
+                if (custom_command.has_job_pool && custom_command.has_uses_terminal && custom_command.uses_terminal) {
+                    throw_key_error("job-pool cannot be used with uses-terminal", "job-pool", custom.find("job-pool"));
+                }
+                if (custom_command.append &&
+                    (custom_command.has_depfile || custom_command.has_job_pool || custom_command.has_job_server_aware || custom_command.has_codegen ||
+                     custom_command.has_command_expand_lists || custom_command.has_uses_terminal || custom_command.has_verbatim ||
+                     custom_command.has_depends_explicit_only || !custom_command.byproducts.empty())) {
+                    throw_key_error("append cannot be used with depfile, job-pool, job-server-aware, codegen, command-expand-lists, "
+                                    "uses-terminal, verbatim, depends-explicit-only, or byproducts",
+                                    "append", custom.find("append"));
+                }
             }
-            vcpkg.packages.emplace_back(std::move(package));
-        }
 
-        if (v.contains("overlay")) {
-            std::string overlay;
-            v.optional("overlay", overlay);
-            vcpkg.overlay_triplets = vcpkg.overlay_ports = {overlay};
-            if (v.contains("overlay-ports")) {
-                throw_key_error("[vcpkg].overlay was already specified", "overlay-ports", v.find("overlay-ports"));
+            if (custom_command.is_output_form() && custom_command.append && custom_command.commands.empty() && custom_command.depends.empty()) {
+                throw_key_error("append requires at least one command or depends", "append", custom.find("append"));
             }
-            if (v.contains("overlay-triplets")) {
-                throw_key_error("[vcpkg].overlay was already specified", "overlay-triplets", v.find("overlay-triplets"));
+
+            if (custom_command.commands.empty() && !(custom_command.is_output_form() && custom_command.append && !custom_command.depends.empty())) {
+                throw_key_error("At least one command is required", "custom-command", custom_command_value);
             }
-        } else {
-            v.optional("overlay-ports", vcpkg.overlay_ports);
-            v.optional("overlay-triplets", vcpkg.overlay_triplets);
+
+            target.custom_commands.push_back(std::move(custom_command));
         }
     }
 
-    checker.check(conditions, true);
+    if (resolved_target_type == target_custom && target.custom_target.has_job_pool && target.custom_target.has_uses_terminal &&
+        target.custom_target.uses_terminal) {
+        throw_key_error("job-pool cannot be used with uses-terminal", "job-pool", t.find("job-pool"));
+    }
+
+    if (resolved_target_type != target_custom && !target.custom_target.empty()) {
+        const char *custom_key = "all";
+        if (target.custom_target.has_command) {
+            custom_key = "command";
+        } else if (target.custom_target.has_commands) {
+            custom_key = "commands";
+        } else if (!target.custom_target.depends.empty()) {
+            custom_key = "depends";
+        } else if (!target.custom_target.byproducts.empty()) {
+            custom_key = "byproducts";
+        } else if (target.custom_target.has_working_directory) {
+            custom_key = "working-directory";
+        } else if (target.custom_target.has_comment) {
+            custom_key = "comment";
+        } else if (target.custom_target.has_job_pool) {
+            custom_key = "job-pool";
+        } else if (target.custom_target.has_job_server_aware) {
+            custom_key = "job-server-aware";
+        } else if (target.custom_target.has_verbatim) {
+            custom_key = "verbatim";
+        } else if (target.custom_target.has_uses_terminal) {
+            custom_key = "uses-terminal";
+        } else if (target.custom_target.has_command_expand_lists) {
+            custom_key = "command-expand-lists";
+        }
+        throw_key_error("Custom target options can only be used with type = \"custom\"", custom_key, t.find(custom_key));
+    }
+
+    Condition<std::string> msvc_runtime;
+    t.optional("msvc-runtime", msvc_runtime);
+    for (const auto &cond_itr : msvc_runtime) {
+        switch (parse_msvcRuntimeType(cond_itr.second)) {
+        case msvc_dynamic:
+            target.properties[cond_itr.first]["MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL";
+            break;
+        case msvc_static:
+            target.properties[cond_itr.first]["MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>";
+            break;
+        default: {
+            const TomlBasicValue *report;
+            if (cond_itr.first.empty()) {
+                report = &t.find("msvc-runtime");
+            } else {
+                report = &t.find(cond_itr.first).as_table().find("msvc-runtime").value();
+            }
+            throw_key_error(msvc_runtime_error(cond_itr.second), cond_itr.second, *report);
+        }
+        }
+    }
+
+    t.optional("condition", target.condition);
+    t.optional("alias", target.alias);
+
+    if (t.contains("properties")) {
+        auto store_property = [&target](const toml::key &k, const TomlBasicValue &v, const std::string &condition) {
+            if (v.is_array()) {
+                std::string property_list;
+                for (const auto &list_val : v.as_array()) {
+                    if (!property_list.empty()) {
+                        property_list += ';';
+                    }
+                    property_list += list_val.as_string();
+                }
+                target.properties[condition][k] = property_list;
+            } else if (v.is_integer()) {
+                target.properties[condition][k] = std::to_string(v.as_integer());
+            } else if (v.is_boolean()) {
+                target.properties[condition][k] = v.as_boolean() ? "ON" : "OFF";
+            } else {
+                target.properties[condition][k] = v.as_string();
+            }
+        };
+
+        const auto &props = t.find("properties").as_table();
+        for (const auto &propKv : props) {
+            const auto &k = propKv.first;
+            const auto &v = propKv.second;
+            if (v.is_table()) {
+                for (const auto &condKv : v.as_table()) {
+                    store_property(condKv.first, condKv.second, k);
+                }
+            } else {
+                store_property(k, v, "");
+            }
+        }
+    }
+
+    t.optional("cmake-before", target.cmake_before);
+    t.optional("cmake-after", target.cmake_after);
+    t.optional("include-before", target.include_before);
+    t.optional("include-after", target.include_after);
+
+    return target;
+};
+
+if (checker.contains("template")) {
+    const auto &ts = toml::find(toml, "template").as_table();
+    for (const auto &itr : ts) {
+        auto &t = checker.create(itr.second);
+        const auto &name = itr.first;
+
+        for (const auto &type_name : targetTypeNames) {
+            if (name == type_name) {
+                throw_key_error("Reserved template name '" + name + "'", name, itr.second);
+            }
+        }
+
+        for (const auto &tmplate : templates) {
+            if (name == tmplate.outline.name) {
+                throw_key_error("Template '" + name + "' already defined", name, itr.second);
+            }
+        }
+
+        Template tmplate;
+        tmplate.outline = parse_target(name, t, true);
+
+        t.optional("add-function", tmplate.add_function);
+        t.optional("add-arguments", tmplate.add_arguments);
+        t.optional("pass-sources-to-add-function", tmplate.pass_sources_to_add_function);
+        t.optional("pass-sources", tmplate.pass_sources_to_add_function);
+
+        templates.push_back(tmplate);
+    }
+}
+
+if (checker.contains("target")) {
+    const auto &ts = toml::find(toml, "target").as_table();
+    for (const auto &itr : ts) {
+        auto &t = checker.create(itr.second);
+        targets.push_back(parse_target(itr.first, t, false));
+    }
+}
+
+if (checker.contains("test")) {
+    const auto &ts = toml::find(toml, "test").as_array();
+    for (const auto &value : ts) {
+        auto &t = checker.create(value);
+        Test test;
+        t.required("name", test.name);
+        t.optional("condition", test.condition);
+        t.optional("configurations", test.configurations);
+        t.optional("working-directory", test.working_directory);
+        t.required("command", test.command);
+        t.optional("arguments", test.arguments);
+        tests.push_back(test);
+    }
+}
+
+if (checker.contains("install")) {
+    const auto &is = toml::find(toml, "install").as_array();
+    for (const auto &value : is) {
+        auto &i = checker.create(value);
+        Install inst;
+        i.optional("condition", inst.condition);
+        i.optional("targets", inst.targets);
+        i.optional("files", inst.files);
+        i.optional("dirs", inst.dirs);
+        i.optional("configs", inst.configs);
+        i.required("destination", inst.destination);
+        i.optional("component", inst.component);
+        i.optional("optional", inst.optional);
+        installs.push_back(inst);
+    }
+}
+
+if (checker.contains("vcpkg")) {
+    auto &v = checker.create(toml, "vcpkg");
+    v.optional("url", vcpkg.url);
+    v.optional("version", vcpkg.version);
+
+    for (const auto &p : v.find("packages").as_array()) {
+        Vcpkg::Package package;
+        const auto &package_str = p.as_string().str;
+        const auto open_bracket = package_str.find('[');
+        const auto close_bracket = package_str.find(']', open_bracket);
+        if (open_bracket == std::string::npos && close_bracket == std::string::npos) {
+            package.name = package_str;
+        } else if (close_bracket != std::string::npos) {
+            package.name = package_str.substr(0, open_bracket);
+            const auto features = package_str.substr(open_bracket + 1, close_bracket - open_bracket - 1);
+            std::istringstream feature_stream{features};
+            std::string feature;
+            while (std::getline(feature_stream, feature, ',')) {
+                // Disable default features with package-name[core,feature1]
+                if (feature == "core") {
+                    package.default_features = false;
+                } else {
+                    package.features.emplace_back(feature);
+                }
+            }
+        } else {
+            throw_key_error("Invalid package name '" + package_str + "'", "packages", p);
+        }
+        vcpkg.packages.emplace_back(std::move(package));
+    }
+
+    if (v.contains("overlay")) {
+        std::string overlay;
+        v.optional("overlay", overlay);
+        vcpkg.overlay_triplets = vcpkg.overlay_ports = {overlay};
+        if (v.contains("overlay-ports")) {
+            throw_key_error("[vcpkg].overlay was already specified", "overlay-ports", v.find("overlay-ports"));
+        }
+        if (v.contains("overlay-triplets")) {
+            throw_key_error("[vcpkg].overlay was already specified", "overlay-triplets", v.find("overlay-triplets"));
+        }
+    } else {
+        v.optional("overlay-ports", vcpkg.overlay_ports);
+        v.optional("overlay-triplets", vcpkg.overlay_triplets);
+    }
+}
+
+checker.check(conditions, true);
 }
 
 const Project *Project::root() const {
@@ -1308,11 +1305,11 @@ bool Project::cmake_minimum_version(int major, int minor) const {
 }
 
 bool Project::is_condition_name(const std::string &name) {
-        for (unsigned char ch : name) {
-            if (!std::isalnum(ch) && ch != '-' && ch != '_') {
-                return false;
-            }
+    for (unsigned char ch : name) {
+        if (!std::isalnum(ch) && ch != '-' && ch != '_') {
+            return false;
         }
+    }
     return true;
 }
 
