@@ -89,3 +89,9 @@ name = "protobuf"
 working-directory = "protobuf"
 command = "$<TARGET_FILE:cmkr>"
 arguments = ["build"]
+
+[[test]]
+name = "startup-project"
+working-directory = "startup-project"
+command = "$<TARGET_FILE:cmkr>"
+arguments = ["build"]

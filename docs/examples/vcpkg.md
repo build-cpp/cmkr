@@ -19,7 +19,7 @@ description = "Dependencies from vcpkg"
 # See https://github.com/microsoft/vcpkg/releases for vcpkg versions
 # See https://vcpkg.io/en/packages or https://vcpkg.link for available packages
 [vcpkg]
-version = "2024.11.16"
+version = "2026.07.29"
 packages = ["fmt"]
 
 [find-package.fmt]

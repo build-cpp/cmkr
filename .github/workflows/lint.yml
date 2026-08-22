@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: clang-format
         id: clang-format
@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run editorconfig-checker
         uses: editorconfig-checker/action-editorconfig-checker@27dd658c2b1282c7f1f4dc242cdf0f6d8af728ab # master 2025-05-30

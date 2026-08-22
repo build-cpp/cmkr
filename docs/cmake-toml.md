@@ -160,8 +160,8 @@ Variables emit a [`set`](https://cmake.org/cmake/help/latest/command/set.html) a
 
 ```toml
 [vcpkg]
-version = "2024.11.16"
-url = "https://github.com/microsoft/vcpkg/archive/refs/tags/2024.11.16.tar.gz"
+version = "2026.07.29"
+url = "https://github.com/microsoft/vcpkg/archive/refs/tags/2026.07.29.tar.gz"
 packages = ["fmt", "zlib"]
 overlay-ports = ["my-ports"]
 overlay-triplets = ["my-triplets"]
