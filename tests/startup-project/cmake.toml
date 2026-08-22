@@ -1,0 +1,16 @@
+[project]
+name = "startup-project"
+
+[target.first]
+type = "executable"
+sources = ["main.cpp"]
+
+[target.second]
+type = "executable"
+sources = ["main.cpp"]
+cmake-after = """
+get_directory_property(TEST_VS_STARTUP_PROJECT DIRECTORY "${PROJECT_SOURCE_DIR}" VS_STARTUP_PROJECT)
+if(NOT TEST_VS_STARTUP_PROJECT STREQUAL "first")
+    message(FATAL_ERROR "Expected the first executable to be the Visual Studio startup project, got: ${TEST_VS_STARTUP_PROJECT}")
+endif()
+"""

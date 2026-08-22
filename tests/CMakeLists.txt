@@ -161,3 +161,13 @@ add_test(
 		"$<TARGET_FILE:cmkr>"
 		build
 )
+
+add_test(
+	NAME
+		startup-project
+	WORKING_DIRECTORY
+		"${CMAKE_CURRENT_LIST_DIR}/startup-project"
+	COMMAND
+		"$<TARGET_FILE:cmkr>"
+		build
+)

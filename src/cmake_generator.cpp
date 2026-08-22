@@ -1863,9 +1863,8 @@ void generate_cmake(const char *path, const parser::Project *parent_project) {
             }
 
             // The first executable target will become the Visual Studio startup project
-            // TODO: this is not working properly
             if (target_type == parser::target_executable) {
-                cmd("get_directory_property")("CMKR_VS_STARTUP_PROJECT", "DIRECTORY", "${PROJECT_SOURCE_DIR}", "DEFINITION", "VS_STARTUP_PROJECT");
+                cmd("get_directory_property")("CMKR_VS_STARTUP_PROJECT", "DIRECTORY", "${PROJECT_SOURCE_DIR}", "VS_STARTUP_PROJECT");
                 // clang-format off
                 cmd("if")("NOT", "CMKR_VS_STARTUP_PROJECT");
                     cmd("set_property")("DIRECTORY", "${PROJECT_SOURCE_DIR}", "PROPERTY", "VS_STARTUP_PROJECT", target.name);
