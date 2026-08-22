@@ -363,8 +363,8 @@ static std::string normalize_build_event(std::string build_event) {
     for (auto &ch : build_event) {
         if (ch == '-') {
             ch = '_';
-        } else {
-            ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+        } else if (ch >= 'a' && ch <= 'z') {
+            ch -= 'a' - 'A';
         }
     }
     return build_event;
@@ -380,6 +380,18 @@ static TargetType resolve_target_type(const Target &target, const std::vector<Te
         }
     }
     return target.type;
+}
+
+static std::string msvc_runtime_error(const std::string &runtime) {
+    std::string error = "Unknown runtime '" + runtime + "'\n";
+    error += "Available types:\n";
+    for (const char *type_name : msvcRuntimeTypeNames) {
+        error += "  - ";
+        error += type_name;
+        error += '\n';
+    }
+    error.pop_back(); // Remove last newline
+    return error;
 }
 
 Project::Project(const Project *parent, const std::string &path, bool build) : parent(parent) {
@@ -492,13 +504,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
         if (!msvc_runtime.empty()) {
             project_msvc_runtime = parse_msvcRuntimeType(msvc_runtime);
             if (project_msvc_runtime == msvc_last) {
-                std::string error = "Unknown runtime '" + msvc_runtime + "'\n";
-                error += "Available types:\n";
-                for (std::string type_name : msvcRuntimeTypeNames) {
-                    error += "  - " + type_name + "\n";
-                }
-                error.pop_back(); // Remove last newline
-                throw_key_error(error, msvc_runtime, project.find("msvc-runtime"));
+                throw_key_error(msvc_runtime_error(msvc_runtime), msvc_runtime, project.find("msvc-runtime"));
             }
         }
     }
@@ -729,7 +735,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 }
 
                 auto is_cmake_arg = [](const std::string &s) {
-                    for (auto c : s) {
+                    for (unsigned char c : s) {
                         if (!(std::isdigit(c) || std::isupper(c) || c == '_')) {
                             return false;
                         }
@@ -767,7 +773,7 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                     if (value.empty()) {
                         throw_key_error("Empty hash value", argItr.first, argItr.second);
                     }
-                    for (char c : value) {
+                    for (unsigned char c : value) {
                         if (!std::isxdigit(c)) {
                             throw_key_error("Hash value must be a hex string", argItr.first, argItr.second);
                         }
@@ -1171,19 +1177,13 @@ Project::Project(const Project *parent, const std::string &path, bool build) : p
                 target.properties[cond_itr.first]["MSVC_RUNTIME_LIBRARY"] = "MultiThreaded$<$<CONFIG:Debug>:Debug>";
                 break;
             default: {
-                std::string error = "Unknown runtime '" + cond_itr.second + "'\n";
-                error += "Available types:\n";
-                for (std::string type_name : msvcRuntimeTypeNames) {
-                    error += "  - " + type_name + "\n";
-                }
-                error.pop_back(); // Remove last newline
                 const TomlBasicValue *report;
                 if (cond_itr.first.empty()) {
                     report = &t.find("msvc-runtime");
                 } else {
                     report = &t.find(cond_itr.first).as_table().find("msvc-runtime").value();
                 }
-                throw_key_error(error, cond_itr.second, *report);
+                throw_key_error(msvc_runtime_error(cond_itr.second), cond_itr.second, *report);
             }
             }
         }
@@ -1380,7 +1380,7 @@ bool Project::cmake_minimum_version(int major, int minor) const {
 }
 
 bool Project::is_condition_name(const std::string &name) {
-    for (auto ch : name) {
+    for (unsigned char ch : name) {
         if (!std::isalnum(ch) && ch != '-' && ch != '_') {
             return false;
         }
